@@ -40,8 +40,11 @@ int main(int argc, char **argv, char **env) {
     tfp->open ("vlt_dump.vcd"); // Open the dump file
 #endif
 
+    VerilatedVpi::callCbs(cbStartOfSimulation);
+
     while (!Verilated::gotFinish()) {
-      example->eval();		// Evaluate model
+      example->eval();	            // Evaluate model
+      VerilatedVpi::callValueCbs(); // Evaluate any callbacks
 
       // Toggle clock
       svSetScope(sim_ctrl_0_u);
@@ -54,6 +57,7 @@ int main(int argc, char **argv, char **env) {
 #endif
 
     example->final();
+    VerilatedVpi::callCbs(cbEndOfSimulation);
 
 #if VM_TRACE
     if (tfp) tfp->close();

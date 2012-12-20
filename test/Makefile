@@ -1,6 +1,11 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
-.PHONY : all clean
+VERILOG=../verilog
+
+.PHONY : all test clean
+
+test : all
+	$(VERILOG)/example/examplex +python+$(VERILOG)/example.py +timeout+3000
 
 all :
 	$(MAKE) -C ../c

@@ -2,7 +2,9 @@
 
 include ../test/make.inc
 
-VL_FLAGS=--cc example.v -DEXM_USE_DPI -no-l2name
+OBJ_DIR=example
+
+VL_FLAGS=--cc example.v -DEXM_USE_DPI -no-l2name --Mdir $(OBJ_DIR)
 
 .PHONY : all verilate compile clean
 
@@ -14,7 +16,7 @@ verilate :
 	$(VERILATOR_ROOT)/bin/verilator $(VL_FLAGS) example.cpp
 
 compile:
-	cd obj_dir ; $(MAKE) -f ../Makefile_obj
+	cd $(OBJ_DIR); $(MAKE) -f ../Makefile_obj
 
 clean :
 	rm -rf obj_dir *~ *.pyc

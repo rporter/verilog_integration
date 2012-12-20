@@ -154,22 +154,24 @@ class vpiObject(object) :
 ################################################################################
 
 class signal(vpiObject) :
-  VPI_BINSTR = vpi.vpiBinStrVal  
-  VPI_OCTSTR = vpi.vpiOctStrVal  
-  VPI_DECSTR = vpi.vpiDecStrVal  
-  VPI_HEXSTR = vpi.vpiHexStrVal  
-  VPI_SCLR   = vpi.vpiScalarVal  
-  VPI_INT    = vpi.vpiIntVal     
-  VPI_REAL   = vpi.vpiRealVal    
-  VPI_STR    = vpi.vpiStringVal  
-  VPI_VEC    = vpi.vpiVectorVal  
-  VPI_STRNG  = vpi.vpiStrengthVal
-  VPI_TIME   = vpi.vpiTimeVal    
-  VPI_OBJ    = vpi.vpiObjTypeVal 
-  VPI_NONE   = vpi.vpiSuppressVal
+  vpiBinStrVal   = vpi.vpiBinStrVal  
+  vpiOctStrVal   = vpi.vpiOctStrVal  
+  vpiDecStrVal   = vpi.vpiDecStrVal  
+  vpiHexStrVal   = vpi.vpiHexStrVal  
+  vpiScalarVal   = vpi.vpiScalarVal  
+  vpiIntVal      = vpi.vpiIntVal     
+  vpiRealVal     = vpi.vpiRealVal    
+  vpiStringVal   = vpi.vpiStringVal  
+  vpiVectorVal   = vpi.vpiVectorVal  
+  vpiStrengthVal = vpi.vpiStrengthVal
+  vpiTimeVal     = vpi.vpiTimeVal    
+  vpiObjTypeVal  = vpi.vpiObjTypeVal 
+  vpiSuppressVal = vpi.vpiSuppressVal
+
+  _vpiStringVals = [vpiBinStrVal, vpiOctStrVal, vpiDecStrVal, vpiHexStrVal, vpiStringVal]
 
   # can update this later to accomodate 4 value
-  def __init__(self, handle, rtn=VPI_VEC, _type=None) :
+  def __init__(self, handle, rtn=vpiVectorVal, _type=None) :
     vpiObject.__init__(self, handle)
     self.type = _type
     self.vpi_value = vpi.s_vpi_value()
@@ -188,11 +190,11 @@ class signal(vpiObject) :
   def __repr__(self) :
     return '<' + self.__class__.__name__ + ' ' + self.name + '>'
   def __int__(self) :
-    return self.get_value(format=signal.VPI_INT)
+    return self.get_value(format=signal.vpiIntVal)
   def __float__(self) :
-    return self.get_value(format=signal.VPI_REAL)
+    return self.get_value(format=signal.vpiRealVal)
   def __str__(self) :
-    return self.get_value(format=signal.VPI_STR)
+    return self.get_value(format=signal.vpiStringVal)
   def set_value(self, value, format=None) :
     try :
       value.put(self)
@@ -225,21 +227,21 @@ class signal(vpiObject) :
     return self
 
   def encode(self, value) :
-    if self.vpi_value.format == signal.VPI_INT :
+    if self.vpi_value.format == signal.vpiIntVal :
       self.vpi_value.value.integer = value
-    elif self.vpi_value.format == signal.VPI_VEC :
+    elif self.vpi_value.format == signal.vpiVectorVal :
       if not self.vpi_value.value.vector : self.get_value()
       self.vpi_value.value.vector.aval = value
-    elif self.vpi_value.format == signal.VPI_STR :
+    elif self.vpi_value.format == signal._vpiStringVals :
       self.vpi_value.value.str = value
 
   @classmethod
   def decode(cls, vpi_value) :
-    if vpi_value.format == signal.VPI_INT :
+    if vpi_value.format == signal.vpiIntVal :
       return vpi_value.value.integer
-    if vpi_value.format == signal.VPI_VEC :
+    if vpi_value.format == signal.vpiVectorVal :
       return vpi_value.value.vector.aval
-    if vpi_value.format == signal.VPI_STR :
+    if vpi_value.format in signal._vpiStringVals :
       return vpi_value.value.str.strip()
     return None
 
@@ -276,6 +278,38 @@ class scope(vpiObject) :
 
 class callback(object) :
   callbacks = list()
+
+  cbValueChange            = vpi.cbValueChange            
+  cbStmt                   = vpi.cbStmt                   
+  cbForce                  = vpi.cbForce                  
+  cbRelease                = vpi.cbRelease                
+  cbAtStartOfSimTime       = vpi.cbAtStartOfSimTime       
+  cbReadWriteSynch         = vpi.cbReadWriteSynch         
+  cbReadOnlySynch          = vpi.cbReadOnlySynch          
+  cbNextSimTime            = vpi.cbNextSimTime            
+  cbAfterDelay             = vpi.cbAfterDelay             
+  cbEndOfCompile           = vpi.cbEndOfCompile           
+  cbStartOfSimulation      = vpi.cbStartOfSimulation      
+  cbEndOfSimulation        = vpi.cbEndOfSimulation        
+  cbError                  = vpi.cbError                  
+  cbTchkViolation          = vpi.cbTchkViolation          
+  cbStartOfSave            = vpi.cbStartOfSave            
+  cbEndOfSave              = vpi.cbEndOfSave              
+  cbStartOfRestart         = vpi.cbStartOfRestart         
+  cbEndOfRestart           = vpi.cbEndOfRestart           
+  cbStartOfReset           = vpi.cbStartOfReset           
+  cbEndOfReset             = vpi.cbEndOfReset             
+  cbEnterInteractive       = vpi.cbEnterInteractive       
+  cbExitInteractive        = vpi.cbExitInteractive        
+  cbInteractiveScopeChange = vpi.cbInteractiveScopeChange 
+  cbUnresolvedSystf        = vpi.cbUnresolvedSystf        
+  cbAssign                 = vpi.cbAssign                 
+  cbDeassign               = vpi.cbDeassign               
+  cbDisable                = vpi.cbDisable                
+  cbPLIError               = vpi.cbPLIError               
+  cbSignal                 = vpi.cbSignal                 
+  cbNBASynch               = vpi.cbNBASynch               
+  cbAtEndOfSimTime         = vpi.cbAtEndOfSimTime         
 
   def __init__(self, obj=None, func=None, name=None, cb_filter=None, reason=vpi.cbValueChange, **kwargs) :
     for attr, val in kwargs.iteritems() :
@@ -338,7 +372,7 @@ class callback(object) :
     self.callbacks.remove(self)
     message.note('callback "%(name)s" called %(cnt)d times, filtered %(filtered)d, exceptions raised %(excepted)d', cnt=self.cnt, filtered=self.filtered, excepted=self.excepted, name=self.name)
 
-  def __delete__(self) :
+  def __del__(self) :
     self.remove()
 
   @staticmethod
@@ -364,10 +398,10 @@ class plusargs(object) :
 
 class vpiChkErrorCb(callback) :
   def __init__(self) :
-    callback.__init__(self, name='PLI error callback', reason=vpi.cbPLIError)
+    callback.__init__(self, name='PLI error callback', reason=vpi.cbPLIError, func=self.execute)
 
   def execute(self) :
-    print 'cb'
     self.vpi_chk_error = vpiChkError(True)
 
-PLIError = vpiChkErrorCb()
+# install pli error callback
+PLIErrorcb = vpiChkErrorCb()
