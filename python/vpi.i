@@ -37,7 +37,7 @@ int _cbwrap_cb(p_cb_data cbp) {
       PyErr_SetString(PyExc_TypeError, "Need a callable object!");
       return;
     }
-    self->cb_rtn=(PLI_INT32 (void*)(struct t_cb_data*))_cbwrap_cb;
+    self->cb_rtn=(PLI_INT32 (*)(struct t_cb_data*))_cbwrap_cb;
     self->user_data=(PLI_BYTE8*)pyfunc;
     Py_INCREF(pyfunc);
   }
