@@ -4,7 +4,9 @@ include make.inc
 
 VERILOG=../verilog
 
-.PHONY : build verilog iverilog verilate cver clean
+.PHONY : all build verilog iverilog verilate cver clean
+
+all : iverilog verilate
 
 iverilog : iverilog-build
 	$(IRUN) -m ../c/libexm_vpi.so example.iverilog +python+$(VERILOG)/example.py +timeout+3000

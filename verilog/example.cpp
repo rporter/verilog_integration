@@ -31,6 +31,7 @@ int main(int argc, char **argv, char **env) {
 
     Verilated::commandArgs(argc, argv);
     Verilated::debug(0);
+    Verilated::fatalOnVpiError(0);
 
 #if VM_TRACE                    // If verilator was invoked with --trace
     Verilated::traceEverOn(true);       // Verilator must compute traced signals
