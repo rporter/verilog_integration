@@ -3,9 +3,11 @@
 PY_LDFLAGS?=$(shell python-config --libs)
 PY_CFLAGS?=$(shell python-config --includes)
 
-TOOL_ROOT=/enalvo/ap
+TOOL_ROOT?=/enalvo/ap
 
-CVER_HOME?=$(TOOL_ROOT)/cver/2.12a-p3
+IVERILOG_ROOT=/enalvo/ap/iverilog/20120501
+IBUILD=$(IVERILOG_ROOT)/bin/iverilog
+IRUN=$(IVERILOG_ROOT)/bin/vvp
 
 #VERILATOR_ROOT?=$(TOOL_ROOT)/verilator/3.844-dev
 VERILATOR_ROOT?=/enalvo/work/rporter/3.844-dev

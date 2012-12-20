@@ -17,7 +17,8 @@ int exm_python_vpi(char* arg) {
 }
 
 static s_vpi_systf_data vpi_systf_data[] = {
-  {vpiSysTask, 0, (PLI_BYTE8*)"$exm_python", (PLI_INT32(*)(PLI_BYTE8*))exm_python_vpi, 0, 0, 0}
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_python", (PLI_INT32(*)(PLI_BYTE8*))exm_python_vpi, 0, 0, 0},
+  0
 };
 
 // cver entry

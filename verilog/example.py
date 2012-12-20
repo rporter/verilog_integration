@@ -4,7 +4,11 @@ import atexit
 import message
 import verilog
 
-simctrl = verilog.scope('TOP.example.simctrl_0_u')
+scopename = 'example.simctrl_0_u'
+if verilog.vpiInfo().product == 'Verilator' :
+  scopename = 'TOP.' + scopename
+
+simctrl = verilog.scope(scopename)
 
 if verilog.plusargs().timeout :
   simctrl.direct.sim_ctrl_timeout_i = verilog.vpiBinStr(verilog.plusargs().timeout)

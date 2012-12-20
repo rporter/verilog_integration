@@ -117,14 +117,14 @@ module duv (
   input duv_rst_ip
 ); // duv
    
-endmodule : duv;
+endmodule : duv
 
 module duv_grey_box (
   input duv_clk_ip,
   input duv_rst_ip
 ); // duv_grey_box
    
-endmodule : duv_grey_box;
+endmodule : duv_grey_box
 
 module example;
 

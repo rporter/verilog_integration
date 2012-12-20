@@ -23,6 +23,16 @@ class lazyProperty(object):
 
 ################################################################################
 
+class vpiInfo(object) :
+  _instance = None
+  def __new__(self) :
+    if self._instance is None :
+      self._instance = vpi.s_vpi_vlog_info()
+      vpi.vpi_get_vlog_info(self._instance)
+    return self._instance
+
+################################################################################
+
 class vpiChkError(object) :
   def __init__(self, echo=False) :
     self.error_info = vpi.s_vpi_error_info()
@@ -126,12 +136,18 @@ class viterate(object) :
       return v
     raise StopIteration
 
+class viter_int(viterate) :
+  vpi_default = vpi.vpiIntegerVar
 class viter_net(viterate) :
   vpi_default = vpi.vpiNet
 class viter_port(viterate) :
   vpi_default = vpi.vpiPort
 class viter_reg(viterate) :
   vpi_default = vpi.vpiReg
+class viter_mod(viterate) :
+  vpi_default = vpi.vpiModule
+class viter_beg(viterate) :
+  vpi_default = vpi.vpiBegin
 
 ################################################################################
 
@@ -262,14 +278,21 @@ class scope(vpiObject) :
         return
       getattr(self._scope, attr).set_value(value)
 
-  def __init__(self, sname) :
-    handle = vpi.vpi_handle_by_name(sname, None)
+  def __init__(self, _scope) :
+    if isinstance(_scope, str) :
+      handle = vpi.vpi_handle_by_name(_scope, None)
+      if handle is None :
+        raise scopeException("Cannot find scope " + _scope)
+    else :
+      handle = _scope
     vpiObject.__init__(self, handle)
-    if self.handle is None :
-      raise scopeException("Cannot find scope " + sname)
     self.direct = scope.direct(self)
-    for reg in map(signal, viter_reg(self.handle)) :
-      setattr(self, reg.name, reg)
+    for viter in [viter_net, viter_reg, viter_int] :
+      for sig in map(signal, viter(self.handle)) :
+        setattr(self, sig.name, sig)
+    #for hier in map(scope, viter_scope(self.handle)) :
+    #  setattr(self, scope.name, scope)
+
   def __getattr__(self, name) :
     message.error('scope %(scope)s contains no object %(name)s', scope=self.name, name=name)
     raise scopeException
@@ -335,7 +358,7 @@ class callback(object) :
     self.cb = vpi.vpi_register_cb(self.callback)
     self.vpi_chk_error = vpiChkError()
 
-    message.debug('registered callback "%(name)s" for %(reason)d', reason=reason, name=self.name)
+    message.debug('registered callback "%(name)s" for %(reason)s', reason=self.cb_type(), name=self.name)
     self.callbacks.append(self)
 
   def __iadd__(self, other) :
@@ -363,6 +386,9 @@ class callback(object) :
   def cb_filter(self) :
     return False
 
+  def cb_type(self) :
+    return self.cb_enum(self.callback.reason)
+
   def get_value(self) :
     return signal.decode(self.callback.value)
 
@@ -378,6 +404,11 @@ class callback(object) :
   @staticmethod
   def remove_all() :
     for c in callback.callbacks : c.remove()
+
+  @classmethod
+  def cb_enum(cls, val) :
+    import inspect
+    return reduce(lambda a, b: b[0] if b[0].startswith('cb') and b[1] == 1 else a, inspect.getmembers(cls), None)
 
 ################################################################################
 
