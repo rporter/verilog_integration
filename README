@@ -1,0 +1,3 @@
+An example showing how to integrate python as a command shell for verilog simulators including verilator.
+
+% make -C test

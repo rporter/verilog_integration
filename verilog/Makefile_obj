@@ -1,0 +1,19 @@
+CXXFLAGS+=-I../../c
+
+LDLIBS+=-L../../c -lexm_vpi
+LDFLAGS+=-Wl,-export-dynamic,-rpath=$$PWD/../../c
+
+default : ../../c/libexm_vpi.so examplex ../../python/vpi
+
+include Vexample.mk
+
+examplex: example.o $(VK_GLOBAL_OBJS) $(VM_PREFIX)__ALL.a
+	$(LINK) $(LDFLAGS) -g $^ $(LDLIBS) $(LOADLIBES) -o $@ $(LIBS) 2>&1 | c++filt
+
+example.o: example.cpp $(VM_PREFIX).h
+
+../../c/libexm_vpi.so :
+	$(MAKE) -C ../../c
+
+../../python/vpi :
+	$(MAKE) -C ../../python
