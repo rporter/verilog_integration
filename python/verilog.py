@@ -49,7 +49,7 @@ class vpiVar(object) :
     try :
       self.get(value)
     except AttributeError :
-      self.encode(value)
+      self.encode(self.cast(value))
   def __repr__(self) :
     return '<'+self.name+' of value '+str(self.decode())+' at 0x%016x'%id(self)+'>'
   def __int__(self) :
@@ -70,31 +70,64 @@ class vpiVar(object) :
 
 class vpiInt(vpiVar) :
   vpi_type = vpi.vpiIntVal
+  cast = int
   def encode(self, value) :
-    self.vpi_value.value.integer = int(value)
+    self.vpi_value.value.integer = self.cast(value)
   def decode(self) :
     return self.vpi_value.value.integer
 
 class vpiReal(vpiVar) :
   vpi_type = vpi.vpiRealVal
+  cast = float
   def encode(self, value) :
-    self.vpi_value.value.real = float(value)
+    self.vpi_value.value.real = self.cast(value)
   def decode(self) :
     return self.vpi_value.value.real
 
 class vpiString(vpiVar) :
   vpi_type = vpi.vpiStringVal
+  cast     = str
   def encode(self, value) :
-    self.vpi_value.value.str = str(value)
+    self.vpi_value.value.str = self.cast(value)
   def decode(self) :
     return self.vpi_value.value.str
 
-class vpiBinStr(vpiString) :
+class vpiNumStr(vpiString) :
+  base     = None
+  def __int__(self) :
+    return int(self.decode(), self.base)
+  def __add__(self, other) :
+    return self.__class__(int(self) + int(other))
+  def __iadd__(self, other) :
+    self.encode(self.__add__(other).decode())
+    return self
+  def __sub__(self, other) :
+    return self.__class__(int(self) + int(other))
+  def __isub__(self, other) :
+    self.encode(self.__add__(other).decode())
+    return self
+
+class vpiBinStr(vpiNumStr) :
   vpi_type = vpi.vpiBinStrVal
-class vpiOctStr(vpiString) :
+  base = 2
+  def cast(self, value) :
+    if isinstance(value, (int, long)) :
+      return bin(value)
+    return value
+class vpiOctStr(vpiNumStr) :
   vpi_type = vpi.vpiOctStrVal
-class vpiHexStr(vpiString) :
+  base = 8
+  def cast(self, value) :
+    if isinstance(value, (int, long)) :
+      return oct(value)
+    return value
+class vpiHexStr(vpiNumStr) :
   vpi_type = vpi.vpiHexStrVal
+  base = 16
+  def cast(self, value) :
+    if isinstance(value, (int, long)) :
+      return hex(value)
+    return value
 
 class vpiVector(vpiVar) :
   vpi_type = vpi.vpiVectorVal
@@ -187,9 +220,9 @@ class signal(vpiObject) :
   _vpiStringVals = [vpiBinStrVal, vpiOctStrVal, vpiDecStrVal, vpiHexStrVal, vpiStringVal]
 
   # can update this later to accomodate 4 value
-  def __init__(self, handle, rtn=vpiVectorVal, _type=None) :
+  def __init__(self, handle, rtn=vpiVectorVal, val_type=None) :
     vpiObject.__init__(self, handle)
-    self.type = _type
+    self.type = val_type
     self.vpi_value = vpi.s_vpi_value()
     self.vpi_value.format = rtn
   def __set__(self, value) :
@@ -222,13 +255,13 @@ class signal(vpiObject) :
     self.encode(value)
     vpi.vpi_put_value(self.handle, self.vpi_value, None, vpi.vpiNoDelay)
     self.vpi_chk_error = vpiChkError()
-  def get_value(self, format=None, _type=None) :
-    if self.type:
-      return self.type(self)
-    if _type:
-      return _type(self)
+  def get_value(self, format=None, val_type=None) :
+    if val_type:
+      return val_type(self)
     if format :
       self.set_format(format)
+    if self.type:
+      return self.type(self)
     vpi.vpi_get_value(self.handle, self.vpi_value)
     self.vpi_chk_error = vpiChkError()
     return self.decode(self.vpi_value)
@@ -237,9 +270,9 @@ class signal(vpiObject) :
     self.vpi_value.format = format
     message.debug('%(signal)s format set to %(fmt)d', signal=self.fullname, fmt=format)
     return self
-  def set_type(self, _type) :
-    self.type = _type
-    message.debug('%(signal)s type set to %(name)s', signal=self.fullname, name=_type.name)
+  def set_type(self, val_type) :
+    self.type = val_type
+    message.debug('%(signal)s type set to %(name)s', signal=self.fullname, name=val_type.name)
     return self
 
   def encode(self, value) :
