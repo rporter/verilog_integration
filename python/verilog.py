@@ -93,14 +93,13 @@ class vpiString(vpiVar) :
     return self.vpi_value.value.str
 
 class vpiNumStr(vpiString) :
-  base     = None
+  base     = 10
   def __int__(self) :
     return int(self.decode(), self.base)
   def __add__(self, other) :
     return self.__class__(int(self) + int(other))
   def __iadd__(self, other) :
-    self.encode(self.__add__(other).decode())
-    return self
+    return self.__add__(other)
   def __sub__(self, other) :
     return self.__class__(int(self) + int(other))
   def __isub__(self, other) :
@@ -113,21 +112,21 @@ class vpiBinStr(vpiNumStr) :
   def cast(self, value) :
     if isinstance(value, (int, long)) :
       return bin(value)
-    return value
+    return bin(int(value, self.base))
 class vpiOctStr(vpiNumStr) :
   vpi_type = vpi.vpiOctStrVal
   base = 8
   def cast(self, value) :
     if isinstance(value, (int, long)) :
       return oct(value)
-    return value
+    return oct(int(value, self.base))
 class vpiHexStr(vpiNumStr) :
   vpi_type = vpi.vpiHexStrVal
   base = 16
   def cast(self, value) :
     if isinstance(value, (int, long)) :
       return hex(value)
-    return value
+    return hex(int(value, self.base))
 
 class vpiVector(vpiVar) :
   vpi_type = vpi.vpiVectorVal

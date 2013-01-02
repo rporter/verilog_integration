@@ -11,7 +11,7 @@ if verilog.vpiInfo().product == 'Verilator' :
 simctrl = verilog.scope(scopename)
 
 if verilog.plusargs().timeout :
-  simctrl.direct.sim_ctrl_timeout_i = verilog.vpiBinStr(verilog.plusargs().timeout)
+  simctrl.direct.sim_ctrl_timeout_i = verilog.vpiBinStr(int(verilog.plusargs().timeout))
   simctrl.direct.sim_ctrl_timeout_i = verilog.vpiInt(verilog.plusargs().timeout)
 
 # use verilog vpi cbEndOfSimulation callback
