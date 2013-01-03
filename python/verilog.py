@@ -112,21 +112,28 @@ class vpiBinStr(vpiNumStr) :
   def cast(self, value) :
     if isinstance(value, (int, long)) :
       return bin(value)
-    return bin(int(value, self.base))
+    return str(value)
 class vpiOctStr(vpiNumStr) :
   vpi_type = vpi.vpiOctStrVal
   base = 8
   def cast(self, value) :
     if isinstance(value, (int, long)) :
       return oct(value)
-    return oct(int(value, self.base))
+    return str(value)
+class vpiDecStr(vpiNumStr) :
+  vpi_type = vpi.vpiDecStrVal
+  base = 10
+  def cast(self, value) :
+    if isinstance(value, (int, long)) :
+      return str(long(value))
+    return str(value)
 class vpiHexStr(vpiNumStr) :
   vpi_type = vpi.vpiHexStrVal
   base = 16
   def cast(self, value) :
     if isinstance(value, (int, long)) :
       return hex(value)
-    return hex(int(value, self.base))
+    return str(value)
 
 class vpiVector(vpiVar) :
   vpi_type = vpi.vpiVectorVal
@@ -201,6 +208,8 @@ class vpiObject(object) :
 
 ################################################################################
 
+class signalFormatException(Exception) : pass
+
 class signal(vpiObject) :
   vpiBinStrVal   = vpi.vpiBinStrVal  
   vpiOctStrVal   = vpi.vpiOctStrVal  
@@ -243,6 +252,7 @@ class signal(vpiObject) :
     return self.get_value(format=signal.vpiRealVal)
   def __str__(self) :
     return self.get_value(format=signal.vpiStringVal)
+
   def set_value(self, value, format=None) :
     try :
       value.put(self)
@@ -254,16 +264,24 @@ class signal(vpiObject) :
     self.encode(value)
     vpi.vpi_put_value(self.handle, self.vpi_value, None, vpi.vpiNoDelay)
     self.vpi_chk_error = vpiChkError()
-  def get_value(self, format=None, val_type=None) :
-    if val_type:
-      return val_type(self)
-    if format :
-      self.set_format(format)
-    if self.type:
+
+  def get_value(self, value=None) :
+    if value :
+      try :
+        return value(self)
+      except :
+        try : 
+          self.set_format(value)
+        except :
+          raise signalFormatException(repr(value))
+    
+    if self.type : 
       return self.type(self)
+    
     vpi.vpi_get_value(self.handle, self.vpi_value)
     self.vpi_chk_error = vpiChkError()
     return self.decode(self.vpi_value)
+
   def set_format(self, format) :
     if format == self.vpi_value.format : return
     self.vpi_value.format = format
@@ -271,7 +289,8 @@ class signal(vpiObject) :
     return self
   def set_type(self, val_type) :
     self.type = val_type
-    message.debug('%(signal)s type set to %(name)s', signal=self.fullname, name=val_type.name)
+    if self.type :
+      message.debug('%(signal)s type set to %(name)s', signal=self.fullname, name=val_type.name)
     return self
 
   def encode(self, value) :
@@ -296,6 +315,7 @@ class signal(vpiObject) :
 ################################################################################
 
 class scopeException(Exception) : pass
+class ReadOnlyException(Exception) : pass
 
 class scope(vpiObject) :
 
@@ -311,6 +331,7 @@ class scope(vpiObject) :
       getattr(self._scope, attr).set_value(value)
 
   def __init__(self, _scope) :
+    self.read_only = False
     if isinstance(_scope, str) :
       handle = vpi.vpi_handle_by_name(_scope, None)
       if handle is None :
@@ -324,10 +345,16 @@ class scope(vpiObject) :
         setattr(self, sig.name, sig)
     #for hier in map(scope, viter_scope(self.handle)) :
     #  setattr(self, scope.name, scope)
+    self.read_only = True
 
   def __getattr__(self, name) :
     message.error('scope %(scope)s contains no object %(name)s', scope=self.name, name=name)
     raise scopeException
+
+  def __setattr__(self, name, value) :
+    if hasattr(self, 'read_only') and self.read_only :
+      raise ReadOnlyException
+    object.__setattr__(self, name, value)
 
 ################################################################################
 
