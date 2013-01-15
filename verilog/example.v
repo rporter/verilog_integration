@@ -112,11 +112,24 @@ module sim_ctrl (
 
 endmodule : sim_ctrl
 
+module arr;
+   
+   parameter LENGTH = 1;
+   reg [LENGTH-1:0] sig /*verilator public_flat_rw*/;
+
+endmodule : arr
+
 module duv (
   input duv_clk_ip,
   input duv_rst_ip
 ); // duv
    
+   genvar i;
+   generate
+   for (i=1;i<=128;i++) begin : arr
+     arr #(.LENGTH(i)) arr();
+   end endgenerate
+
 endmodule : duv
 
 module duv_grey_box (

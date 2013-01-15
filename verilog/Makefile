@@ -4,7 +4,7 @@ include ../test/make.inc
 
 OBJ_DIR=example
 
-VL_FLAGS=--cc example.v -DEXM_USE_DPI -no-l2name --Mdir $(OBJ_DIR)
+VL_FLAGS=--cc example.v -DEXM_USE_DPI --exe -no-l2name --Mdir $(OBJ_DIR)
 
 .PHONY : all verilate compile clean
 

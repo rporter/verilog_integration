@@ -11,7 +11,7 @@
 
 #include "exm_python.h"
 
-Vexample *example;              // Instantiation of module
+VM_PREFIX *example;             // Instantiation of module
 svScope sim_ctrl_0_u;           // sim controller for clock injection
 
 vluint64_t main_time = 0;       // Current simulation time (64-bit unsigned)
@@ -27,7 +27,7 @@ int sim_ctrl_scope_t() {
 
 int main(int argc, char **argv, char **env) {
     if (0 && argc && argv && env) {}    // Prevent unused variable warnings
-    example = new Vexample;             // Create instance of module
+    example = new VM_PREFIX("");        // Create instance of module
 
     Verilated::commandArgs(argc, argv);
     Verilated::debug(0);

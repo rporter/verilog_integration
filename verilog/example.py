@@ -4,11 +4,15 @@ import atexit
 import message
 import verilog
 
-scopename = 'example.simctrl_0_u'
-if verilog.vpiInfo().product == 'Verilator' :
-  scopename = 'TOP.' + scopename
+def root() :
+  return 'example'
 
-simctrl = verilog.scope(scopename)
+simctrl = verilog.scope(root() + '.simctrl_0_u')
+arr = [verilog.scope(root()+'.duv_0_u.arr[%d].arr' % i) for i in range(1,128)]
+
+for i in range(1,17) :
+  arr[i].direct.sig = verilog.vpiHexStr('fffff')
+  print i, verilog.vpiHexStr(arr[i].sig)
 
 simctrl.direct.sim_ctrl_timeout_i = verilog.vpiHexStr('0XDEAD')
 message.note("timeout is %(timeout)d", timeout=simctrl.direct.sim_ctrl_timeout_i)
