@@ -54,6 +54,8 @@ class vpiVar(object) :
     return '<'+self.name+' of value '+str(self.decode())+' at 0x%016x'%id(self)+'>'
   def __int__(self) :
     return int(self.decode())
+  def __long__(self) :
+    return long(self.decode())
   def __str__(self) :
     return str(self.decode())
   def get(self, signal) :
@@ -96,6 +98,8 @@ class vpiNumStr(vpiString) :
   base     = 10
   def __int__(self) :
     return int(self.decode(), self.base)
+  def __long__(self) :
+    return long(self.decode(), self.base)
   def __add__(self, other) :
     return self.__class__(int(self) + int(other))
   def __iadd__(self, other) :

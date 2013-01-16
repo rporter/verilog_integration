@@ -16,7 +16,7 @@ arr = dict([(i, verilog.scope(root() + '.duv_0_u.arr[%d].arr' % i)) for i in ran
 simctrl.direct.sim_ctrl_timeout_i = 200
 
 for scope in arr.values() :
-  scope.direct.verbose = 1 # display values
+  scope.direct.verbose = 0 # display values
 
 # use verilog callback on each clock
 class cbClk(verilog.callback) :
@@ -32,16 +32,27 @@ class cbClk(verilog.callback) :
       self.size = size
       self.scope = scope
 
+    def get(self) :
+      if not hasattr(self, 'bits') : return
+      sig0 = self.scope.sig0.get_value(self.choice())
+      sig1 = self.scope.sig1.get_value(self.choice())
+      if long(sig0) != long(sig1) :
+        message.error("sig0(%x) != sig1(%x)" % (long(sig0), long(sig1)))
+      if long(sig0) != self.bits :
+        message.error("sig0(%x) != value(%x)" % (long(sig0), self.bits))
+      if long(sig1) != self.bits :
+        message.error("sig1(%x) != value(%x)" % (long(sig1), self.bits))
+
     def put(self) :
       self.scope.direct.sig0 = self.value(self.rand())
       self.scope.direct.sig1 = self.value()
 
     def value(self, bits=None) :
       if bits is None : bits = self.bits
-      return random.choice(self.choices())(bits)
+      return self.choice()(bits)
 
-    def choices(self) :
-      return self.types[self.size > 32]
+    def choice(self) :
+      return random.choice(self.types[self.size > 32])
 
     def rand(self) :
       self.bits = random.getrandbits(self.size)
@@ -54,6 +65,7 @@ class cbClk(verilog.callback) :
   def execute(self) :
     if int(self.obj) : return # ignore rising edge
     for blk in self.blks :
+      blk.get()
       blk.put()
     self.count += 1
     if self.count == 100 :
