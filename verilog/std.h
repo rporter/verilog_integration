@@ -6,6 +6,8 @@
 `define std_char_sz_c 8
 
 `define EXM_INFORMATION $display
+`define EXM_ERROR       $display
+`define EXM_FATAL       $display
 
 `ifdef EXM_USE_DPI
 `define EXM_PYTHON exm_python

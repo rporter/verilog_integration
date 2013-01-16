@@ -1,3 +1,7 @@
 An example showing how to integrate python as a command shell for verilog simulators including verilator.
 
-% make -C test
+% make -C test verilate
+
+to run vpi put/get tests
+
+% make -C test verilate SCRIPT=test_vpi

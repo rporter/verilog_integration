@@ -105,6 +105,8 @@ class vpiNumStr(vpiString) :
   def __isub__(self, other) :
     self.encode(self.__add__(other).decode())
     return self
+  def encode(self, value) :
+    self.vpi_value.value.str = self.cast(value).rstrip('L')
 
 class vpiBinStr(vpiNumStr) :
   vpi_type = vpi.vpiBinStrVal
@@ -247,11 +249,11 @@ class signal(vpiObject) :
   def __repr__(self) :
     return '<' + self.__class__.__name__ + ' ' + self.name + '>'
   def __int__(self) :
-    return self.get_value(format=signal.vpiIntVal)
+    return self.get_value(signal.vpiIntVal)
   def __float__(self) :
-    return self.get_value(format=signal.vpiRealVal)
+    return self.get_value(signal.vpiRealVal)
   def __str__(self) :
-    return self.get_value(format=signal.vpiStringVal)
+    return self.get_value(signal.vpiStringVal)
 
   def set_value(self, value, format=None) :
     try :
@@ -274,8 +276,7 @@ class signal(vpiObject) :
           self.set_format(value)
         except :
           raise signalFormatException(repr(value))
-    
-    if self.type : 
+    elif self.type : 
       return self.type(self)
     
     vpi.vpi_get_value(self.handle, self.vpi_value)
@@ -299,8 +300,11 @@ class signal(vpiObject) :
     elif self.vpi_value.format == signal.vpiVectorVal :
       if not self.vpi_value.value.vector : self.get_value()
       self.vpi_value.value.vector.aval = value
-    elif self.vpi_value.format == signal._vpiStringVals :
-      self.vpi_value.value.str = value
+    elif self.vpi_value.format in signal._vpiStringVals :
+      if self.vpi_value.format == signal.vpiStringVal :
+        self.vpi_value.value.str = value
+      else :
+        self.vpi_value.value.str = value.rstrip('L')
 
   @classmethod
   def decode(cls, vpi_value) :

@@ -8,22 +8,8 @@ def root() :
   return 'example'
 
 simctrl = verilog.scope(root() + '.simctrl_0_u')
-arr = [verilog.scope(root()+'.duv_0_u.arr[%d].arr' % i) for i in range(1,128)]
-
-for i in range(1,17) :
-  arr[i].direct.sig = verilog.vpiHexStr('fffff')
-  print i, verilog.vpiHexStr(arr[i].sig)
-
-simctrl.direct.sim_ctrl_timeout_i = verilog.vpiHexStr('0XDEAD')
-message.note("timeout is %(timeout)d", timeout=simctrl.direct.sim_ctrl_timeout_i)
-message.note("timeout is %(timeout)s", timeout=simctrl.sim_ctrl_timeout_i.get_value(verilog.signal.vpiHexStrVal))
-timeout=simctrl.sim_ctrl_timeout_i.get_value(verilog.vpiHexStr)
-message.note("timeout is %(timeout)s", timeout=timeout)
-timeout=verilog.vpiHexStr(simctrl.sim_ctrl_timeout_i)
-message.note("timeout is %(timeout)s", timeout=timeout)
 
 if verilog.plusargs().timeout :
-  simctrl.direct.sim_ctrl_timeout_i = verilog.vpiBinStr(int(verilog.plusargs().timeout))
   simctrl.direct.sim_ctrl_timeout_i = verilog.vpiInt(verilog.plusargs().timeout)
 
 # use verilog vpi cbEndOfSimulation callback

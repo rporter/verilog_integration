@@ -3,19 +3,23 @@
 include make.inc
 
 VERILOG=../verilog
+SCRIPT?=example
+TIMEOUT?=3000
+
+SIM_ARGS=+python+$(VERILOG)/$(SCRIPT).py +timeout+$(TIMEOUT)
 
 .PHONY : all build verilog iverilog verilate cver clean
 
 all : iverilog verilate
 
 iverilog : iverilog-build
-	$(IRUN) -m ../c/libexm_vpi.so example.iverilog +python+$(VERILOG)/example.py +timeout+3000
+	$(IRUN) -m ../c/libexm_vpi.so example.iverilog $(SIM_ARGS)
 
 iverilog-build : build
 	$(IBUILD) -g2005-sv -I$(VERILOG) $(VERILOG)/example.v -o example.iverilog
 
 verilate : verilog
-	$(VERILOG)/example/examplex +python+$(VERILOG)/example.py +timeout+3000
+	$(VERILOG)/example/examplex $(SIM_ARGS)
 
 build :
 	$(MAKE) -C ../c

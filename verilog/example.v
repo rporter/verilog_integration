@@ -3,8 +3,8 @@
 `include "std.h"
 
 module sim_ctrl (
-  output sim_ctrl_clk_op,
-  output sim_ctrl_rst_op
+  output sim_ctrl_clk_op `EXM_VLTOR_PUBLIC_RD,
+  output sim_ctrl_rst_op `EXM_VLTOR_PUBLIC_RD
 ); // sim_ctrl
 
 `ifdef EXM_USE_DPI
@@ -80,7 +80,7 @@ module sim_ctrl (
   initial sim_ctrl_timeout_i = 10;
 
   always @(sim_ctrl_timeout_i)
-    `EXM_INFORMATION("%m : timeout set to %d", sim_ctrl_timeout_i);
+    `EXM_FATAL("%m : timeout set to %d", sim_ctrl_timeout_i);
 
   initial sim_ctrl_cycles_i      = 0;
   initial sim_ctrl_cycles_freq_i = 1000;
@@ -112,23 +112,35 @@ module sim_ctrl (
 
 endmodule : sim_ctrl
 
-module arr;
+module arr (
+  input clk
+); // arr
    
    parameter LENGTH = 1;
-   reg [LENGTH-1:0] sig /*verilator public_flat_rw*/;
+   reg [LENGTH-1:0] sig0 /*verilator public_flat_rw*/;
+   reg [LENGTH-1:0] sig1 /*verilator public_flat_rw*/;
+   bit verbose /*verilator public_flat_rw*/;
 
+   always @(posedge clk)
+     begin
+       if (sig0 != sig1) `EXM_ERROR("%m : %x != %x", sig0, sig1);
+       else if (verbose) `EXM_INFORMATION("%m : %x == %x", sig0, sig1);
+     end
+   
 endmodule : arr
 
 module duv (
   input duv_clk_ip,
   input duv_rst_ip
 ); // duv
+   parameter instances = 255;
    
    genvar i;
    generate
-   for (i=1;i<=128;i++) begin : arr
-     arr #(.LENGTH(i)) arr();
-   end endgenerate
+     for (i=1; i<=instances; i++) begin : arr
+       arr #(.LENGTH(i)) arr(.clk(duv_clk_ip));
+     end : arr
+   endgenerate
 
 endmodule : duv
 
