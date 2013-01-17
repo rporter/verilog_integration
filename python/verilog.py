@@ -89,13 +89,17 @@ class vpiReal(vpiVar) :
 class vpiString(vpiVar) :
   vpi_type = vpi.vpiStringVal
   cast     = str
+  def get(self, signal) :
+    vpi.vpi_get_value(signal.handle, self.vpi_value)
+    self.copy = str(self.vpi_value.value.str)
+    self.vpi_chk_error = vpiChkError()
+    return self
   def encode(self, value) :
     self.vpi_value.value.str = self.cast(value)
   def decode(self) :
-    return self.vpi_value.value.str
+    return self.copy
 
 class vpiNumStr(vpiString) :
-  base     = 10
   def __int__(self) :
     return int(self.decode(), self.base)
   def __long__(self) :
@@ -285,7 +289,12 @@ class signal(vpiObject) :
     
     vpi.vpi_get_value(self.handle, self.vpi_value)
     self.vpi_chk_error = vpiChkError()
-    return self.decode(self.vpi_value)
+    # take a copy of the string value
+    if self.vpi_value.format in self._vpiStringVals :
+      self.copy = str(self.vpi_value.value.str)
+    else :
+      self.copy = None
+    return self.decode(self.vpi_value, self.copy)
 
   def set_format(self, format) :
     if format == self.vpi_value.format : return
@@ -311,13 +320,14 @@ class signal(vpiObject) :
         self.vpi_value.value.str = value.rstrip('L')
 
   @classmethod
-  def decode(cls, vpi_value) :
+  def decode(cls, vpi_value, copy=None) :
     if vpi_value.format == signal.vpiIntVal :
       return vpi_value.value.integer
     if vpi_value.format == signal.vpiVectorVal :
       return vpi_value.value.vector.aval
     if vpi_value.format in signal._vpiStringVals :
-      return vpi_value.value.str.strip()
+      result = copy if copy is not None else vpi_value.value.str
+      return result.strip()
     return None
 
 ################################################################################

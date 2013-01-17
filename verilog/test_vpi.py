@@ -31,17 +31,18 @@ class cbClk(verilog.callback) :
     def __init__(self, size, scope) :
       self.size = size
       self.scope = scope
+      self.mask = (1L << size)-1L
 
     def get(self) :
       if not hasattr(self, 'bits') : return
       sig0 = self.scope.sig0.get_value(self.choice())
       sig1 = self.scope.sig1.get_value(self.choice())
       if long(sig0) != long(sig1) :
-        message.error("sig0(%x) != sig1(%x)" % (long(sig0), long(sig1)))
-      if long(sig0) != self.bits :
-        message.error("sig0(%x) != value(%x)" % (long(sig0), self.bits))
-      if long(sig1) != self.bits :
-        message.error("sig1(%x) != value(%x)" % (long(sig1), self.bits))
+        message.error("sig0(%x, %s) != sig1(%x, %s) when value(%x)" % (long(sig0), repr(sig0), long(sig1), repr(sig1), self.bits))
+      if long(sig0) != self.val :
+        message.error("sig0(%x, %s) != value(%x) when value(%x)" % (long(sig0), repr(sig0), self.bits, self.bits))
+      if long(sig1) != self.val :
+        message.error("sig1(%x, %s) != value(%x) when value(%x)" % (long(sig1), repr(sig1), self.bits, self.bits))
 
     def put(self) :
       self.scope.direct.sig0 = self.value(self.rand())
@@ -49,14 +50,24 @@ class cbClk(verilog.callback) :
 
     def value(self, bits=None) :
       if bits is None : bits = self.bits
-      return self.choice()(bits)
+      choice = self.choice()
+      if choice == verilog.vpiDecStr :
+        # can't put too many bits in else MAXINT is used
+        bits &= self.mask
+      return choice(bits)
 
     def choice(self) :
       return random.choice(self.types[self.size > 32])
 
     def rand(self) :
-      self.bits = random.getrandbits(self.size)
+      # choose either the vector length or something else
+      size = random.choice((self.size, random.choice(range(1,300))))
+      self.bits = random.getrandbits(size)
       return self.bits
+
+    @property
+    def val(self) :
+      return self.bits & self.mask
 
   def __init__(self, obj) :
     verilog.callback.__init__(self, name='clock callback', obj=obj, reason=verilog.callback.cbValueChange, func=self.execute)

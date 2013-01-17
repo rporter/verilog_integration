@@ -19,4 +19,4 @@ compile:
 	cd $(OBJ_DIR); $(MAKE) -f ../Makefile_obj
 
 clean :
-	rm -rf obj_dir *~ *.pyc
+	-@rm -rf $(OBJ_DIR) *~ *.pyc
