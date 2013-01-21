@@ -4,6 +4,9 @@ import atexit
 import message
 import verilog
 
+message.message.instance.verbosity(0)
+#message.message.instance.get_ctrl()[1].echo = 1
+
 def root() :
   return 'example'
 

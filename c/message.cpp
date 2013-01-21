@@ -79,9 +79,20 @@ char* message::name(enum levels level) {
   return (char*)"**undefined**";
 }
 
+control* message::get_ctrl() {
+  return self->attrs;
+}
+
+control* message::get_ctrl(unsigned int level) {
+  if (level >= INT_DEBUG and level <= FATAL) {
+    return &self->attrs[level];
+  }
+  return NULL;
+}
+
 void message::verbosity(unsigned int level) {
   for (int i=INT_DEBUG; i<MAX_LEVEL;i++) {
-    attrs[i].echo = i>=level;
+    self->attrs[i].echo = i>=level;
   }
 };
 

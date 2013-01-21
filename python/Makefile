@@ -6,7 +6,7 @@ include ../test/make.inc
 
 vpi : _vpi.so _exm_msg.so
 
-exm_msg_wrap.cxx : exm_msg.i
+exm_msg_wrap.cxx : exm_msg.i ../c/message.cpp ../c/message.h
 	swig -python -c++ -I../c $<
 
 vpi_wrap.c : vpi.i

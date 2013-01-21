@@ -4,48 +4,52 @@
 
 namespace example {
 
+template <typename func>
+  class callbacks {
+protected :
+  std::deque<func>* deque; // std::map<string, func>* map;
+public :
+  callbacks() : deque(NULL) {};
+  ~callbacks() {};
+  std::deque<func>* get() {
+    if (NULL == deque) {
+      deque = new std::deque<func>();
+    }
+    return deque;
+  }
+  void add(func fn) {
+    get()->push_front(fn);
+  };
+};
+
+struct control {
+  bool echo;
+  int  threshold;
+  int  count;
+};
+
+typedef void (*cb_emit_fn)(unsigned int level, char* severity, char *file, unsigned int line, char* text);
+typedef void (*cb_terminate_fn)(void);
+enum levels {
+  INT_DEBUG,
+  DEBUG,
+  INFORMATION,
+  NOTE,
+  WARNING,
+  ERROR,
+  INTERNAL,
+  FATAL,
+  MAX_LEVEL
+};
+
 class message {
  public :
-  typedef void (*cb_emit_fn)(unsigned int level, char* severity, char *file, unsigned int line, char* text);
-  typedef void (*cb_terminate_fn)(void);
-  enum levels {
-    INT_DEBUG,
-    DEBUG,
-    INFORMATION,
-    NOTE,
-    WARNING,
-    ERROR,
-    INTERNAL,
-    FATAL,
-    MAX_LEVEL
-  };
  protected :
-  template <typename func>
-    class callbacks {
-  protected :
-    std::deque<func>* deque; // std::map<string, func>* map;
-  public :
-    callbacks() : deque(NULL) {};
-    ~callbacks() {};
-    std::deque<func>* get() {
-      if (NULL == deque) {
-        deque = new std::deque<func>();
-      }
-      return deque;
-    }
-    void add(func fn) {
-      get()->push_front(fn);
-    };
-  };
   static message* self;
   callbacks<cb_emit_fn> cb_emit;
   callbacks<cb_terminate_fn> cb_terminate;
 
-  struct control {
-    bool echo;
-    int  threshold;
-    int  count;
-  } attrs[MAX_LEVEL];
+  control attrs[MAX_LEVEL];
 
   static void cb_account(unsigned int level, char* severity, char *file, unsigned int line, char* text);
   static void cb_emit_default(unsigned int level, char* severity, char *file, unsigned int line, char* text);
@@ -58,9 +62,12 @@ class message {
   static message* instance();
   static void destroy();
 
-  static char *name(int level);
-  static char *name(enum levels level);
-  void verbosity(unsigned int level);
+  static char* name(int level);
+  static char* name(enum levels level);
+  static control* get_ctrl();
+  static control* get_ctrl(unsigned int level);
+  static void verbosity(unsigned int level);
+
   void emit(unsigned int level, char* severity, char *file, unsigned int line, char* text, va_list args);
 
   #define SEVERITY(level) void level(char *file, unsigned int line, char* text, ...);
