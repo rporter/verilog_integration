@@ -4,17 +4,10 @@
 
 namespace example {
 
-#define SEVERITY(level, LEVEL) \
-  void message::level(char *file, unsigned int line, char* text, ...) { \
-    va_list args; \
-    va_start(args, text); \
-    emit(LEVEL, (char*)#LEVEL, file, line, text, args);	\
-    va_end(args); \
-  }
-
 void message::cb_account(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
   control* attr = &instance()->attrs[level];
-  if ((attr->threshold > 0) && (++attr->count > attr->threshold)) {
+  ++attr->count;
+  if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
     FATAL("Too many %s", severity);
   }
 }
@@ -47,7 +40,11 @@ message::message() {
   }
 }
 
-message::~message() {};
+message::~message() {
+  for (int i=MAX_LEVEL;--i>=INT_DEBUG;) {
+    INFORMATION("%12s : %d", name(i), attrs[i].count);
+  }
+};
 
 message* message::instance() {
   if (NULL == self) {
@@ -59,6 +56,27 @@ message* message::instance() {
 
 void message::destroy() {
   delete self;
+}
+
+char* message::name(int level) {
+  return name((enum levels)level);
+}
+
+char* message::name(enum levels level) {
+  static char* names[] = {
+    (char*)"INT_DEBUG",
+    (char*)"DEBUG",
+    (char*)"INFORMATION",
+    (char*)"NOTE",
+    (char*)"WARNING",
+    (char*)"ERROR",
+    (char*)"INTERNAL",
+    (char*)"FATAL"
+  };
+  if (level >= INT_DEBUG && level <= FATAL) {
+    return names[level];
+  }
+  return (char*)"**undefined**";
 }
 
 void message::verbosity(unsigned int level) {
@@ -80,6 +98,14 @@ void message::emit(unsigned int level, char* severity, char *file, unsigned int 
 }
 
 message* message::self = 0;
+
+#define SEVERITY(level, LEVEL) \
+  void message::level(char *file, unsigned int line, char* text, ...) { \
+    va_list args; \
+    va_start(args, text); \
+    emit(LEVEL, (char*)#LEVEL, file, line, text, args);	\
+    va_end(args); \
+  }
 
 SEVERITY(int_debug  , INT_DEBUG);
 SEVERITY(debug      , DEBUG);
