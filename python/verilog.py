@@ -161,17 +161,6 @@ class vpiSuppress(vpiVar) :
 
 ################################################################################
 
-class vpi_iter(object) :
-  def __init__(self, vpi_i) :
-    self.vpi_i = vpi_i
-  def __iter__(self):
-    return self
-  def next(self) :
-    v = vpi.vpi_scan(self.vpi_i)
-    if v :
-      return v
-    raise StopIteration
-
 class viterate(object) :
   vpi_default = None
   def __init__(self, handle, _type=None) :

@@ -80,7 +80,7 @@ module sim_ctrl (
   initial sim_ctrl_timeout_i = 10;
 
   always @(sim_ctrl_timeout_i)
-    `EXM_FATAL("%m : timeout set to %d", sim_ctrl_timeout_i);
+    `EXM_INFORMATION("%m : timeout set to %d", sim_ctrl_timeout_i);
 
   initial sim_ctrl_cycles_i      = 0;
   initial sim_ctrl_cycles_freq_i = 1000;
@@ -137,11 +137,11 @@ module duv (
    
    genvar i;
    generate
-     for (i=1; i<=instances; i++) begin : arr
-       arr #(.LENGTH(i)) arr(.clk(duv_clk_ip));
-     end : arr
-   endgenerate
 
+     for (i=1; i<=255; i=i+1) begin : arr
+       arr #(.LENGTH(i)) arr(.clk(duv_clk_ip));
+     end
+   endgenerate
 endmodule : duv
 
 module duv_grey_box (

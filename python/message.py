@@ -1,19 +1,31 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
+import exm_msg
 import vpi
 
+#def vprint() :    
+#  vpi.vpi_printf(self.severity() + self.msg % self.args + '\n')
+
 class message(object) :
-  level = None
+  instance = exm_msg.message.instance()
+  level    = None
+
   def __init__(self, msg, **args) :
     self.msg = msg
     self.args = args
     self.name = self.__class__.__name__
-    vpi.vpi_printf(self.severity() + self.msg % self.args + '\n')
+    self.fn()('file', 0, self.formatted())
 
-  def severity(self) :
-    return '(%8s) ' % self.name.upper()
+  def fn(self) :
+    return getattr(self.instance, self.name)
 
-class debug(message) : pass
+  def formatted(self) :
+    return self.msg % self.args
+
+class int_debug(message) :
+  pass
+class debug(message) :
+  pass
 class note(message) : 
   level = vpi.vpiNotice
 class warning(message) :
