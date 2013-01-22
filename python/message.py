@@ -2,9 +2,12 @@
 
 import exm_msg
 import vpi
+from exm_msg import INT_DEBUG, DEBUG, INFORMATION, NOTE, WARNING, ERROR, INTERNAL, FATAL
 
 #def vprint() :    
 #  vpi.vpi_printf(self.severity() + self.msg % self.args + '\n')
+
+class SeverityError(Exception) : pass
 
 class message(object) :
   instance = exm_msg.message.instance()
@@ -44,3 +47,18 @@ message.vpiLevel = {
   vpi.vpiSystem   : fatal,
   vpi.vpiInternal : internal
 }
+
+class _control(object) :
+  def __getattribute__(self, attr) :
+    return message.instance.get_ctrl(getattr(exm_msg, attr))
+    try :
+      return message.instance.get_ctrl(getattr(exm_msg, attr))
+    except AttributeError :
+      raise SeverityError('No severity ' + str(attr))
+
+  def __getitem__(self, idx) :
+    result = message.instance.get_ctrl(idx)
+    if result : return result
+    raise SeverityError('No severity of level ' + str(idx))
+
+control = _control()
