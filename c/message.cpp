@@ -4,29 +4,61 @@
 
 namespace example {
 
-void message::cb_account(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
-  control* attr = &instance()->attrs[level];
+  /*
+struct cb_account {
+  void operator()(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+    control* attr = message::get_ctrl(level);
+    ++attr->count;
+    if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
+      FATAL("Too many %s", severity);
+      message::terminate();
+    }
+  }
+};
+
+struct cb_emit_default {
+  void operator()(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+    if (message::get_ctrl(level)->echo) {
+      fprintf(stderr, "(%12s) %s\n",  severity, text);
+      fflush(stderr);
+    }
+  }
+};
+
+struct cb_terminate_default {
+  static void operator()(void) {
+    exit(1);
+  }
+};
+  */
+
+void cb_account(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+  control* attr = message::get_ctrl(level);
   ++attr->count;
   if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
     FATAL("Too many %s", severity);
+    message::terminate();
   }
 }
 
-void message::cb_emit_default(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
-  if (instance()->attrs[level].echo) {
+void cb_emit_default(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+  if (message::get_ctrl(level)->echo) {
     fprintf(stderr, "(%12s) %s\n",  severity, text);
     fflush(stderr);
   }
 }
 
-void message::cb_terminate_default() {
+void cb_terminate_default() {
   exit(1);
 }
 
 message::message() {
-  cb_emit.add("account", cb_account);
-  cb_emit.add("default", cb_emit_default);
-  cb_terminate.add("default", cb_terminate_default);
+  cb_emit_fn acct = &cb_account;
+  cb_emit.insert_to_map("account", acct);
+  cb_emit_fn dft = &cb_emit_default;
+  cb_emit.insert_to_map("default", dft);
+  cb_terminate_fn fn = &cb_terminate_default;
+  cb_terminate.insert_to_map("default", fn);
   for (int i=INT_DEBUG; i<MAX_LEVEL; i++) {
     attrs[i].echo = i>DEBUG;
     if (i>ERROR) {
@@ -56,6 +88,13 @@ message* message::instance() {
 
 void message::destroy() {
   delete self;
+}
+
+void message::terminate() {
+  std::map<std::string, cb_terminate_fn>* cbs = self->cb_terminate.get_map();
+  for (std::map<std::string, cb_terminate_fn>::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
+    _cb->second();
+  }
 }
 
 char* message::name(int level) {
@@ -96,11 +135,11 @@ void message::verbosity(unsigned int level) {
   }
 };
 
-callbacks<cb_emit_fn> message::get_cb_emit() {
-  return self->cb_emit;
+Tcallbacks<cb_emit_fn>* message::get_cb_emit() {
+  return &self->cb_emit;
 }
-callbacks<cb_terminate_fn> message::get_cb_terminate() {
-  return self->cb_terminate;
+Tcallbacks<cb_terminate_fn>* message::get_cb_terminate() {
+  return &self->cb_terminate;
 }
 
 void message::emit(unsigned int level, char* severity, char *file, unsigned int line, char* text, va_list args) {
@@ -109,9 +148,9 @@ void message::emit(unsigned int level, char* severity, char *file, unsigned int 
     vsnprintf(buff, sizeof(buff), text, args);
   }
   
-  std::map<std::string, cb_emit_fn>* cbs = cb_emit.get();
+  std::map<std::string, cb_emit_fn>* cbs = cb_emit.get_map();
   for (std::map<std::string, cb_emit_fn>::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
-    (*(_cb->second))(level, severity, file, line, args?buff:text);
+    _cb->second(level, severity, file, line, args?buff:text);
   }
 }
 

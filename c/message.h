@@ -2,24 +2,25 @@
 #include <stdarg.h>
 #include <string>
 #include <map>
+#include "boost/function.hpp"
 
 namespace example {
 
 template <typename func>
-  class callbacks {
+  class Tcallbacks {
 protected :
   std::map<std::string, func>* map;
 public :
-  callbacks() : map(NULL) {};
-  ~callbacks() {};
-  std::map<std::string, func>* get() {
+  Tcallbacks() : map(NULL) {};
+  ~Tcallbacks() {};
+  std::map<std::string, func>* get_map() {
     if (NULL == map) {
       map = new std::map<std::string, func>();
     }
     return map;
   }
-  bool add(std::string name, func fn) {
-    return get()->insert(std::pair<std::string, func>(name, fn)).second;
+  bool insert_to_map(std::string name, func fn) {
+    return get_map()->insert(std::pair<std::string, func>(name, fn)).second;
   };
 };
 
@@ -29,8 +30,11 @@ struct control {
   int  count;
 };
 
-typedef void (*cb_emit_fn)(unsigned int level, char* severity, char *file, unsigned int line, char* text);
-typedef void (*cb_terminate_fn)(void);
+//typedef void (*cb_emit_fn)(unsigned int level, char* severity, char *file, unsigned int line, char* text);
+//typedef void (*cb_terminate_fn)(void);
+typedef boost::function<void(unsigned int level, char* severity, char *file, unsigned int line, char* text)> cb_emit_fn;
+typedef boost::function<void(void)> cb_terminate_fn;
+
 enum levels {
   INT_DEBUG,
   DEBUG,
@@ -47,14 +51,10 @@ class message {
  public :
  protected :
   static message* self;
-  callbacks<cb_emit_fn> cb_emit;
-  callbacks<cb_terminate_fn> cb_terminate;
+  Tcallbacks<cb_emit_fn> cb_emit;
+  Tcallbacks<cb_terminate_fn> cb_terminate;
 
   control attrs[MAX_LEVEL];
-
-  static void cb_account(unsigned int level, char* severity, char *file, unsigned int line, char* text);
-  static void cb_emit_default(unsigned int level, char* severity, char *file, unsigned int line, char* text);
-  static void cb_terminate_default();
 
  public :
   message();
@@ -62,6 +62,7 @@ class message {
 
   static message* instance();
   static void destroy();
+  static void terminate();
 
   static char* name(int level);
   static char* name(enum levels level);
@@ -69,8 +70,8 @@ class message {
   static control* get_ctrl(unsigned int level);
   static void verbosity(unsigned int level);
 
-  static callbacks<cb_emit_fn> get_cb_emit();
-  static callbacks<cb_terminate_fn> get_cb_terminate();
+  static Tcallbacks<cb_emit_fn>* get_cb_emit();
+  static Tcallbacks<cb_terminate_fn>* get_cb_terminate();
 
   void emit(unsigned int level, char* severity, char *file, unsigned int line, char* text, va_list args);
 
