@@ -4,21 +4,14 @@ import atexit
 import message
 import verilog
 
-print message.message.instance.get_cb_terminate()
-
-
-t0= message.message.instance.get_cb_emit()
-print t0
-print message.message.instance.get_cb_emit().get_map()
 
 def fn(*args) : print "fn whoop whoop", args
-#message.message.instance.get_cb_emit().add_callback('bob', fn)
-message.message.instance.get_cb_terminate().add_callback('bob', fn)
+message.emit_cbs.add('bob', fn)
+#message.message.instance.get_cb_terminate().add_callback('bob', fn)
 
-#message.message.instance.verbosity(2)
-message.control[message.NOTE].echo = 0
+message.message.instance.verbosity(0)
+#message.control[message.NOTE].echo = 0
 message.control.DEBUG.echo = 1
-message.fatal('fata')
 
 def root() :
   return 'example'

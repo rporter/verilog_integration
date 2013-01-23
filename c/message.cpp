@@ -4,34 +4,6 @@
 
 namespace example {
 
-  /*
-struct cb_account {
-  void operator()(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
-    control* attr = message::get_ctrl(level);
-    ++attr->count;
-    if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
-      FATAL("Too many %s", severity);
-      message::terminate();
-    }
-  }
-};
-
-struct cb_emit_default {
-  void operator()(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
-    if (message::get_ctrl(level)->echo) {
-      fprintf(stderr, "(%12s) %s\n",  severity, text);
-      fflush(stderr);
-    }
-  }
-};
-
-struct cb_terminate_default {
-  static void operator()(void) {
-    exit(1);
-  }
-};
-  */
-
 void cb_account(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
   control* attr = message::get_ctrl(level);
   ++attr->count;
@@ -54,9 +26,9 @@ void cb_terminate_default() {
 
 message::message() {
   cb_emit_fn acct = &cb_account;
-  cb_emit.insert_to_map("account", acct);
+  cb_emit.insert_to_map("99 account", acct);
   cb_emit_fn dft = &cb_emit_default;
-  cb_emit.insert_to_map("default", dft);
+  cb_emit.insert_to_map("0 default", dft);
   cb_terminate_fn fn = &cb_terminate_default;
   cb_terminate.insert_to_map("default", fn);
   for (int i=INT_DEBUG; i<MAX_LEVEL; i++) {

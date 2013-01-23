@@ -22,6 +22,9 @@ public :
   bool insert_to_map(std::string name, func fn) {
     return get_map()->insert(std::pair<std::string, func>(name, fn)).second;
   };
+  int rm_from_map(std::string name) {
+    return get_map()->erase(name);
+  };
 };
 
 struct control {

@@ -62,3 +62,20 @@ class _control(object) :
     raise SeverityError('No severity of level ' + str(idx))
 
 control = _control()
+
+class callback(object) :
+  def __init__(self, cb_map) :
+    self.cb_map = cb_map
+    self.callbacks = dict()
+  def __del__(self) :
+    for name, cb in self.callbacks.iteritems() :
+      #int_debug('deleting callback ' + name)
+      self.cb_map.rm_callback(name)
+  def add(self, name, fn) :
+    self.callbacks[name] = fn
+    self.cb_map.add_callback(name, fn)
+  def rm(self, name, fn) :
+    del self.callbacks[name]
+    self.cb_map.rm_callback(name, fn)
+
+emit_cbs = callback(message.instance.get_cb_emit())
