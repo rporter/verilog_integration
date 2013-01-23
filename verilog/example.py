@@ -4,9 +4,12 @@ import atexit
 import message
 import verilog
 
+print message.message.instance.get_cb_emit().get()
+
 #message.message.instance.verbosity(2)
 message.control[message.NOTE].echo = 0
 message.control.DEBUG.echo = 1
+message.fatal('fata')
 
 def root() :
   return 'example'

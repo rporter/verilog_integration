@@ -13,7 +13,7 @@ vpi_wrap.c : vpi.i
 	swig -python -I$(VERILATOR_INC) $<
 
 exm_msg_wrap.o : exm_msg_wrap.cxx
-	$(CXX) -fPIC $(CFLAGS) -I../c $(PY_CFLAGS) $(VL_CFLAGS) -c $<
+	$(CXX) -fpermissive -fPIC $(CFLAGS) -I../c $(PY_CFLAGS) $(VL_CFLAGS) -c $<
 
 vpi_wrap.o : vpi_wrap.c
 	$(CC) -fPIC $(CFLAGS) $(PY_CFLAGS) $(VL_CFLAGS) -c $<

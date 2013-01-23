@@ -24,9 +24,9 @@ void message::cb_terminate_default() {
 }
 
 message::message() {
-  cb_emit.add(cb_account);
-  cb_emit.add(cb_emit_default);
-  cb_terminate.add(cb_terminate_default);
+  cb_emit.add("account", cb_account);
+  cb_emit.add("default", cb_emit_default);
+  cb_terminate.add("default", cb_terminate_default);
   for (int i=INT_DEBUG; i<MAX_LEVEL; i++) {
     attrs[i].echo = i>DEBUG;
     if (i>ERROR) {
@@ -96,15 +96,22 @@ void message::verbosity(unsigned int level) {
   }
 };
 
+callbacks<cb_emit_fn> message::get_cb_emit() {
+  return self->cb_emit;
+}
+callbacks<cb_terminate_fn> message::get_cb_terminate() {
+  return self->cb_terminate;
+}
+
 void message::emit(unsigned int level, char* severity, char *file, unsigned int line, char* text, va_list args) {
   char buff[8192];
   if (args) {
     vsnprintf(buff, sizeof(buff), text, args);
   }
   
-  std::deque<cb_emit_fn>* cbs = cb_emit.get();
-  for (std::deque<cb_emit_fn>::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
-    (*_cb)(level, severity, file, line, args?buff:text);
+  std::map<std::string, cb_emit_fn>* cbs = cb_emit.get();
+  for (std::map<std::string, cb_emit_fn>::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
+    (*(_cb->second))(level, severity, file, line, args?buff:text);
   }
 }
 

@@ -1,24 +1,25 @@
 #include <cstddef>
 #include <stdarg.h>
-#include <deque>
+#include <string>
+#include <map>
 
 namespace example {
 
 template <typename func>
   class callbacks {
 protected :
-  std::deque<func>* deque; // std::map<string, func>* map;
+  std::map<std::string, func>* map;
 public :
-  callbacks() : deque(NULL) {};
+  callbacks() : map(NULL) {};
   ~callbacks() {};
-  std::deque<func>* get() {
-    if (NULL == deque) {
-      deque = new std::deque<func>();
+  std::map<std::string, func>* get() {
+    if (NULL == map) {
+      map = new std::map<std::string, func>();
     }
-    return deque;
+    return map;
   }
-  void add(func fn) {
-    get()->push_front(fn);
+  bool add(std::string name, func fn) {
+    return get()->insert(std::pair<std::string, func>(name, fn)).second;
   };
 };
 
@@ -67,6 +68,9 @@ class message {
   static control* get_ctrl();
   static control* get_ctrl(unsigned int level);
   static void verbosity(unsigned int level);
+
+  static callbacks<cb_emit_fn> get_cb_emit();
+  static callbacks<cb_terminate_fn> get_cb_terminate();
 
   void emit(unsigned int level, char* severity, char *file, unsigned int line, char* text, va_list args);
 
