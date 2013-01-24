@@ -1,5 +1,6 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
+import atexit
 import exm_msg
 import vpi
 from exm_msg import INT_DEBUG, DEBUG, INFORMATION, NOTE, WARNING, ERROR, INTERNAL, FATAL
@@ -40,6 +41,8 @@ class fatal(message) :
 class internal(message) :
   level = vpi.vpiInternal
 
+note('message.py')
+
 message.vpiLevel = {
   vpi.vpiNotice   : note,
   vpi.vpiWarning  : warning,
@@ -67,9 +70,10 @@ class callback(object) :
   def __init__(self, cb_map) :
     self.cb_map = cb_map
     self.callbacks = dict()
-  def __del__(self) :
+    atexit.register(self.finalize)
+  def finalize(self) :
     for name, cb in self.callbacks.iteritems() :
-      #int_debug('deleting callback ' + name)
+      int_debug('deleting callback ' + name)
       self.cb_map.rm_callback(name)
   def add(self, name, fn) :
     self.callbacks[name] = fn
