@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <string>
 #include <map>
-#include "boost/function.hpp"
+#include <boost/function.hpp>
 
 namespace example {
 
@@ -21,6 +21,9 @@ public :
   }
   bool insert_to_map(std::string name, func fn) {
     return get_map()->insert(std::pair<std::string, func>(name, fn)).second;
+  };
+  func assign(std::string name, func fn) {
+    return (*get_map())[name] = fn;
   };
   int rm_from_map(std::string name) {
     return get_map()->erase(name);

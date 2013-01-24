@@ -102,18 +102,18 @@
 
 namespace example {
 
-%exception Tcallbacks<cb_emit_fn>::add_callback {
-  try {
-  	$function
-  } catch (::StringError &e) {
- 	PyErr_SetString(PyExc_TypeError, "String object required");
-	return NULL;
-  } catch (::FuncError &e) {
- 	PyErr_SetString(PyExc_TypeError, "Function object required");
-	return NULL;
+  %exception Tcallbacks<cb_emit_fn>::add_callback {
+    try {
+    	$function
+    } catch (::StringError &e) {
+   	PyErr_SetString(PyExc_TypeError, "String object required");
+  	return NULL;
+    } catch (::FuncError &e) {
+   	PyErr_SetString(PyExc_TypeError, "Function object required");
+  	return NULL;
+    }
   }
-}
-%exception;
+  %exception;
 
   %template() ::std::map<::std::string, cb_emit_fn>;
   %template(cb_emit) Tcallbacks<cb_emit_fn>;
