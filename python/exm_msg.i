@@ -5,6 +5,24 @@
 %{
   #include "message.h"
 
+template <typename func_t>
+  class callbacks {
+public :
+  typedef boost::function<func_t> wrap_t;
+  typedef std::pair<std::string, wrap_t> pair_t;
+  typedef std::map<std::string, wrap_t> map_t;
+protected :
+  map_t* map;
+public :
+  callbacks();
+  ~callbacks();
+  map_t* get_map();
+  bool insert_to_map(std::string name, wrap_t fn);
+  wrap_t assign(std::string name, func_t fn);
+  wrap_t assign(std::string name, wrap_t fn);
+  int rm_from_map(std::string name);
+};
+
   struct PythonCallbackTerminate {
     static std::map<char*, PythonCallbackTerminate*> hash;
     PyObject *name;
@@ -102,7 +120,7 @@
 
 namespace example {
 
-  %exception Tcallbacks<cb_emit_fn>::add_callback {
+  %exception callbacks<cb_emit_fn>::add_callback {
     try {
     	$function
     } catch (::StringError &e) {
@@ -116,8 +134,8 @@ namespace example {
   %exception;
 
   %template() ::std::map<::std::string, cb_emit_fn>;
-  %template(cb_emit) Tcallbacks<cb_emit_fn>;
-  %extend Tcallbacks<cb_emit_fn> {
+  %template(cb_emit) callbacks<cb_emit_fn>;
+  %extend callbacks<cb_emit_fn> {
     void add_callback(PyObject *pyname, PyObject *pyfunc) {
       if (!PyString_Check(pyname)) {
         throw StringError();
@@ -126,7 +144,7 @@ namespace example {
         throw FuncError();
       }
       PythonCallbackEmit* pcb = new PythonCallbackEmit(pyname, pyfunc);
-      ::example::cb_emit_fn cb = boost::ref(*pcb);
+      callbacks<example::cb_emit_fn>::wrap_t cb = boost::ref(*pcb);
       self->insert_to_map(::std::string(pcb->c_str_name), cb);
     }
     void rm_callback(PyObject *pyname) {
@@ -139,9 +157,22 @@ namespace example {
     }
   }
 
+  %exception callbacks<cb_terminate_fn>::add_callback {
+    try {
+    	$function
+    } catch (::StringError &e) {
+   	PyErr_SetString(PyExc_TypeError, "String object required");
+  	return NULL;
+    } catch (::FuncError &e) {
+   	PyErr_SetString(PyExc_TypeError, "Function object required");
+  	return NULL;
+    }
+  }
+  %exception;
+
   %template() ::std::map<::std::string, cb_terminate_fn>;
-  %template(cb_terminate) Tcallbacks<cb_terminate_fn>;
-  %extend Tcallbacks<cb_terminate_fn> {
+  %template(cb_terminate) callbacks<cb_terminate_fn>;
+  %extend callbacks<cb_terminate_fn> {
     void add_callback(PyObject *pyname, PyObject *pyfunc) {
       if (!PyString_Check(pyname)) {
         throw StringError();
@@ -150,8 +181,8 @@ namespace example {
         throw FuncError();
       }
       PythonCallbackTerminate* pcb = new PythonCallbackTerminate(pyname, pyfunc);
-      ::example::cb_terminate_fn cb = boost::ref(*pcb);
-      self->insert_to_map(::std::string(PyString_AsString(pyname)), cb);
+      callbacks<example::cb_terminate_fn>::wrap_t cb = boost::ref(*pcb);
+      self->insert_to_map(::std::string(pcb->c_str_name), cb);
     }
     void rm_callback(PyObject *pyname) {
       if (!PyString_Check(pyname)) {

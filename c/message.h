@@ -6,23 +6,32 @@
 
 namespace example {
 
-template <typename func>
-  class Tcallbacks {
-protected :
-  std::map<std::string, func>* map;
+template <typename func_t>
+  class callbacks {
 public :
-  Tcallbacks() : map(NULL) {};
-  ~Tcallbacks() {};
-  std::map<std::string, func>* get_map() {
+  typedef boost::function<func_t> wrap_t;
+  typedef std::pair<std::string, wrap_t> pair_t;
+  typedef std::map<std::string, wrap_t> map_t;
+protected :
+  map_t* map;
+public :
+  callbacks() : map(NULL) {};
+  ~callbacks() {};
+  map_t* get_map() {
     if (NULL == map) {
-      map = new std::map<std::string, func>();
+      map = new map_t();
     }
     return map;
   }
-  bool insert_to_map(std::string name, func fn) {
-    return get_map()->insert(std::pair<std::string, func>(name, fn)).second;
+  bool insert_to_map(std::string name, wrap_t fn) {
+    return get_map()->insert(pair_t(name, fn)).second;
   };
-  func assign(std::string name, func fn) {
+  wrap_t assign(std::string name, func_t fn) {
+    // wrap function in boost::function
+    wrap_t wrapper = fn;
+    return (*get_map())[name] = wrapper;
+  };
+  wrap_t assign(std::string name, wrap_t fn) {
     return (*get_map())[name] = fn;
   };
   int rm_from_map(std::string name) {
@@ -36,10 +45,8 @@ struct control {
   int  count;
 };
 
-//typedef void (*cb_emit_fn)(unsigned int level, char* severity, char *file, unsigned int line, char* text);
-//typedef void (*cb_terminate_fn)(void);
-typedef boost::function<void(unsigned int level, char* severity, char* file, unsigned int line, char* text)> cb_emit_fn;
-typedef boost::function<void(void)> cb_terminate_fn;
+typedef void cb_emit_fn(unsigned int, char*, char*, unsigned int, char*);
+typedef void cb_terminate_fn(void);
 
 enum levels {
   INT_DEBUG,
@@ -57,8 +64,8 @@ class message {
  public :
  protected :
   static message* self;
-  Tcallbacks<cb_emit_fn> cb_emit;
-  Tcallbacks<cb_terminate_fn> cb_terminate;
+  callbacks<cb_emit_fn> cb_emit;
+  callbacks<cb_terminate_fn> cb_terminate;
 
   int terminating_cnt;
   control attrs[MAX_LEVEL];
@@ -78,8 +85,8 @@ class message {
   static control* get_ctrl(unsigned int level);
   static void verbosity(unsigned int level);
 
-  static Tcallbacks<cb_emit_fn>* get_cb_emit();
-  static Tcallbacks<cb_terminate_fn>* get_cb_terminate();
+  static callbacks<cb_emit_fn>* get_cb_emit();
+  static callbacks<cb_terminate_fn>* get_cb_terminate();
 
   void emit(unsigned int level, char* file, unsigned int line, char* text, va_list args);
 

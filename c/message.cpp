@@ -27,12 +27,9 @@ void cb_terminate_default() {
 }
 
   message::message() : terminating_cnt(0) {
-  cb_emit_fn acct = &cb_account;
-  cb_emit.insert_to_map("99 account", acct);
-  cb_emit_fn dft = &cb_emit_default;
-  cb_emit.insert_to_map("0 default", dft);
-  cb_terminate_fn fn = &cb_terminate_default;
-  cb_terminate.insert_to_map("default", fn);
+  cb_emit.insert_to_map("99 account", cb_account);
+  cb_emit.insert_to_map("0 default", cb_emit_default);
+  cb_terminate.insert_to_map("99 exit", cb_terminate_default);
   for (int i=INT_DEBUG; i<MAX_LEVEL; i++) {
     attrs[i].echo = i>DEBUG;
     if (i>ERROR) {
@@ -65,8 +62,8 @@ void message::destroy() {
 }
 
 void message::terminate() {
-  std::map<std::string, cb_terminate_fn>* cbs = self->cb_terminate.get_map();
-  for (std::map<std::string, cb_terminate_fn>::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
+  callbacks<cb_terminate_fn>::map_t* cbs = self->cb_terminate.get_map();
+  for (callbacks<cb_terminate_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
     _cb->second();
   }
 }
@@ -113,10 +110,10 @@ void message::verbosity(unsigned int level) {
   }
 };
 
-Tcallbacks<cb_emit_fn>* message::get_cb_emit() {
+callbacks<cb_emit_fn>* message::get_cb_emit() {
   return &self->cb_emit;
 }
-Tcallbacks<cb_terminate_fn>* message::get_cb_terminate() {
+callbacks<cb_terminate_fn>* message::get_cb_terminate() {
   return &self->cb_terminate;
 }
 
@@ -126,8 +123,8 @@ void message::emit(unsigned int level, char* file, unsigned int line, char* text
     vsnprintf(buff, sizeof(buff), text, args);
   }
   char *severity = message::name(level);
-  std::map<std::string, cb_emit_fn>* cbs = cb_emit.get_map();
-  for (std::map<std::string, cb_emit_fn>::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
+  callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
+  for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
     _cb->second(level, severity, file, line, args?buff:text);
   }
 }
