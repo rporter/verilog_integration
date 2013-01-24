@@ -26,7 +26,7 @@ void cb_terminate_default() {
   exit(1);
 }
 
-  message::message() : terminating_cnt(0) {
+message::message() : terminating_cnt(0) {
   cb_emit.insert_to_map("99 account", cb_account);
   cb_emit.insert_to_map("0 default", cb_emit_default);
   cb_terminate.insert_to_map("99 exit", cb_terminate_default);
