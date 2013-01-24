@@ -6,7 +6,12 @@ import verilog
 
 
 def fn(*args) : print "fn whoop whoop", args
-message.emit_cbs.add('bob', fn)
+#message.emit_cbs.add('bob', fn)
+try :
+  message.emit_cbs.add('bob', True)
+except message.CallbackError as cberr :
+  message.note('expected exception : ' + str(cberr))
+
 #message.message.instance.get_cb_terminate().add_callback('bob', fn)
 
 message.message.instance.verbosity(0)
