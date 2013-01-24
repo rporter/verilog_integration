@@ -35,7 +35,7 @@ struct control {
 
 //typedef void (*cb_emit_fn)(unsigned int level, char* severity, char *file, unsigned int line, char* text);
 //typedef void (*cb_terminate_fn)(void);
-typedef boost::function<void(unsigned int level, char* severity, char *file, unsigned int line, char* text)> cb_emit_fn;
+typedef boost::function<void(unsigned int level, char* severity, char* file, unsigned int line, char* text)> cb_emit_fn;
 typedef boost::function<void(void)> cb_terminate_fn;
 
 enum levels {
@@ -76,9 +76,9 @@ class message {
   static Tcallbacks<cb_emit_fn>* get_cb_emit();
   static Tcallbacks<cb_terminate_fn>* get_cb_terminate();
 
-  void emit(unsigned int level, char* severity, char *file, unsigned int line, char* text, va_list args);
+  void emit(unsigned int level, char* file, unsigned int line, char* text, va_list args);
 
-  #define SEVERITY(level) void level(char *file, unsigned int line, char* text, ...);
+  #define SEVERITY(level) void level(char* file, unsigned int line, char* text, ...);
 
   SEVERITY(int_debug  );
   SEVERITY(debug      );

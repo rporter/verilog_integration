@@ -114,12 +114,12 @@ Tcallbacks<cb_terminate_fn>* message::get_cb_terminate() {
   return &self->cb_terminate;
 }
 
-void message::emit(unsigned int level, char* severity, char *file, unsigned int line, char* text, va_list args) {
+void message::emit(unsigned int level, char* file, unsigned int line, char* text, va_list args) {
   char buff[8192];
   if (args) {
     vsnprintf(buff, sizeof(buff), text, args);
   }
-  
+  char *severity = message::name(level);
   std::map<std::string, cb_emit_fn>* cbs = cb_emit.get_map();
   for (std::map<std::string, cb_emit_fn>::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
     _cb->second(level, severity, file, line, args?buff:text);
@@ -132,7 +132,7 @@ message* message::self = 0;
   void message::level(char *file, unsigned int line, char* text, ...) { \
     va_list args; \
     va_start(args, text); \
-    emit(LEVEL, (char*)#LEVEL, file, line, text, args);	\
+    emit(LEVEL, file, line, text, args); \
     va_end(args); \
   }
 

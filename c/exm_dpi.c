@@ -1,7 +1,7 @@
 #include "exm_dpi.h"
 #include "vltstd/svdpi.h"
 
-void exm_message(example::levels level, char *severity, const char* formatted) {
+void exm_message(example::levels level, const char* formatted) {
   svScope scope = svGetScope();
   const char* filename = "";
   int line = 0;
@@ -10,12 +10,12 @@ void exm_message(example::levels level, char *severity, const char* formatted) {
   };
 
   const char* scope_name = svGetNameFromScope(scope);
-  example::message::instance()->emit(level, severity, (char*)filename, line, (char*)formatted, NULL);
+  example::message::instance()->emit(level, (char*)filename, line, (char*)formatted, NULL);
 }
 
-#define SEVERITY(fn, LEVEL) \
-  void fn(const char* formatted) { \
-    exm_message(example::LEVEL, (char*)#LEVEL, formatted); \
+#define SEVERITY(level, LEVEL) \
+  void level(const char* formatted) { \
+    exm_message(example::LEVEL, formatted); \
   }
 
 SEVERITY(exm_int_debug,   INT_DEBUG)
