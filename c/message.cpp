@@ -8,7 +8,9 @@ void cb_account(unsigned int level, char* severity, char *file, unsigned int lin
   control* attr = message::get_ctrl(level);
   ++attr->count;
   if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
-    FATAL("Too many %s", severity);
+    if (!message::terminating()) {
+      FATAL("Too many %s", severity);
+    }
     message::terminate();
   }
 }
@@ -24,7 +26,7 @@ void cb_terminate_default() {
   exit(1);
 }
 
-message::message() {
+  message::message() : terminating_cnt(0) {
   cb_emit_fn acct = &cb_account;
   cb_emit.insert_to_map("99 account", acct);
   cb_emit_fn dft = &cb_emit_default;
@@ -67,6 +69,10 @@ void message::terminate() {
   for (std::map<std::string, cb_terminate_fn>::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
     _cb->second();
   }
+}
+
+int message::terminating() {
+  return message::self->terminating_cnt++;
 }
 
 char* message::name(int level) {

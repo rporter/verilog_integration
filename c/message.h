@@ -57,6 +57,7 @@ class message {
   Tcallbacks<cb_emit_fn> cb_emit;
   Tcallbacks<cb_terminate_fn> cb_terminate;
 
+  int terminating_cnt;
   control attrs[MAX_LEVEL];
 
  public :
@@ -66,6 +67,7 @@ class message {
   static message* instance();
   static void destroy();
   static void terminate();
+  static int  terminating();
 
   static char* name(int level);
   static char* name(enum levels level);
@@ -98,9 +100,9 @@ class message {
 
 #define INT_DEBUG(MSG, ...)   example::message::instance()->int_debug  ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define DEBUG(MSG, ...)       example::message::instance()->int_debug  ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
-
 #define INFORMATION(MSG, ...) example::message::instance()->information((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define NOTE(MSG, ...)        example::message::instance()->note       ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
+#define WARNING(MSG, ...)     example::message::instance()->warning    ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define ERROR(MSG, ...)       example::message::instance()->error      ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define INTERNAL(MSG, ...)    example::message::instance()->internal   ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define FATAL(MSG, ...)       example::message::instance()->fatal      ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)

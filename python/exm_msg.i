@@ -6,23 +6,40 @@
   #include "message.h"
 
   struct PythonCallbackTerminate {
+    static std::map<char*, PythonCallbackTerminate*> hash;
+    PyObject *name;
     PyObject *func;
-    PythonCallbackTerminate(PyObject *func) : func(func) {};
+    char *c_str_name;
+    PythonCallbackTerminate (PyObject *name, PyObject *func) : name(name), func(func) {
+      Py_INCREF(name);
+      Py_INCREF(func);
+      c_str_name = PyString_AsString(name);
+      hash[c_str_name] = this;
+    };
+    ~PythonCallbackTerminate() {
+      Py_DECREF(name);
+      Py_DECREF(func);
+      hash.erase(c_str_name);
+    };
 
     void operator()(void) {
       PyObject *result, *arglist;
     
       if (PyCallable_Check(func) < 1) {
+        INTERNAL("function call associated with %s no longer callable", c_str_name);
         return;
       }
   
       result = PyObject_CallFunction(func, "()");     // Call Python
       if (result == NULL) {
-        fprintf(stderr, "function call returned NULL\n");
+	WARNING("function call associated with %s returned NULL", c_str_name);
       }
   
       Py_XDECREF(result);
       return;
+    }
+    static void rm(char* ref) {
+      delete hash[ref];
     }
   };
 
@@ -48,12 +65,13 @@
       PyObject *result, *arglist;
     
       if (PyCallable_Check(func) < 1) {
+        INTERNAL("function call associated with %s no longer callable", c_str_name);
         return;
       }
   
       result = PyObject_CallFunction(func, "(i, s, s, i, s)", level, severity, file, line, text);     // Call Python
       if (result == NULL) {
-        fprintf(stderr, "function call returned NULL\n");
+        WARNING("function call associated with %s returned NULL", c_str_name);
       }
   
       Py_XDECREF(result);
@@ -65,6 +83,7 @@
   };
 
   std::map<char*, PythonCallbackEmit*> PythonCallbackEmit::hash;
+  std::map<char*, PythonCallbackTerminate*> PythonCallbackTerminate::hash;
 
   class StringError {};
   class FuncError {};
@@ -104,7 +123,6 @@ namespace example {
         throw StringError();
       }
       if (!PyCallable_Check(pyfunc)) {
-        PyErr_SetString(PyExc_TypeError, "Need a callable object!");
         throw FuncError();
       }
       PythonCallbackEmit* pcb = new PythonCallbackEmit(pyname, pyfunc);
@@ -115,8 +133,9 @@ namespace example {
       if (!PyString_Check(pyname)) {
         throw StringError();
       }
-      self->rm_from_map(::std::string(PyString_AsString(pyname)));
-      PythonCallbackEmit::rm(PyString_AsString(pyname));
+      char *str = PyString_AsString(pyname);
+      self->rm_from_map(::std::string(str));
+      PythonCallbackEmit::rm(str);
     }
   }
 
@@ -124,12 +143,23 @@ namespace example {
   %template(cb_terminate) Tcallbacks<cb_terminate_fn>;
   %extend Tcallbacks<cb_terminate_fn> {
     void add_callback(PyObject *pyname, PyObject *pyfunc) {
-      if (!PyCallable_Check(pyfunc)) {
-        PyErr_SetString(PyExc_TypeError, "Need a callable object!");
-        return;
+      if (!PyString_Check(pyname)) {
+        throw StringError();
       }
-      ::example::cb_terminate_fn cb = PythonCallbackTerminate(pyfunc);
+      if (!PyCallable_Check(pyfunc)) {
+        throw FuncError();
+      }
+      PythonCallbackTerminate* pcb = new PythonCallbackTerminate(pyname, pyfunc);
+      ::example::cb_terminate_fn cb = boost::ref(*pcb);
       self->insert_to_map(::std::string(PyString_AsString(pyname)), cb);
+    }
+    void rm_callback(PyObject *pyname) {
+      if (!PyString_Check(pyname)) {
+        throw StringError();
+      }
+      char *str = PyString_AsString(pyname);
+      self->rm_from_map(::std::string(str));
+      PythonCallbackTerminate::rm(str);
     }
   }
 }

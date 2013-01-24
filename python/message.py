@@ -5,9 +5,6 @@ import exm_msg
 import vpi
 from exm_msg import INT_DEBUG, DEBUG, INFORMATION, NOTE, WARNING, ERROR, INTERNAL, FATAL
 
-#def vprint() :    
-#  vpi.vpi_printf(self.severity() + self.msg % self.args + '\n')
-
 class SeverityError(Exception) : pass
 
 class message(object) :
@@ -40,8 +37,6 @@ class fatal(message) :
   level = vpi.vpiSystem
 class internal(message) :
   level = vpi.vpiInternal
-
-note('message.py')
 
 message.vpiLevel = {
   vpi.vpiNotice   : note,
@@ -89,3 +84,4 @@ class callback(object) :
     del self.callbacks[name]
 
 emit_cbs = callback(message.instance.get_cb_emit())
+terminate_cbs = callback(message.instance.get_cb_terminate())
