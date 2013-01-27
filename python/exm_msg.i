@@ -5,26 +5,28 @@
 %{
   #include "message.h"
 
-template <typename func_t>
-  class callbacks {
-public :
-  typedef boost::function<func_t> wrap_t;
-  typedef std::pair<std::string, wrap_t> pair_t;
-  typedef std::map<std::string, wrap_t> map_t;
-protected :
-  map_t* map;
-public :
-  callbacks();
-  ~callbacks();
-  map_t* get_map();
-  bool insert_to_map(std::string name, wrap_t fn);
-  wrap_t assign(std::string name, func_t fn);
-  wrap_t assign(std::string name, wrap_t fn);
-  int rm_from_map(std::string name);
-};
+  template <typename func_t>
+    class callbacks {
+  public :
+    typedef boost::function<func_t> wrap_t;
+    typedef std::pair<std::string, wrap_t> pair_t;
+    typedef std::map<std::string, wrap_t> map_t;
+  protected :
+    map_t* map;
+  public :
+    callbacks();
+    ~callbacks();
+    map_t* get_map();
+    bool insert_to_map(std::string name, wrap_t fn);
+    wrap_t assign(std::string name, func_t fn);
+    wrap_t assign(std::string name, wrap_t fn);
+    int rm_from_map(std::string name);
+  };
 
+  template <typename func_t>
   struct PythonCallback {
-    static std::map<char*, PythonCallback*> hash;
+    typedef std::map<char*, PythonCallback*> map_t;
+    static map_t* hash;
     PyObject *name;
     PyObject *func;
     char *c_str_name;
@@ -32,12 +34,12 @@ public :
       Py_INCREF(name);
       Py_INCREF(func);
       c_str_name = PyString_AsString(name);
-      hash[c_str_name] = this;
+      (*hash)[c_str_name] = this;
     };
     ~PythonCallback() {
       Py_DECREF(name);
       Py_DECREF(func);
-      hash.erase(c_str_name);
+      hash->erase(c_str_name);
     };
 
     void operator()(void) {
@@ -48,7 +50,7 @@ public :
         return;
       }
   
-      result = PyObject_CallFunction(func, "()");     // Call Python
+      result = PyObject_CallFunction(func, (char*)"()");     // Call Python
       if (result == NULL) {
 	WARNING("function call associated with %s returned NULL", c_str_name);
       }
@@ -56,7 +58,8 @@ public :
       Py_XDECREF(result);
       return;
     }
-    void operator()(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+
+   void operator()(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
 
       PyObject *result, *arglist;
     
@@ -65,7 +68,7 @@ public :
         return;
       }
   
-      result = PyObject_CallFunction(func, "(i, s, s, i, s)", level, severity, file, line, text);     // Call Python
+      result = PyObject_CallFunction(func, (char*)"(i, s, s, i, s)", level, severity, file, line, text);     // Call Python
       if (result == NULL) {
         WARNING("function call associated with %s returned NULL", c_str_name);
       }
@@ -73,16 +76,23 @@ public :
       Py_XDECREF(result);
       return;
     }
+
+    static typename callbacks<func_t>::wrap_t callback(PyObject *pyname, PyObject *pyfunc) {
+      PythonCallback* pcb = new PythonCallback(pyname, pyfunc);
+      typename callbacks<func_t>::wrap_t cb = boost::ref(*pcb);
+      return cb;
+    }
+
     static void rm(char* ref) {
-      delete hash[ref];
+      delete (*hash)[ref];
     }
   };
-
-  std::map<char*, PythonCallback*> PythonCallback::hash;
 
   class StringError {};
   class FuncError {};
 
+  template<> PythonCallback<example::cb_emit_fn>::map_t*      PythonCallback<example::cb_emit_fn>::hash      = new PythonCallback<example::cb_emit_fn>::map_t();
+  template<> PythonCallback<example::cb_terminate_fn>::map_t* PythonCallback<example::cb_terminate_fn>::hash = new PythonCallback<example::cb_terminate_fn>::map_t();
 
 %}
 
@@ -93,7 +103,6 @@ public :
 
 /* Parse the header file to generate wrappers */
 %include "message.h"
-
 
 namespace example {
 
@@ -120,9 +129,7 @@ namespace example {
       if (!PyCallable_Check(pyfunc)) {
         throw FuncError();
       }
-      PythonCallback* pcb = new PythonCallback(pyname, pyfunc);
-      callbacks<example::cb_emit_fn>::wrap_t cb = boost::ref(*pcb);
-      self->insert_to_map(::std::string(pcb->c_str_name), cb);
+      self->insert_to_map(::std::string(PyString_AsString(pyname)), PythonCallback<example::cb_emit_fn>::callback(pyname, pyfunc));
     }
     void rm_callback(PyObject *pyname) {
       if (!PyString_Check(pyname)) {
@@ -130,7 +137,7 @@ namespace example {
       }
       char *str = PyString_AsString(pyname);
       self->rm_from_map(::std::string(str));
-      PythonCallback::rm(str);
+      PythonCallback<example::cb_emit_fn>::rm(str);
     }
   }
 
@@ -157,9 +164,7 @@ namespace example {
       if (!PyCallable_Check(pyfunc)) {
         throw FuncError();
       }
-      PythonCallback* pcb = new PythonCallback(pyname, pyfunc);
-      callbacks<example::cb_terminate_fn>::wrap_t cb = boost::ref(*pcb);
-      self->insert_to_map(::std::string(pcb->c_str_name), cb);
+      self->insert_to_map(::std::string(PyString_AsString(pyname)), PythonCallback<example::cb_terminate_fn>::callback(pyname, pyfunc));
     }
     void rm_callback(PyObject *pyname) {
       if (!PyString_Check(pyname)) {
@@ -167,7 +172,7 @@ namespace example {
       }
       char *str = PyString_AsString(pyname);
       self->rm_from_map(::std::string(str));
-      PythonCallback::rm(str);
+      PythonCallback<example::cb_terminate_fn>::rm(str);
     }
   }
 }
