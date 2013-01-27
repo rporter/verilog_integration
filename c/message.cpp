@@ -27,9 +27,9 @@ void cb_terminate_default() {
 }
 
 message::message() : terminating_cnt(0) {
-  cb_emit.insert_to_map("99 account", cb_account);
-  cb_emit.insert_to_map("0 default", cb_emit_default);
-  cb_terminate.insert_to_map("99 exit", cb_terminate_default);
+  cb_emit.insert_to_map("account", 99, cb_account);
+  cb_emit.insert_to_map("default", 0, cb_emit_default);
+  cb_terminate.insert_to_map("exit", 99, cb_terminate_default);
   for (int i=INT_DEBUG; i<MAX_LEVEL; i++) {
     attrs[i].echo = i>DEBUG;
     if (i>ERROR) {

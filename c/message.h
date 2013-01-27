@@ -6,12 +6,31 @@
 
 namespace example {
 
+struct cb_id {
+  std::string name;
+  int    priority;
+  //  bool operator() (const cb_id& lhs, const cb_id& rhs) const {
+  //    return lhs.priority < rhs.priority;
+  //  }
+  bool operator> (const cb_id& key) const {
+    if (key.priority == priority) return key.name < name;
+    return key.priority < priority;
+  }
+  bool operator< (const cb_id& key) const {
+    if (key.priority == priority) return key.name > name;
+    return key.priority > priority;
+  }
+  bool operator== (const cb_id& key) const {
+    return key.name == name;
+  }
+};
+
 template <typename func_t>
   class callbacks {
 public :
   typedef boost::function<func_t> wrap_t;
-  typedef std::pair<std::string, wrap_t> pair_t;
-  typedef std::map<std::string, wrap_t> map_t;
+  typedef std::pair<cb_id, wrap_t> pair_t;
+  typedef std::map<cb_id, wrap_t> map_t;
 protected :
   map_t* map;
 public :
@@ -23,19 +42,23 @@ public :
     }
     return map;
   }
-  bool insert_to_map(std::string name, wrap_t fn) {
-    return get_map()->insert(pair_t(name, fn)).second;
+  bool insert_to_map(std::string name, int priority, wrap_t fn) {
+    cb_id id = {name, priority};
+    return get_map()->insert(pair_t(id, fn)).second;
   };
-  wrap_t assign(std::string name, func_t fn) {
+  wrap_t assign(std::string name, int priority, func_t fn) {
+    cb_id id = {name, priority};
     // wrap function in boost::function
     wrap_t wrapper = fn;
-    return (*get_map())[name] = wrapper;
+    return (*get_map())[id] = wrapper;
   };
   wrap_t assign(std::string name, wrap_t fn) {
-    return (*get_map())[name] = fn;
+    cb_id id = {name, -1};
+    return (*get_map())[id] = fn;
   };
   int rm_from_map(std::string name) {
-    return get_map()->erase(name);
+    cb_id id = {name, -1};
+    return get_map()->erase(id);
   };
 };
 

@@ -10,22 +10,19 @@ message.control.FATAL.threshold = -1
 def fn0(*args) : print "fn0", args
 def fn1(*args) : print "fn1", args
 
-message.emit_cbs.add('bob', fn0)
-
-message.terminate_cbs.add('bob', fn0)
+message.emit_cbs.add('bob', 2, fn0)
+message.terminate_cbs.add('bob', 1, fn1)
 
 try :
-  message.emit_cbs.add('bob', True)
+  message.emit_cbs.add('bob', 1, True)
 except message.CallbackError as cberr :
   message.note('expected exception : ' + str(cberr))
-
 
 def terminate(*args) : 
   message.note('terminate ' + str(args))
   print 'terminate ' + str(args)
-  return 1
 
-message.terminate_cbs.add('1 python', terminate)
+message.terminate_cbs.add('python', 0, terminate)
 
 message.internal('whoops')
 

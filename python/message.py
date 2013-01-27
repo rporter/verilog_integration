@@ -72,9 +72,11 @@ class callback(object) :
     for name, cb in self.callbacks.iteritems() :
       int_debug('deleting callback ' + name)
       self.cb_map.rm_callback(name)
-  def add(self, name, fn) :
+  def add(self, name, pri, fn=None) :
+    if fn is None :
+      pri, fn = 0, pri # default priority is 0
     try :
-      self.cb_map.add_callback(name, fn)
+      self.cb_map.add_callback(name, pri, fn)
     except TypeError as error :
       raise CallbackError(error)
     else :
