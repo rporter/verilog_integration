@@ -9,7 +9,7 @@ PY_LDFLAGS=$(shell python-config --libs) -lrt
 
 all : libexm_vpi.so
 
-libexm_vpi.so : exm_python.o exm_vpi.o exm_dpi.o message.o exm_verilated.o
+libexm_vpi.so : exm_python.o exm_vpi.o exm_dpi.o message.o exm_verilated.o exm_msg.o
 	$(CXX) -export-dynamic -shared $^ -o $@ $(PY_LDFLAGS)
 
 exm_python.o : exm_python.c exm_python.h
@@ -19,6 +19,9 @@ exm_%pi.o : exm_%pi.c
 	$(CXX) $(CFLAGS) $(VL_CFLAGS) -c $< -o $@
 
 exm_verilated.o : exm_verilated.cpp
+	$(CXX) $(CFLAGS) $(VL_CFLAGS) -c $< -o $@
+
+exm_msg.o : exm_msg.cpp
 	$(CXX) $(CFLAGS) $(VL_CFLAGS) -c $< -o $@
 
 message.o : message.cpp message.h

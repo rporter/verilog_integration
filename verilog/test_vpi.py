@@ -14,6 +14,8 @@ arr = dict([(i, verilog.scope(root() + '.duv_0_u.arr[%d].arr' % i)) for i in ran
 
 # up timeout beyond test time
 simctrl.direct.sim_ctrl_timeout_i = 200
+# reduce time step
+simctrl.direct.sim_ctrl_cycles_freq_i = 1
 
 for scope in arr.values() :
   scope.direct.verbose = 0 # display values
