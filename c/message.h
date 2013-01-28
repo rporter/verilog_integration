@@ -11,15 +11,12 @@ struct cb_id {
   std::string name;
   int         priority;
   bool operator> (const cb_id& key) const {
-    if (key.priority == priority) return key.name < name;
+    if (key.name == name) return false;
     return key.priority < priority;
   }
   bool operator< (const cb_id& key) const {
-    if (key.priority == priority) return key.name > name;
+    if (key.name == name) return false;
     return key.priority > priority;
-  }
-  bool operator== (const cb_id& key) const {
-    return key.name == name;
   }
 };
 
@@ -40,21 +37,31 @@ public :
     }
     return map;
   }
-  bool insert_to_map(std::string name, int priority, wrap_t fn) {
+  bool insert(std::string name, int priority, wrap_t fn) {
     cb_id id = {name, priority};
     return get_map()->insert(pair_t(id, fn)).second;
   };
-  wrap_t assign(std::string name, int priority, func_t fn) {
+  bool insert(std::string name, int priority, func_t fn) {
+    cb_id id = {name, priority};
+    // wrap function in boost::function
+    wrap_t wrapper = fn;
+    return get_map()->insert(pair_t(id, wrapper)).second;
+  };
+  wrap_t assign(std::string name, int priority, wrap_t fn) {
     cb_id id = {name, priority};
     // wrap function in boost::function
     wrap_t wrapper = fn;
     return (*get_map())[id] = wrapper;
   };
+  wrap_t assign(std::string name, int priority, func_t fn) {
+    cb_id id = {name, priority};
+    return (*get_map())[id] = fn;
+  };
   wrap_t assign(std::string name, wrap_t fn) {
     cb_id id = {name, -1};
     return (*get_map())[id] = fn;
   };
-  int rm_from_map(std::string name) {
+  int rm(std::string name) {
     cb_id id = {name, -1};
     return get_map()->erase(id);
   };

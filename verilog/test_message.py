@@ -10,7 +10,7 @@ message.control.FATAL.threshold = -1
 def fn0(*args) : print "fn0", args[1].tv_nsec, args
 def fn1(*args) : print "fn1", args
 
-message.emit_cbs.add('bob', 2, fn0)
+message.emit_cbs.add('default', 2, fn0)
 message.terminate_cbs.add('bob', 1, fn1)
 
 try :

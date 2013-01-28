@@ -17,7 +17,7 @@
     callbacks();
     ~callbacks();
     map_t* get_map();
-    bool insert_to_map(std::string name, int priority, wrap_t fn);
+    bool insert(std::string name, int priority, wrap_t fn);
     wrap_t assign(std::string name, int priority, func_t fn);
     wrap_t assign(std::string name, int priority, wrap_t fn);
     int rm_from_map(std::string name);
@@ -148,14 +148,14 @@ namespace example {
       if (!PyCallable_Check(pyfunc)) {
         throw FuncError();
       }
-      self->insert_to_map(::std::string(PyString_AsString(pyname)), PyInt_AsSsize_t(pynum), PythonCallback<example::cb_emit_fn>::callback(pyname, pyfunc));
+      self->assign(::std::string(PyString_AsString(pyname)), PyInt_AsSsize_t(pynum), PythonCallback<example::cb_emit_fn>::callback(pyname, pyfunc));
     }
     void rm_callback(PyObject *pyname) {
       if (!PyString_Check(pyname)) {
         throw StringError();
       }
       char *str = PyString_AsString(pyname);
-      self->rm_from_map(::std::string(str));
+      self->rm(::std::string(str));
       PythonCallback<example::cb_emit_fn>::rm(str);
     }
   }
@@ -189,14 +189,14 @@ namespace example {
       if (!PyCallable_Check(pyfunc)) {
         throw FuncError();
       }
-      self->insert_to_map(::std::string(PyString_AsString(pyname)), PyInt_AsSsize_t(pynum), PythonCallback<example::cb_terminate_fn>::callback(pyname, pyfunc));
+      self->assign(::std::string(PyString_AsString(pyname)), PyInt_AsSsize_t(pynum), PythonCallback<example::cb_terminate_fn>::callback(pyname, pyfunc));
     }
     void rm_callback(PyObject *pyname) {
       if (!PyString_Check(pyname)) {
         throw StringError();
       }
       char *str = PyString_AsString(pyname);
-      self->rm_from_map(::std::string(str));
+      self->rm(::std::string(str));
       PythonCallback<example::cb_terminate_fn>::rm(str);
     }
   }
