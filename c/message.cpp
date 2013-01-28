@@ -4,7 +4,7 @@
 
 namespace example {
 
-void cb_account(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+void cb_account(const cb_id& id, unsigned int level, char* severity, char *file, unsigned int line, char* text) {
   control* attr = message::get_ctrl(level);
   ++attr->count;
   if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
@@ -15,14 +15,14 @@ void cb_account(unsigned int level, char* severity, char *file, unsigned int lin
   }
 }
 
-void cb_emit_default(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+void cb_emit_default(const cb_id& id, unsigned int level, char* severity, char *file, unsigned int line, char* text) {
   if (message::get_ctrl(level)->echo) {
     fprintf(stderr, "(%12s) %s\n",  severity, text);
     fflush(stderr);
   }
 }
 
-void cb_terminate_default() {
+void cb_terminate_default(const cb_id& id) {
   exit(1);
 }
 
@@ -64,7 +64,7 @@ void message::destroy() {
 void message::terminate() {
   callbacks<cb_terminate_fn>::map_t* cbs = self->cb_terminate.get_map();
   for (callbacks<cb_terminate_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
-    _cb->second();
+    _cb->second(_cb->first);
   }
 }
 
@@ -125,7 +125,7 @@ void message::emit(unsigned int level, char* file, unsigned int line, char* text
   char *severity = message::name(level);
   callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
   for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
-    _cb->second(level, severity, file, line, args?buff:text);
+    _cb->second(_cb->first, level, severity, file, line, args?buff:text);
   }
 }
 

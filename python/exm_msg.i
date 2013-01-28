@@ -42,15 +42,18 @@
       hash->erase(c_str_name);
     };
 
-    void operator()(void) {
+    void operator()(const example::cb_id& id) {
       PyObject *result, *arglist;
     
       if (PyCallable_Check(func) < 1) {
         INTERNAL("function call associated with %s no longer callable", c_str_name);
         return;
       }
-  
-      result = PyObject_CallFunction(func, (char*)"()");     // Call Python
+
+      PyObject *instance = SWIG_NewPointerObj(SWIG_as_voidptr(&id), SWIGTYPE_p_example__cb_id, 0);
+
+      result = PyObject_CallFunction(func, (char*)"(O)", instance);     // Call Python
+
       if (result == NULL) {
 	WARNING("function call associated with %s returned NULL", c_str_name);
       }
@@ -59,7 +62,7 @@
       return;
     }
 
-   void operator()(unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+   void operator()(const example::cb_id& id, unsigned int level, char* severity, char *file, unsigned int line, char* text) {
 
       PyObject *result, *arglist;
     
@@ -67,8 +70,10 @@
         INTERNAL("function call associated with %s no longer callable", c_str_name);
         return;
       }
-  
-      result = PyObject_CallFunction(func, (char*)"(i, s, s, i, s)", level, severity, file, line, text);     // Call Python
+
+      PyObject *instance = SWIG_NewPointerObj(SWIG_as_voidptr(&id), SWIGTYPE_p_example__cb_id, 0);
+
+      result = PyObject_CallFunction(func, (char*)"(O, i, s, s, i, s)", instance, level, severity, file, line, text);     // Call Python
       if (result == NULL) {
         WARNING("function call associated with %s returned NULL", c_str_name);
       }

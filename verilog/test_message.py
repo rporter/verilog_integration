@@ -20,7 +20,8 @@ except message.CallbackError as cberr :
 
 def terminate(*args) : 
   message.note('terminate ' + str(args))
-  print 'terminate ' + str(args)
+  print 'terminate ' + str(args[0])
+  print args[0].name
 
 message.terminate_cbs.add('python', 0, terminate)
 
