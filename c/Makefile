@@ -3,7 +3,7 @@
 include ../test/make.inc
 
 CFLAGS+=-fPIC -ggdb
-PY_LDFLAGS=$(shell python-config --libs)
+PY_LDFLAGS=$(shell python-config --libs) -lrt
 
 .PHONY : all clean
 

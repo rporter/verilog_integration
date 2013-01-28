@@ -62,7 +62,7 @@
       return;
     }
 
-   void operator()(const example::cb_id& id, unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+   void operator()(const example::cb_id& id, unsigned int level, timespec& when, char* severity, char *file, unsigned int line, char* text) {
 
       PyObject *result, *arglist;
     
@@ -72,8 +72,9 @@
       }
 
       PyObject *instance = SWIG_NewPointerObj(SWIG_as_voidptr(&id), SWIGTYPE_p_example__cb_id, 0);
+      PyObject *pywhen  = SWIG_NewPointerObj(SWIG_as_voidptr(&when), SWIGTYPE_p_timespec, 0);
 
-      result = PyObject_CallFunction(func, (char*)"(O, i, s, s, i, s)", instance, level, severity, file, line, text);     // Call Python
+      result = PyObject_CallFunction(func, (char*)"(O, O, i, s, s, i, s)", instance, pywhen, level, severity, file, line, text);     // Call Python
       if (result == NULL) {
         WARNING("function call associated with %s returned NULL", c_str_name);
       }
@@ -109,6 +110,12 @@
 
 /* Parse the header file to generate wrappers */
 %include "message.h"
+
+  struct timespec {
+      long     tv_sec;        /* seconds */
+      long     tv_nsec;       /* nanoseconds */
+  };
+
 
 namespace example {
 

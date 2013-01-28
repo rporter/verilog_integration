@@ -4,7 +4,7 @@
 
 namespace example {
 
-void cb_account(const cb_id& id, unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+void cb_account(const cb_id& id, unsigned int level, timespec& when, char* severity, char *file, unsigned int line, char* text) {
   control* attr = message::get_ctrl(level);
   ++attr->count;
   if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
@@ -15,7 +15,7 @@ void cb_account(const cb_id& id, unsigned int level, char* severity, char *file,
   }
 }
 
-void cb_emit_default(const cb_id& id, unsigned int level, char* severity, char *file, unsigned int line, char* text) {
+void cb_emit_default(const cb_id& id, unsigned int level, timespec& when, char* severity, char *file, unsigned int line, char* text) {
   if (message::get_ctrl(level)->echo) {
     fprintf(stderr, "(%12s) %s\n",  severity, text);
     fflush(stderr);
@@ -47,7 +47,7 @@ message::~message() {
   for (int i=MAX_LEVEL;--i>=INT_DEBUG;) {
     INFORMATION("%12s : %d", name(i), attrs[i].count);
   }
-};
+}
 
 message* message::instance() {
   if (NULL == self) {
@@ -123,9 +123,11 @@ void message::emit(unsigned int level, char* file, unsigned int line, char* text
     vsnprintf(buff, sizeof(buff), text, args);
   }
   char *severity = message::name(level);
+  struct timespec when;
+  clock_gettime(CLOCK_REALTIME, &when);
   callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
   for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
-    _cb->second(_cb->first, level, severity, file, line, args?buff:text);
+    _cb->second(_cb->first, level, when, severity, file, line, args?buff:text);
   }
 }
 

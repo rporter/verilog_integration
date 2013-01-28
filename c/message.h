@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <stdarg.h>
+#include <time.h>
 #include <string>
 #include <map>
 #include <boost/function.hpp>
@@ -9,9 +10,6 @@ namespace example {
 struct cb_id {
   std::string name;
   int         priority;
-  //  bool operator() (const cb_id& lhs, const cb_id& rhs) const {
-  //    return lhs.priority < rhs.priority;
-  //  }
   bool operator> (const cb_id& key) const {
     if (key.priority == priority) return key.name < name;
     return key.priority < priority;
@@ -68,7 +66,7 @@ struct control {
   int  count;
 };
 
- typedef void cb_emit_fn(const cb_id&, unsigned int, char*, char*, unsigned int, char*);
+ typedef void cb_emit_fn(const cb_id&, unsigned int, timespec&, char*, char*, unsigned int, char*);
  typedef void cb_terminate_fn(const cb_id&);
 
 enum levels {
