@@ -23,6 +23,7 @@ verilate : verilog
 
 build :
 	$(MAKE) -C ../c
+	$(MAKE) -C ../db
 	$(MAKE) -C ../python
 
 verilog : build

@@ -1,0 +1,15 @@
+CREATE TABLE log (
+  log_id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  parent      INTEGER,
+  description TEXT
+);
+
+CREATE TABLE message (
+  log_id   INTEGER NOT NULL,
+  level    INTEGER NOT NULL,
+  severity TEXT,
+  date     DATETIME,
+  filename TEXT,
+  line     INTEGER,
+  msg      TEXT
+);

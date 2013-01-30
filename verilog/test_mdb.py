@@ -4,6 +4,7 @@ import mdb
 import message
 
 mdb.db.connection.set_default_db(db='../db/mdb.db')
-mdb.mdb()
+mdb.mdb('test mdb')
 
+message.int_debug('a int_debug %(c)d', c=69)
 message.note('a note')

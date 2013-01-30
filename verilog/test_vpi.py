@@ -1,8 +1,16 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
+import sys
 import message
 import random
 import verilog
+
+try :
+  import mdb
+  mdb.db.connection.set_default_db(db='../db/mdb.db')
+  mdb.mdb('test vpi')
+except :
+  message.note('Not using mdb because ' + str(sys.exc_info()))
 
 random.seed(1)
 
