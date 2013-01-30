@@ -1,0 +1,42 @@
+<html>
+  <head>
+    <link   type="text/css" rel="stylesheet" href="static/report.css"/>
+    <!-- jQuery gubbins -->
+    <link  href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.js"></script>
+    <link  href="https://fancytree.googlecode.com/hg/src/skin-win7/ui.fancytree.css" rel="stylesheet" type="text/css"/>
+    <script src="https://fancytree.googlecode.com/hg/src/jquery.fancytree.js" type="text/javascript"></script>
+    <script type="text/javascript" src="static/report.js"></script>
+    <script>
+      $(document).ready(function() {
+        $report.tabs({ 
+          ajaxOptions: { async: true },
+          cache: true,
+          tabTemplate: '<li><a href="#{href}">#{label}</a><span class="ui-icon ui-icon-refresh"></span><span class="ui-icon ui-icon-close"></span></li>',
+          load : function(tab, ui) { 
+            $report.hijax(ui.panel); 
+          } 
+        });
+        $("span.ui-icon-close", $report.tabs).live("click", function() {
+  	  var index = $("li", $enalvo).index($(this).parent());
+    	  $report.tabs( "remove", index );
+        });
+        $("#enalvo span.ui-icon-refresh", $report.tabs).live("click", function() {
+    	  var index = $("li", $(this)).index($(this).parent());
+    	  $report.tabs("load", index);
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="report">
+      <ul>
+        <li><a href="index/all"><span>All Tests</span></a></li>
+        <li><a href="index/rgr"><span>Regressions</span></a></li>
+        <li><a href="index/sngl"><span>Singletons</span></a></li>
+      </ul>
+    </div>
+  </body>
+</html>
+

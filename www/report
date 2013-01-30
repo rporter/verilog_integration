@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Copyright (c) 2012 Rich Porter - see LICENSE for further details
+
+root=`dirname $0`
+
+bottle=$root/bottle.py
+test -e $bottle || wget https://raw.github.com/defnull/bottle/master/bottle.py -O $bottle
+
+PYTHONPATH=.:$root/../python:$PYTHONPATH exec python $0.py --root=$root "$@"
