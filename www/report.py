@@ -14,6 +14,14 @@ options, values = parser.parse_args()
 mdb.db.connection.set_default_db(db=os.path.join(options.root, '../db/mdb.db'))
 mdb.mdb('mdb report')
 
+def bottle_log(msg) :
+  message.note(msg.strip())
+def wsgi_log(self, format, *args) :
+  message.debug(format.strip() % args)
+
+bottle._stderr = bottle_log
+from wsgiref.simple_server import WSGIRequestHandler
+WSGIRequestHandler.log_message = wsgi_log
 static = os.path.join(options.root, 'static')
 
 @bottle.get('/static/:filename#.*#')
