@@ -19,7 +19,7 @@ vpi_wrap.o : vpi_wrap.c
 	$(CC) -fPIC $(CFLAGS) $(PY_CFLAGS) $(VL_CFLAGS) -c $<
 
 _%.so : %_wrap.o
-	$(CXX) -export-dynamic -shared $< $(PY_LDFLAGS) -o $@
+	$(CXX) -export-dynamic -shared $< $(PY_LDFLAGS) -L ../c -Wl,-rpath=$(ROOT)/c -lmessage -o $@
 
 clean :
 	-@rm *.o *.so vpi.py exm_msg.py *_wrap.c* *~

@@ -3,6 +3,8 @@
 PY_LDFLAGS?=$(shell python-config --libs)
 PY_CFLAGS?=$(shell python-config --includes)
 
+ROOT?=$(shell dirname $$PWD)
+
 TOOL_ROOT?=/enalvo/ap
 
 IVERILOG_ROOT=/enalvo/ap/iverilog/20120501

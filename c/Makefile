@@ -7,13 +7,16 @@ PY_LDFLAGS=$(shell python-config --libs) -lrt
 
 .PHONY : all clean
 
-all : libexm_vpi.so
+all : libexm_vpi.so libmessage.so
 
 libexm_vpi.so : exm_python.o exm_vpi.o exm_dpi.o message.o exm_verilated.o exm_msg.o
 	$(CXX) -export-dynamic -shared $^ -o $@ $(PY_LDFLAGS)
 
+libmessage.so : message.o
+	$(CXX) -export-dynamic -shared $< -lrt -o $@
+
 exm_python.o : exm_python.c exm_python.h
-	$(CXX) $(CFLAGS) $(PY_CFLAGS) $(VL_CFLAGS) -DPYTHONDIR=\"$$PWD/../python\" -c $< -o $@
+	$(CXX) $(CFLAGS) $(PY_CFLAGS) $(VL_CFLAGS) -DPYTHONDIR=\"$(ROOT)/python\" -c $< -o $@
 
 exm_%pi.o : exm_%pi.c
 	$(CXX) $(CFLAGS) $(VL_CFLAGS) -c $< -o $@

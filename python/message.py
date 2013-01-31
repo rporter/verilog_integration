@@ -2,7 +2,6 @@
 
 import atexit
 import exm_msg
-import vpi
 from exm_msg import INT_DEBUG, DEBUG, INFORMATION, NOTE, WARNING, ERROR, INTERNAL, FATAL
 
 class SeverityError(Exception) : pass
@@ -23,28 +22,30 @@ class message(object) :
   def formatted(self) :
     return self.msg % self.args
 
-class int_debug(message) :
-  pass
-class debug(message) :
-  pass
-class note(message) : 
-  level = vpi.vpiNotice
-class warning(message) :
-  level = vpi.vpiWarning
-class error(message) :
-  level = vpi.vpiError
-class fatal(message) :
-  level = vpi.vpiSystem
-class internal(message) :
-  level = vpi.vpiInternal
+class int_debug(message) : pass
+class debug(message)     : pass
+class note(message)      : pass
+class warning(message)   : pass
+class error(message)     : pass
+class fatal(message)     : pass
+class internal(message)  : pass
 
-message.vpiLevel = {
-  vpi.vpiNotice   : note,
-  vpi.vpiWarning  : warning,
-  vpi.vpiError    : error,
-  vpi.vpiSystem   : fatal,
-  vpi.vpiInternal : internal
-}
+try :
+  import vpi
+  message.vpiLevel = {
+    vpi.vpiNotice   : note,
+    vpi.vpiWarning  : warning,
+    vpi.vpiError    : error,
+    vpi.vpiSystem   : fatal,
+    vpi.vpiInternal : internal
+  }
+  note.level = vpi.vpiNotice
+  level = vpi.vpiWarning
+  level = vpi.vpiError
+  level = vpi.vpiSystem
+  level = vpi.vpiInternal
+except ImportError :
+  pass
 
 class _control(object) :
   def __getattribute__(self, attr) :
