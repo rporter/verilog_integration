@@ -1,10 +1,14 @@
 CREATE TABLE log (
   log_id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   parent      INTEGER,
+  activity    TEXT,
+  block       TEXT,
+  version     TEXT,
   description TEXT
 );
 
 CREATE TABLE message (
+  msg_id   INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   log_id   INTEGER NOT NULL,
   level    INTEGER NOT NULL,
   severity TEXT,

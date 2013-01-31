@@ -2,30 +2,51 @@
   <head>
     <link   type="text/css" rel="stylesheet" href="static/report.css"/>
     <!-- jQuery gubbins -->
-    <link  href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.js"></script>
+    <link  href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.0/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.0/jquery-ui.js"></script>
+<!--
     <link  href="https://fancytree.googlecode.com/hg/src/skin-win7/ui.fancytree.css" rel="stylesheet" type="text/css"/>
     <script src="https://fancytree.googlecode.com/hg/src/jquery.fancytree.js" type="text/javascript"></script>
+-->
     <script type="text/javascript" src="static/report.js"></script>
     <script>
       $(document).ready(function() {
-        $report.tabs({ 
-          ajaxOptions: { async: true },
-          cache: true,
-          tabTemplate: '<li><a href="#{href}">#{label}</a><span class="ui-icon ui-icon-refresh"></span><span class="ui-icon ui-icon-close"></span></li>',
-          load : function(tab, ui) { 
-            $report.hijax(ui.panel); 
-          } 
+        $report.tabs({
+          ajaxOptions : {
+            cache      : false,
+            dataType   : 'html', // it will be html in the end
+            dataFilter : $report.renderTestJSON,
+            error : function(xhr, status, index, anchor) {
+              console.log(xhr, status, index);
+            }
+         },
+         tabTemplate: '<li><a href="#{href}">#{label}</a><span class="ui-icon ui-icon-refresh"></span><span class="ui-icon ui-icon-close"></span></li>',
+         load : function(tab, ui) { 
+           $report.hijax(ui.panel); 
+         } 
         });
-        $("span.ui-icon-close", $report.tabs).live("click", function() {
-  	  var index = $("li", $enalvo).index($(this).parent());
-    	  $report.tabs( "remove", index );
+        $('li', $report.tabs()).bind('focusin.example', $report.fetchAndRender);
+
+
+/*
+        // close icon: removing the tab on click
+        $report.tabs().delegate("span.ui-icon-close", "click", function() {
+          var panelId = $(this).closest("li").remove().attr("aria-controls");
+          $("#"+panelId, $(this)).remove();
+          $report.tabs.tabs("refresh");
         });
-        $("#enalvo span.ui-icon-refresh", $report.tabs).live("click", function() {
+
+        $(document).on("click", $("span.ui-icon-close", $report.tabs), function() {
+  	  var index = $("li", $(this)).index($(this).parent());
+    	  $report.tabs("remove", index);
+        });
+        $(document).on("click", $("span.ui-icon-refresh", $report.tabs), function() {
     	  var index = $("li", $(this)).index($(this).parent());
     	  $report.tabs("load", index);
         });
+
+*/
       });
     </script>
   </head>

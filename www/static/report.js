@@ -11,7 +11,7 @@ $report = function(){
   $report.tabs = function(){
     var tabs;
     return function(){
-	return tabs || (tabs = $report.report().tabs.apply($report.report(), arguments));
+	return (tabs || (tabs = $report.report().tabs)).apply($report.report(), arguments);
     };
   }();
 
@@ -27,5 +27,12 @@ $report = function(){
        return false; 
     });     
   };
+
+  $report.renderTestJSON = function(data, type) {
+    var tbody = $('<tbody/>');
+    $.parseJSON(data).forEach(function(it){tbody.append($('<tr><td>' + it.log.log_id + '</td><td>' + it.log.description + '</td></tr>'))});
+    return $('<table/>', {html : $('<thead><tr><th>log id</th><th>description</th><th>errors</th></tr></thead>').after(tbody)});
+  };
+
 })($report);
 

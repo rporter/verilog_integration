@@ -1,5 +1,6 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
+import accessor
 import atexit
 import sys
 import sqlite3
@@ -8,9 +9,10 @@ import message
 class connection(object) :
 
   class _cursor(object) :
-    def __init__(self, connection, *args) :
-      self.connection = connection
-      self.db         = self.connection.cursor(*args)
+    def __init__(self, connection, factory=None) :
+      self.connection             = connection
+      self.connection.row_factory = factory
+      self.db                     = self.connection.cursor()
 
     def commit(self) :
       self.connection.commit()
@@ -32,7 +34,7 @@ class connection(object) :
     return self._cursor(self.instance, *args)
 
   def row_cursor(self) :
-    return self.cursor(sqlite3.Row)
+    return self.cursor(accessor.accessor_factory)
 
   @classmethod
   def set_default_db(cls, **args) :
@@ -64,7 +66,7 @@ class mixin(object) :
     if self.filter_fn(cb_id, level, filename) :
       return
     try :
-      self.db.execute('INSERT INTO message VALUES (?, ?, ?, ?, ?, ?, ?);', (self.log_id, level, severity, when.tv_sec, filename, line, msg))
+      self.db.execute('INSERT INTO message (log_id, level, severity, date, filename, line, msg) VALUES (?, ?, ?, ?, ?, ?, ?);', (self.log_id, level, severity, when.tv_sec, filename, line, msg))
       self.queue += self.db.rowcount
     except :
       print sys.exc_info()
