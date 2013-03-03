@@ -87,7 +87,7 @@ class groupby:
     next=__next__
     def _grouper(self, tgtkey):
         while self.currkey == tgtkey:
-            yield dict(level=self.currvalue.level, severity=self.currvalue.severity, msg=self.currvalue.msg)
+            yield dict(level=self.currvalue.level, severity=self.currvalue.severity, msg=self.currvalue.msg, count=self.currvalue.count)
             self.currvalue = next(self.it)    # Exit on StopIteration
             self.currkey = self.keyfunc(self.currvalue)
 

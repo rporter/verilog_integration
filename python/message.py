@@ -25,6 +25,7 @@ class message(object) :
 class int_debug(message) : pass
 class debug(message)     : pass
 class note(message)      : pass
+class success(message)   : pass
 class warning(message)   : pass
 class error(message)     : pass
 class fatal(message)     : pass

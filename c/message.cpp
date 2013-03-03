@@ -82,6 +82,7 @@ char* message::name(enum levels level) {
     (char*)"DEBUG",
     (char*)"INFORMATION",
     (char*)"NOTE",
+    (char*)"SUCCESS",
     (char*)"WARNING",
     (char*)"ERROR",
     (char*)"INTERNAL",
@@ -145,6 +146,7 @@ SEVERITY(int_debug  , INT_DEBUG);
 SEVERITY(debug      , DEBUG);
 SEVERITY(information, INFORMATION);
 SEVERITY(note       , NOTE);
+SEVERITY(success    , SUCCESS);
 SEVERITY(warning    , WARNING);
 SEVERITY(error      , ERROR);
 SEVERITY(internal   , INTERNAL);

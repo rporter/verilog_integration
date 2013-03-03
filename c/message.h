@@ -81,6 +81,7 @@ enum levels {
   DEBUG,
   INFORMATION,
   NOTE,
+  SUCCESS,
   WARNING,
   ERROR,
   INTERNAL,
@@ -124,6 +125,7 @@ class message {
   SEVERITY(debug      );
   SEVERITY(information);
   SEVERITY(note       );
+  SEVERITY(success    );
   SEVERITY(warning    );
   SEVERITY(error      );
   SEVERITY(internal   );
@@ -140,6 +142,7 @@ class message {
 #define DEBUG(MSG, ...)       example::message::instance()->debug      ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define INFORMATION(MSG, ...) example::message::instance()->information((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define NOTE(MSG, ...)        example::message::instance()->note       ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
+#define SUCCESS(MSG, ...)     example::message::instance()->success    ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define WARNING(MSG, ...)     example::message::instance()->warning    ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define ERROR(MSG, ...)       example::message::instance()->error      ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define INTERNAL(MSG, ...)    example::message::instance()->internal   ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
