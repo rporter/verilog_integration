@@ -93,7 +93,7 @@ class groupby:
 
 class index(serve_something) :
   CONTENTTYPE='application/json'
-  encapsulate = False
+  encapsulate=False
   def doit(self, variant, start=0, finish=20):
     db   = mdb.db.connection().row_cursor()
     db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (SELECT * FROM log ORDER BY log_id DESC LIMIT %(start)s, %(finish)s) AS log NATURAL JOIN message GROUP BY log_id, level ORDER By log_id, msg_id, level ASC;' % locals())
