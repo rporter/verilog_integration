@@ -29,6 +29,15 @@ public :
   typedef typename map_t::iterator iter_t;
 protected :
   map_t* map;
+
+  iter_t find(std::string name) {
+    for (iter_t _cb = map->begin(); _cb != map->end(); _cb++) {
+      if (_cb->first.name == name) {
+        return _cb;
+      }
+    }
+    return map->end();
+  };
 public :
   callbacks() : map(NULL) {};
   ~callbacks() {};
@@ -59,18 +68,19 @@ public :
     return (*get_map())[id] = fn;
   };
   wrap_t assign(std::string name, wrap_t fn) {
-    cb_id id = {name, -1};
-    return (*get_map())[id] = fn;
+    iter_t iter = find(name);
+    if (iter != map->end()) {
+      iter->second = fn;
+    }
+    return fn;
   };
   int rm(std::string name) {
-    cb_id id = {name, -1};
-    for (iter_t _cb = map->begin(); _cb != map->end(); _cb++) {
-      if (_cb->first.name == name) {
-        get_map()->erase(_cb);
-        return 1;
-      }
+    iter_t iter = find(name);
+    if (iter == map->end()) {
+      return 0;
     }
-    return 0;
+    get_map()->erase(iter);
+    return 1;
   };
 };
 
