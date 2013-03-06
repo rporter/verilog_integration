@@ -17,11 +17,16 @@ class _mdb(object) :
     # create log entry for this run
     self.log_id = self.log(parent, description)
     # install callbacks
-    message.emit_cbs.add('mdb', 1,  self.add)
+    message.emit_cbs.add('mdb', 1, self.add, self.finalize)
     atexit.register(self.flush)
 
   def filter(self, cb_id, level, filename) :
     return False
+
+  def finalize(self) :
+    'set test status & clean up'
+    print message.status()
+    self.flush()
 
   def flush(self) :
     try :

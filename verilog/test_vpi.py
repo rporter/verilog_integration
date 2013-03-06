@@ -94,4 +94,12 @@ class cbClk(verilog.callback) :
       simctrl.direct.sim_ctrl_finish_r = 1
 
 # register call back
-cb = cbClk(simctrl.sim_ctrl_clk_op.set_type(verilog.vpiInt))
+cbClk0 = cbClk(simctrl.sim_ctrl_clk_op.set_type(verilog.vpiInt))
+
+class cbEoS(verilog.callback) :
+  def __init__(self) :
+    verilog.callback.__init__(self, name='end of simulation callback', reason=verilog.callback.cbEndOfSimulation, func=self.success)
+  def success(self) :
+     message.success('End of Simulation')
+
+cbEoS0 = cbEoS()

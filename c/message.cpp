@@ -132,6 +132,18 @@ void message::emit(unsigned int level, char* file, unsigned int line, char* text
   }
 }
 
+int message::errors() {
+  return self->attrs[ERROR].count + self->attrs[INTERNAL].count + self->attrs[FATAL].count;
+}
+
+struct status_result message::status() {
+  struct status_result result;
+  int successes = self->attrs[SUCCESS].count;
+  result.flag = self->errors() == 0 && successes == 1;
+  result.text = result.flag?"PASS":"FAIL";
+  return result;
+}
+
 message* message::self = 0;
 
 #define SEVERITY(level, LEVEL) \
@@ -146,11 +158,23 @@ SEVERITY(int_debug  , INT_DEBUG);
 SEVERITY(debug      , DEBUG);
 SEVERITY(information, INFORMATION);
 SEVERITY(note       , NOTE);
-SEVERITY(success    , SUCCESS);
+  //SEVERITY(success    , SUCCESS);
 SEVERITY(warning    , WARNING);
 SEVERITY(error      , ERROR);
 SEVERITY(internal   , INTERNAL);
 SEVERITY(fatal      , FATAL);
+
+void message::success(char *file, unsigned int line, char* text, ...) {
+  va_list args;
+  va_start(args, text);
+  unsigned int level = SUCCESS;
+  if (self->errors()) {
+    WARNING("due to previous errors following message SUCCESS masked");
+    level = WARNING;
+  }
+  emit(level, file, line, text, args);
+  va_end(args);
+}
 
 #undef SEVERITY
 

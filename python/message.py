@@ -1,6 +1,7 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
 import atexit
+import collections
 import exm_msg
 from exm_msg import INT_DEBUG, DEBUG, INFORMATION, NOTE, WARNING, ERROR, INTERNAL, FATAL
 
@@ -21,6 +22,14 @@ class message(object) :
 
   def formatted(self) :
     return self.msg % self.args
+
+  @classmethod
+  def status(cls) :
+    'return test status'
+    return cls.instance.status().text
+  @classmethod
+  def verbosity(cls, verbosity=INFORMATION) :
+    cls.instance.verbosity(verbosity)
 
 class int_debug(message) : pass
 class debug(message)     : pass
@@ -66,25 +75,28 @@ control = _control()
 class CallbackError(Exception) : pass
 
 class callback(object) :
+  python = collections.namedtuple('python', ['message', 'finalize'])
   def __init__(self, cb_map) :
     self.cb_map = cb_map
     self.callbacks = dict()
     atexit.register(self.finalize)
   def finalize(self) :
-    for name, cb in self.callbacks.iteritems() :
+    for name, cb in self.callbacks.items() :
       int_debug('deleting callback ' + name)
-      self.cb_map.rm_callback(name)
-  def add(self, name, pri, fn=None) :
-    if fn is None :
-      pri, fn = 0, pri # default priority is 0
+      self.rm(name)
+  def add(self, name, pri=0, msg_fn=None, fin_fn=None) :
     try :
-      self.cb_map.add_callback(name, pri, fn)
+      self.cb_map.add_callback(name, pri, msg_fn)
     except TypeError as error :
       raise CallbackError(error)
     else :
-      self.callbacks[name] = fn
-  def rm(self, name, fn) :
-    self.cb_map.rm_callback(name, fn)
+      self.callbacks[name] = callback.python(message=msg_fn, finalize=fin_fn)
+  def rm(self, name) :
+    try :
+      self.callbacks[name].finalize()
+    except AttributeError :
+      pass
+    self.cb_map.rm_callback(name)
     del self.callbacks[name]
 
 emit_cbs = callback(message.instance.get_cb_emit())

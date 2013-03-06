@@ -1,11 +1,16 @@
 CREATE TABLE log (
   log_id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  root        INTEGER,
   parent      INTEGER,
   activity    TEXT,
   block       TEXT,
   version     TEXT,
-  description TEXT
+  description TEXT,
+  status      INTEGER
 );
+
+CREATE INDEX root_idx ON log (root);
+CREATE INDEX parent_idx ON log (parent);
 
 CREATE TABLE message (
   msg_id   INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -15,5 +20,7 @@ CREATE TABLE message (
   date     DATETIME,
   filename TEXT,
   line     INTEGER,
-  msg      TEXT
+  msg      TEXT,
+  FOREIGN KEY (log_id) REFERENCES log (log_id)
 );
+

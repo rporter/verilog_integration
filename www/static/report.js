@@ -43,31 +43,34 @@ $report = function(){
 
   function testJSON(data) {
       var get = function(severity, attr) {
-        var result = this.msgs.filter(function(a){return a.severity === severity});
-          if (attr === undefined) return result;
-	  if (result.hasOwnProperty(attr)) return result[attr];
-          return '';
+        var result = this.msgs.filter(function(a){return a.severity === severity})[0];
+        if (attr === undefined) return result;
+	if (result !== undefined && result.hasOwnProperty(attr)) return result[attr];
+        return '';
       }
       var status = function() {
           var sorted = this.msgs.sort(function(a,b){return a.level<b.level});
           if (sorted[0].level>=$report.levels.ERROR) {
-              return {status: 'FAIL', reason : '('+sorted[0].severity+')'+sorted[0].msg};
+              return {status: 'FAIL', reason : '('+sorted[0].severity+') '+sorted[0].msg};
           }
           var success = this.get('SUCCESS');
-          if (success.length === 0) {
+          if (success === undefined) {
               return {status: 'FAIL', reason : 'No SUCCESS'};
 	  }
-          if (success[0].count > 1) {
+          if (success.count > 1) {
               return {status: 'FAIL', reason : 'Too many SUCCESSes'};
 	  }
-	  return {status : 'PASS', reason : success[0].msg};
+	  return {status : 'PASS', reason : success.msg};
       };
 
     this.cols = function() {
       return [
 	{ "sTitle": "log id" },
 	{ "sTitle": "description" },
+	{ "sTitle": "fatals" },
+	{ "sTitle": "internals" },
 	{ "sTitle": "errors" },
+	{ "sTitle": "warnings" },
 	{ "sTitle": "message" },
 	{ "sTitle": "status" }
       ];
@@ -76,7 +79,7 @@ $report = function(){
     this.rows = function() {
 	return data.map(function(log){
             var status = log.status();
-            return [log.log.log_id, log.log.description, log.get('ERROR', 'count'), status.reason, status.status];
+            return [log.log.log_id, log.log.description, log.get('FATAL', 'count'), log.get('INTERNAL', 'count'), log.get('ERROR', 'count'), log.get('WARNING', 'count'), status.reason, status.status];
 	});
     };
 		       

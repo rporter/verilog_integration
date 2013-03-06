@@ -26,6 +26,7 @@ public :
   typedef boost::function<func_t> wrap_t;
   typedef std::pair<cb_id, wrap_t> pair_t;
   typedef std::map<cb_id, wrap_t> map_t;
+  typedef typename map_t::iterator iter_t;
 protected :
   map_t* map;
 public :
@@ -63,7 +64,13 @@ public :
   };
   int rm(std::string name) {
     cb_id id = {name, -1};
-    return get_map()->erase(id);
+    for (iter_t _cb = map->begin(); _cb != map->end(); _cb++) {
+      if (_cb->first.name == name) {
+        get_map()->erase(_cb);
+        return 1;
+      }
+    }
+    return 0;
   };
 };
 
@@ -71,6 +78,11 @@ struct control {
   bool echo;
   int  threshold;
   int  count;
+};
+
+struct status_result {
+  bool  flag;
+  const char* text;
 };
 
  typedef void cb_emit_fn(const cb_id&, unsigned int, timespec&, char*, char*, unsigned int, char*);
@@ -118,6 +130,9 @@ class message {
   static callbacks<cb_terminate_fn>* get_cb_terminate();
 
   void emit(unsigned int level, char* file, unsigned int line, char* text, va_list args);
+
+  int  errors();
+  struct status_result status();
 
   #define SEVERITY(level) void level(char* file, unsigned int line, char* text, ...);
 

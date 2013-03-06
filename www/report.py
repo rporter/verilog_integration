@@ -7,12 +7,35 @@ import json
 import mdb
 import message
 import os.path
+import sys
 import time
 
 ################################################################################
 
 from optparse import OptionParser
-parser = OptionParser()
+
+class reportOptionParser(OptionParser):
+  def exit(self, status=0, msg=None):
+    if msg:
+        message.fatal(msg.rstrip())
+    sys.exit(status)
+  def error(self, msg):
+    """error(msg : string)
+
+    Print a usage message incorporating 'msg' to stderr and exit.
+    If you override this in a subclass, it should not return -- it
+    should either exit or raise an exception.
+    """
+    chan = cStringIO.StringIO()
+    self.print_usage(chan)
+    for line in chan :
+      message.warning(line.rstrip())
+    chan.close()
+    self.exit(2, "%s: error: %s\n" % (self.get_prog_name(), msg))
+
+################################################################################
+
+parser = reportOptionParser()
 parser.add_option('-p', '--port', default='8080', help='port to serve on')
 parser.add_option('-r', '--root', help='root directory for server')
 options, values = parser.parse_args()
@@ -96,7 +119,13 @@ class index(serve_something) :
   encapsulate=False
   def doit(self, variant, start=0, finish=20):
     db   = mdb.db.connection().row_cursor()
-    db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (SELECT * FROM log ORDER BY log_id DESC LIMIT %(start)s, %(finish)s) AS log NATURAL JOIN message GROUP BY log_id, level ORDER By log_id, msg_id, level ASC;' % locals())
+    if variant == 'sng' :
+      where = 'SELECT l0.* FROM log as l0 left join log as l1 on (l0.log_id = l1.root) where l1.log_id is null'
+    elif variant == 'rgr' :
+      where = 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) group by l0.log_id having l1.log_id is not null'
+    else :
+      where = 'SELECT * FROM log'
+    db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%(where)s ORDER BY log_id DESC LIMIT %(start)s, %(finish)s) AS log NATURAL JOIN message GROUP BY log_id, level ORDER By log_id, msg_id, level ASC;' % locals())
     json.dump([{'log' : log, 'msgs' : list(msgs)} for log, msgs in groupby(db.fetchall())], self.page)
 
 ################################################################################

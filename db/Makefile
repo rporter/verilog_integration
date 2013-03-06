@@ -1,7 +1,7 @@
 .PHONY : clean deepclean
 
 mdb.db : create.sqlite
-	sqlite3 $@ < $<
+	test -e $@ || sqlite3 $@ < $<
 
 clean :
 

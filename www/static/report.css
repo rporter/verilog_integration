@@ -1,6 +1,6 @@
 /* Copyright (c) 2012 Rich Porter - see LICENSE for further details */
 
-   table       { border-collapse : collapse ; border: 2px solid black ; font-family : sans-serif ; font-size : 12px }
+   table       { width : 100%; border-collapse : collapse ; border: 2px solid black ; font-family : sans-serif ; font-size : 12px }
    thead       { background-color: #999 ; padding : 0 ; border: 2px solid black ; font-weight: bold; text-transform: capitalize ; text-align : center }
    tfoot       { background-color: #ddd ; padding : 0 ; border: 2px solid black ; font-weight: bold; text-transform: capitalize }
    th          { border: 2px solid black }
