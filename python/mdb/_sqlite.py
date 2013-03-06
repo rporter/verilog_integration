@@ -53,8 +53,8 @@ class mixin(object) :
     except :
       print sys.exc_info()
 
-  def log(self, parent, description) :
+  def log(self, uid, root, parent, description) :
     'create entry in log table'
-    self.db.execute('INSERT INTO log (parent, description) VALUES (?, ?);', (parent, description))
+    self.db.execute('INSERT INTO log (uid, root, parent, description) VALUES (?, ?, ?, ?);', (uid, root, parent, description))
     self.commit()
     return self.db.lastrowid

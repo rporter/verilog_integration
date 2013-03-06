@@ -1,5 +1,6 @@
 CREATE TABLE log (
   log_id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  uid         INTEGER,
   root        INTEGER,
   parent      INTEGER,
   activity    TEXT,
@@ -9,6 +10,7 @@ CREATE TABLE log (
   status      INTEGER
 );
 
+CREATE INDEX uid_idx ON log (uid);
 CREATE INDEX root_idx ON log (root);
 CREATE INDEX parent_idx ON log (parent);
 

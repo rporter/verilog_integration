@@ -2,12 +2,13 @@
 
 import atexit
 import message
+import os
 import Queue
 from accessor import *
 
 class _mdb(object) :
   queue_limit = 10
-  def __init__(self, description='none given', parent=None, level=message.ERROR) :
+  def __init__(self, description='none given', root=None, parent=None, level=message.ERROR) :
     self.commit_level = level
     self.queue = Queue.Queue()
     # mixin init
@@ -15,7 +16,7 @@ class _mdb(object) :
     # init filter
     self.filter_fn = self.filter
     # create log entry for this run
-    self.log_id = self.log(parent, description)
+    self.log_id = self.log(os.getuid(), root, parent, description)
     # install callbacks
     message.emit_cbs.add('mdb', 1, self.add, self.finalize)
     atexit.register(self.flush)

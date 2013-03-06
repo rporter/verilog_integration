@@ -7,6 +7,7 @@ import json
 import mdb
 import message
 import os.path
+import pwd
 import sys
 import time
 
@@ -106,7 +107,7 @@ class groupby:
             self.currvalue = next(self.it)    # Exit on StopIteration
             self.currkey = self.keyfunc(self.currvalue)
         self.tgtkey = self.currkey
-        return (dict(log_id=self.currvalue.log_id, block=self.currvalue.block, activity=self.currvalue.activity, version=self.currvalue.version, description=self.currvalue.description), self._grouper(self.tgtkey))
+        return (dict(log_id=self.currvalue.log_id, user=pwd.getpwuid(self.currvalue.uid).pw_name, block=self.currvalue.block, activity=self.currvalue.activity, version=self.currvalue.version, description=self.currvalue.description), self._grouper(self.tgtkey))
     next=__next__
     def _grouper(self, tgtkey):
         while self.currkey == tgtkey:

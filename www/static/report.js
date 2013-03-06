@@ -66,6 +66,7 @@ $report = function(){
     this.cols = function() {
       return [
 	{ "sTitle": "log id" },
+	{ "sTitle": "user" },
 	{ "sTitle": "description" },
 	{ "sTitle": "fatals" },
 	{ "sTitle": "internals" },
@@ -79,7 +80,7 @@ $report = function(){
     this.rows = function() {
 	return data.map(function(log){
             var status = log.status();
-            return [log.log.log_id, log.log.description, log.get('FATAL', 'count'), log.get('INTERNAL', 'count'), log.get('ERROR', 'count'), log.get('WARNING', 'count'), status.reason, status.status];
+            return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', 'count'), log.get('INTERNAL', 'count'), log.get('ERROR', 'count'), log.get('WARNING', 'count'), status.reason, status.status];
 	});
     };
 		       
@@ -94,9 +95,11 @@ $report = function(){
     var container = $('<div><table class="display"></table></div>');
     $('table', container).dataTable({
       "bJQueryUI": true,
-      "sPaginationType": "full_numbers",
+      "bPaginate": false,
+      "bFilter": false,
       "aaData" : data.rows(),
-      "aoColumns": data.cols()
+      "aoColumns": data.cols(),
+      "aaSorting": [[0, "desc"]]
     });
     return container;
   };
