@@ -3,18 +3,19 @@ CXXFLAGS+=-I../../c
 LDLIBS+=-L../../c -lexm_vpi
 LDFLAGS+=-Wl,-export-dynamic,-rpath=$$PWD/../../c
 
-default : ../../c/libexm_vpi.so examplex ../../python/vpi
+default_example : ../../c/libexm_vpi.so examplex ../../python/vpi
 
 include Vexample.mk
+
 CXXFLAGS+=-DVM_PREFIX=$(VM_PREFIX) -DVL_USER_FATAL -DVL_USER_STOP -DVL_USER_FINISH
 
-examplex: example.o $(VK_GLOBAL_OBJS) $(VM_PREFIX)__ALL.a
+examplex: example.o ../../c/exm_verilated.o $(VK_GLOBAL_OBJS) $(VM_PREFIX)__ALL.a
 	$(LINK) $(LDFLAGS) -g $^ $(LDLIBS) $(LOADLIBES) -o $@ $(LIBS) 2>&1 | c++filt
 
 example.o: example.cpp $(VM_PREFIX).h $(VERILATOR_ROOT)/include/verilated_vpi.h $(VERILATOR_ROOT)/include/verilated_vpi.cpp
 
-../../c/libexm_vpi.so :
-	$(MAKE) -C ../../c
+../../c/% ../../c/% :
+	$(MAKE) -C ../../c $(notdir $@)
 
 ../../python/vpi :
 	$(MAKE) -C ../../python
