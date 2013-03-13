@@ -44,13 +44,16 @@ options, values = parser.parse_args()
 ################################################################################
 
 mdb.db.connection.set_default_db(db=os.path.join(options.root, '../db/mdb.db'))
-mdb.mdb('mdb report')
+m=mdb.mdb('mdb report')
+
+message.message.instance.verbosity(0)
 
 # intercept log messages and redirect to our logger
 def bottle_log(msg) :
   message.note(msg.strip())
 def wsgi_log(self, format, *args) :
-  message.debug(format.strip() % args)
+  severity = message.warning if args[-2] == '404' else message.debug
+  severity(format.strip() % args)
 
 bottle._stderr = bottle_log
 from wsgiref.simple_server import WSGIRequestHandler
@@ -155,5 +158,5 @@ for path, cls in urls:
 ################################################################################
 
 bottle.run(port=options.port)
-
-
+# keyboardInterrupt gets us here ...
+mdb.finalize_all()

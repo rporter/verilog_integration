@@ -1,40 +1,47 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
-import atexit
 import message
 import os
 import Queue
+import threading
 from accessor import *
 
 class _mdb(object) :
   queue_limit = 10
+  instances = []
+  atexit = False
+  class repeatingTimer(threading._Timer) :
+    def run(self):
+      while not self.finished.is_set():
+        self.finished.wait(self.interval)
+        self.function(*self.args, **self.kwargs)
+    def running(self) :
+      return not self.finished.is_set()
+
   def __init__(self, description='none given', root=None, parent=None, level=message.ERROR) :
     self.commit_level = level
     self.queue = Queue.Queue()
-    # mixin init
-    self.init()
     # init filter
     self.filter_fn = self.filter
     # create log entry for this run
     self.log_id = self.log(os.getuid(), root, parent, description)
     # install callbacks
     message.emit_cbs.add('mdb', 1, self.add, self.finalize)
-    atexit.register(self.flush)
+    # flush queue every half second
+    self.timer = self.repeatingTimer(0.5, self.flush)
+    self.timer.start()
+    # add to list of instances
+    self.instances.append(self)
 
   def filter(self, cb_id, level, filename) :
     return False
 
   def finalize(self) :
     'set test status & clean up'
-    print message.status()
+    if self.timer.running() :
+      message.debug('bye ...')
+      self.timer.cancel()
     self.flush()
-
-  def flush(self) :
-    try :
-      while (1) :
-        self.insert(*self.queue.get(False))
-    except Queue.Empty :
-      self.commit()
 
   def add(self, cb_id, when, level, severity, filename, line, msg) :
     # option to ignore certain messages
@@ -46,6 +53,11 @@ class _mdb(object) :
     if level >= self.commit_level or self.queue.qsize() >= self.queue_limit :
       self.flush()
 
+  @classmethod
+  def finalize_all(cls) :
+    for instance in cls.instances :
+      instance.finalize()
+
 try :
   import _mysql as db
 except ImportError :
@@ -53,3 +65,6 @@ except ImportError :
 
 class mdb(_mdb, db.mixin) :
   impl = db
+
+# short cut
+finalize_all = mdb.finalize_all

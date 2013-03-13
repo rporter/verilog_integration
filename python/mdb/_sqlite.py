@@ -1,9 +1,11 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
 import accessor
+import message
+import Queue
 import sys
 import sqlite3
-import message
+import threading
 
 class connection(object) :
 
@@ -19,19 +21,29 @@ class connection(object) :
     def __getattr__(self, attr) :
       return getattr(self.db, attr)
 
-  instance = None
+    def __enter__(self) :
+      return self.db
+
+    def __exit__(self, type, value, traceback): 
+      if traceback : print traceback
+      self.connection.commit()
+      self.db.close()      
+
+  instance = dict()
   default_db = 'default.db'
   def __init__(self, *args, **kwargs) :
-    if self.instance is None :
+    'pools connections on per thread basis'
+    if threading.current_thread() not in self.instance :
       try :
         self.db = kwargs['db']
       except KeyError:
         self.db = self.default_db
-      self.instance = sqlite3.connect(self.db)
-      self.instance.execute('PRAGMA journal_mode=WAL;')
+      instance = sqlite3.connect(self.db)
+      instance.execute('PRAGMA journal_mode=WAL;')
+      self.instance[threading.current_thread()] = instance
 
   def cursor(self, *args) :
-    return self._cursor(self.instance, *args)
+    return self._cursor(self.instance[threading.current_thread()], *args)
 
   def row_cursor(self) :
     return self.cursor(accessor.accessor_factory)
@@ -41,20 +53,21 @@ class connection(object) :
     cls.default_db = args['db']
 
 class mixin(object) :
-  def init(self) :
-    self.db = connection().cursor()
+  def cursor(self) :
+    return connection().cursor()
 
-  def commit(self) :
-    self.db.commit()
-
-  def insert(self, cb_id, when, level, severity, filename, line, msg) :
-    try :
-      self.db.execute('INSERT INTO message (log_id, level, severity, date, filename, line, msg) VALUES (?, ?, ?, ?, ?, ?, ?);', (self.log_id, level, severity, when.tv_sec, filename, line, msg))
-    except :
-      print sys.exc_info()
+  def flush(self) :
+    with self.cursor() as cursor :
+      def insert(cb_id, when, level, severity, filename, line, msg) :
+        cursor.execute('INSERT INTO message (log_id, level, severity, date, filename, line, msg) VALUES (?, ?, ?, ?, ?, ?, ?);', (self.log_id, level, severity, when.tv_sec, filename, line, msg))
+      try :
+        while (1) :
+          insert(*self.queue.get(False))
+      except Queue.Empty :
+        pass # done
 
   def log(self, uid, root, parent, description) :
     'create entry in log table'
-    self.db.execute('INSERT INTO log (uid, root, parent, description) VALUES (?, ?, ?, ?);', (uid, root, parent, description))
-    self.commit()
-    return self.db.lastrowid
+    with self.cursor() as db :
+      db.execute('INSERT INTO log (uid, root, parent, description) VALUES (?, ?, ?, ?);', (uid, root, parent, description))
+      return db.lastrowid
