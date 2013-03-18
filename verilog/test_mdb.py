@@ -8,3 +8,5 @@ mdb.mdb('test mdb')
 
 message.int_debug('a int_debug %(c)d', c=69)
 message.note('a note')
+
+mdb.finalize_all()

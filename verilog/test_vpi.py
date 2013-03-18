@@ -103,3 +103,5 @@ class cbEoS(verilog.callback) :
      message.success('End of Simulation')
 
 cbEoS0 = cbEoS()
+
+mdb.finalize_all()

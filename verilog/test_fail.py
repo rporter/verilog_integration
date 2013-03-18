@@ -9,3 +9,5 @@ mdb.mdb('test mdb fail')
 message.error('a int_debug %(c)d', c=69)
 message.note('a note')
 message.success('no')
+
+mdb.finalize_all()

@@ -9,3 +9,5 @@ message.message.verbosity(message.INT_DEBUG)
 message.warning('a warning %(c)d', c=666)
 message.note('a note')
 message.success('should be success')
+
+mdb.finalize_all()
