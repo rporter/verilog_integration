@@ -134,6 +134,22 @@ class index(serve_something) :
 
 ################################################################################
 
+class msgs(serve_something) :
+  CONTENTTYPE='application/json'
+  encapsulate=False
+  def doit(self, log_id):
+    db = mdb.db.connection().row_cursor()
+    message.debug('retrieving %(log_id)s', log_id=log_id)
+    db.execute('SELECT * FROM message WHERE log_id = %(log_id)s;' % locals())
+    json.dump(db.fetchall(), self.page)
+    return
+    self.page.write('<code class="log">')
+    for msg in db :
+      self.page.write('<p>(%(severity)08s) %(msg)s</p>' % msg)
+    self.page.write('/<code>')
+
+################################################################################
+
 @bottle.get('/static/:filename#.*#')
 def server_static(filename):
     return bottle.static_file(filename, root=static)
@@ -145,6 +161,7 @@ def index_html() :
 
 urls = (
   ('/index/:variant', index,),
+  ('/msgs/:log_id', msgs,),
 )
 
 for path, cls in urls:

@@ -27,6 +27,13 @@ $report = function(){
 	return (tabs || (tabs = $report.report().tabs)).apply($report.report(), arguments);
     };
   }();
+  $report.tab_id = function() {
+    var id;
+    return function() {
+      id = (id===undefined)?0:id+1;
+      return 'log-'+id;
+    }
+  }();
 
   $report.hijax = function(panel){ 
     $('a', panel).click(function() { 
@@ -107,9 +114,31 @@ $report = function(){
       "bFilter": false,
       "aaData" : data.rows(),
       "aoColumns": data.cols(),
-      "aaSorting": [[0, "desc"]]
+      "aaSorting": [[0, "desc"]],
+      "fnRowCallback": function(nRow, aData, iDisplayIndex) {
+	  $(nRow).bind('click.example', {log_id : aData[0]}, $report.openLogTab)
+      }
     });
     return container;
+  };
+
+   $report.openLogTab = function(event) {
+    var id  = $report.tab_id();
+    var div = $('<div/>', {class: "tab", id:id});
+    div.appendTo($report.report());
+    $.ajax({
+      url : 'msgs/'+event.data.log_id,
+      dataType : 'json',
+      success : function (json) {
+	json.forEach(function(msg) {
+            $('<code/>', {text:msg.msg}).appendTo(div);
+	});
+      },
+      error : function(xhr, status, index, anchor) {
+        console.log(xhr, status, index);
+      }
+    });
+    $report.tabs('add', '#'+id, event.data.log_id+' log');
   };
 
 })($report);

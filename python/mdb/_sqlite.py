@@ -21,6 +21,9 @@ class connection(object) :
     def __getattr__(self, attr) :
       return getattr(self.db, attr)
 
+    def __iter__(self) :
+      return self.db
+
     def __enter__(self) :
       return self.db
 
