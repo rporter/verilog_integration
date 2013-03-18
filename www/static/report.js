@@ -45,7 +45,12 @@ $report = function(){
       var get = function(severity, attr) {
         var result = this.msgs.filter(function(a){return a.severity === severity})[0];
         if (attr === undefined) return result;
-	if (result !== undefined && result.hasOwnProperty(attr)) return result[attr];
+	if (result === undefined) return '';
+        if (attr instanceof Function) {
+          return attr(result);
+	} else if (result.hasOwnProperty(attr)) {
+          return result[attr];
+        }
         return '';
       }
       var status = function() {
@@ -78,9 +83,12 @@ $report = function(){
     };
 
     this.rows = function() {
+        function popup(attr) {
+            return '<abbr title="'+attr.msg.replace('"', '&quot;')+'">'+attr.count+'</abbr>';
+	}
 	return data.map(function(log){
             var status = log.status();
-            return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', 'count'), log.get('INTERNAL', 'count'), log.get('ERROR', 'count'), log.get('WARNING', 'count'), status.reason, status.status];
+            return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), status.reason, status.status];
 	});
     };
 		       
