@@ -122,7 +122,10 @@ $report = function(){
     return container;
   };
 
-   $report.openLogTab = function(event) {
+  $report.openLogTab = function(event) {
+    function ident(c) {
+      return '(' + '           '.substr(c.length) + c + ') ';
+    }
     var id  = $report.tab_id();
     var div = $('<div/>', {class: "tab", id:id});
     div.appendTo($report.report());
@@ -130,9 +133,10 @@ $report = function(){
       url : 'msgs/'+event.data.log_id,
       dataType : 'json',
       success : function (json) {
-	json.forEach(function(msg) {
-            $('<code/>', {text:msg.msg}).appendTo(div);
-	});
+        div.jqoteapp('#template', json);
+/*	json.forEach(function(msg) {
+            $('<code/>', {class:msg.severity, title:(new Date(msg.date*1000)).toGMTString(), text:ident(msg.severity)+msg.msg}).appendTo(div);
+	});*/
       },
       error : function(xhr, status, index, anchor) {
         console.log(xhr, status, index);

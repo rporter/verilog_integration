@@ -29,18 +29,16 @@
          } 
         });
 
-/*
+
         // close icon: removing the tab on click
         $report.tabs().delegate("span.ui-icon-close", "click", function() {
-          var panelId = $(this).closest("li").remove().attr("aria-controls");
-          $("#"+panelId, $(this)).remove();
-          $report.tabs.tabs("refresh");
-        });
-
-        $(document).on("click", $("span.ui-icon-close", $report.tabs), function() {
   	  var index = $("li", $(this)).index($(this).parent());
     	  $report.tabs("remove", index);
+          $report.tabs("refresh");
         });
+
+/*
+
         $(document).on("click", $("span.ui-icon-refresh", $report.tabs), function() {
     	  var index = $("li", $(this)).index($(this).parent());
     	  $report.tabs("load", index);
@@ -48,6 +46,21 @@
 
 */
       });
+    </script>
+    <script type="text/html" id="template">
+      <![CDATA[
+        <%
+    function ident(c) {
+      return '(' + '           '.substr(c.length) + c + ') ';
+    }
+        %>
+        <a class="popup">
+          <code class="<%= this.severity %>"><%= ident(this.severity)+this.msg %></code>
+          <span title="x">
+            <%= (new Date(this.date*1000)).toGMTString() %>
+          </span>
+        </a>
+      ]]>
     </script>
   </head>
   <body>

@@ -12,4 +12,36 @@
    td.running  { background-color : #88f }
 
    iframe.tab  { width : 100%; height : 100%; overflow-y : scroll; }
-   code.log    { white-space : pre; }
+   code        { display: block; white-space : pre }
+   code.INT_DEBUG   { color : #888 }
+   code.DEBUG       { color : #aaa }
+   code.INFORMATION { color : #888 }
+   code.NOTE        { color : #444 }
+   code.WARNING     { color : #f60 }
+   code.ERROR       { color : #f00 }
+   code.FATAL       { color : #f00 }
+   code.INTERNAL    { color : #f00 }
+   code.SUCCESS     { color : #0c0 }
+
+   a.popup {position:relative;
+	z-index:24;
+	text-decoration:none}
+   a.popup:hover {z-index:25; background-color : #ddd}
+   a.popup span  {display: none}
+   a.popup:hover span { /*DISPLAYS ONLY ON HOVER*/
+	display:block;
+	position:absolute;
+	top:2em; left:0; width : 20em;
+	padding:.3em;
+	border:2px outset #BBB;
+	color:#000; background:#FF9}
+
+   a.popup thead tr.source { text-transform: none; text-align : right }
+   a.popup thead tr.source th:first-of-type { text-align : left }
+   a.popup td {
+     text-align : right;
+   }
+   a.popup td.attr {
+     font-weight : italic;
+     text-align  : left;
+   }
