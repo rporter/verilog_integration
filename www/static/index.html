@@ -5,14 +5,12 @@
     <link  href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.0/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
     <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.0/jquery-ui.js"></script>
-<!--
-    <link  href="https://fancytree.googlecode.com/hg/src/skin-win7/ui.fancytree.css" rel="stylesheet" type="text/css"/>
-    <script src="https://fancytree.googlecode.com/hg/src/jquery.fancytree.js" type="text/javascript"></script>
--->
-    <script src="static/jquery.jqote2.js"></script>
-    <script src="static/jquery.dataTables.js"></script>
+    <link  href="http://dynatree.googlecode.com/svn/trunk/src/skin/ui.dynatree.css" rel="stylesheet" type="text/css"/>
+    <script src="http://dynatree.googlecode.com/svn/trunk/src/jquery.dynatree.js" type="text/javascript"></script>
+    <script src="https://raw.github.com/aefxx/jQote2/master/jquery.jqote2.js"></script>
+    <script src="http://www.datatables.net/download/build/jquery.dataTables.js"></script>
     <script type="text/javascript" src="static/report.js"></script>
-    <script>
+    <script type="text/javascript">
       $(document).ready(function() {
         $report.tabs({
           ajaxOptions : {
@@ -51,13 +49,13 @@
       <![CDATA[
         <%
     function ident(c) {
-      return '(' + '           '.substr(c.length) + c + ') ';
+      return '           '.substr(c.length) + c;
     }
         %>
         <a class="popup">
-          <code class="<%= this.severity %>"><%= ident(this.severity)+this.msg %></code>
+          <code class="<%= this.severity %>" level="<%= this.level %>">(<%= ident(this.severity) %><time> <%= this.date.toLocaleTimeString() %></time>) <%= this.msg %></code>
           <span title="x">
-            <%= (new Date(this.date*1000)).toGMTString() %>
+            <%= this.date.toGMTString() %>
           </span>
         </a>
       ]]>

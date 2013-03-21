@@ -8,7 +8,5 @@ function urlget {
 root=`dirname $0`
 
 urlget $root/bottle.py https://raw.github.com/defnull/bottle/master/bottle.py
-urlget $root/static/jquery.jqote2.js https://raw.github.com/aefxx/jQote2/master/jquery.jqote2.js
-urlget $root/static/jquery.dataTables.js http://www.datatables.net/download/build/jquery.dataTables.js
 
 LD_LIBRARY_PATH=$root/../python:$LD_LIBRARY_PATH PYTHONPATH=.:$root/../python:$PYTHONPATH exec python $0.py --root=$root "$@"

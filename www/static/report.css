@@ -11,7 +11,7 @@
    td.fail     { background-color : #f88 }
    td.running  { background-color : #88f }
 
-   iframe.tab  { width : 100%; height : 100%; overflow-y : scroll; }
+   div.tab     { height: 600px; overflow: auto; position : relative }
    code        { display: block; white-space : pre }
    code.INT_DEBUG   { color : #888 }
    code.DEBUG       { color : #aaa }
@@ -45,3 +45,7 @@
      font-weight : italic;
      text-align  : left;
    }
+
+   time       { display : none }
+   div.widget { position : absolute; float : right ; right : 5px}
+   .example-highlight { background:#FF9 }
