@@ -11,8 +11,7 @@ IVERILOG_ROOT=/enalvo/ap/iverilog/20130307
 IBUILD=$(IVERILOG_ROOT)/bin/iverilog
 IRUN=$(IVERILOG_ROOT)/bin/vvp
 
-#VERILATOR_ROOT?=$(TOOL_ROOT)/verilator/3.844-dev
-VERILATOR_ROOT?=/enalvo/work/rporter/3.844-dev
+VERILATOR_ROOT?=$(TOOL_ROOT)/verilator/3.846
 VERILATOR_INC?=$(VERILATOR_ROOT)/include
 VERILATOR?=$(VERILATOR_ROOT)/bin/verilator
 VL_CFLAGS?=-I$(VERILATOR_INC) -I$(VERILATOR_INC)/vltstd

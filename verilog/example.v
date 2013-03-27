@@ -167,9 +167,9 @@ module example;
     .duv_rst_ip(example_rst_w)
   );
 
-  duv_grey_box duv_grey_box_0_u (
-    .duv_clk_ip(example_clk_w),
-    .duv_rst_ip(example_rst_w)
+  bind duv_0_u duv_grey_box duv_grey_box_0_u (
+    .duv_clk_ip(duv_clk_ip),
+    .duv_rst_ip(duv_clk_ip)
   );
 
 endmodule : example
