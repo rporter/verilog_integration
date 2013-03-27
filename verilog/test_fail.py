@@ -1,13 +1,15 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
-import mdb
 import message
+import test
 
-mdb.db.connection.set_default_db(db='../db/mdb.db')
-mdb.mdb('test mdb fail')
+class thistest(test.test) :
+  name='test mdb fail'
+  def prologue(self) :
+    message.error('a int_debug %(c)d', c=69)
+    message.note('a note')
+  def epilogue(self) :
+    message.success('no')
 
-message.error('a int_debug %(c)d', c=69)
-message.note('a note')
-message.success('no')
+testing = thistest()
 
-mdb.finalize_all()

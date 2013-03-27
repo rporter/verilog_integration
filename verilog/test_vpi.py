@@ -1,32 +1,9 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
-import sys
 import message
 import random
+import test
 import verilog
-
-try :
-  import mdb
-  mdb.db.connection.set_default_db(db='../db/mdb.db')
-  mdb.mdb('test vpi')
-except :
-  message.note('Not using mdb because ' + str(sys.exc_info()))
-
-random.seed(1)
-
-def root() :
-  return 'example'
-
-simctrl = verilog.scope(root() + '.simctrl_0_u')
-arr = dict([(i, verilog.scope(root() + '.duv_0_u.arr[%d].arr' % i)) for i in range(1,255)])
-
-# up timeout beyond test time
-simctrl.direct.sim_ctrl_timeout_i = 200
-# reduce time step
-simctrl.direct.sim_ctrl_cycles_freq_i = 1
-
-for scope in arr.values() :
-  scope.direct.verbose = 0 # display values
 
 # use verilog callback on each clock
 class cbClk(verilog.callback) :
@@ -79,10 +56,12 @@ class cbClk(verilog.callback) :
     def val(self) :
       return self.bits & self.mask
 
-  def __init__(self, obj) :
+  def __init__(self, obj, simctrl, array) :
     verilog.callback.__init__(self, name='clock callback', obj=obj, reason=verilog.callback.cbValueChange, func=self.execute)
-    self.blks = [self.assign(*l) for l in arr.iteritems()]
+    self.blks = [self.assign(*l) for l in array.iteritems()]
+    self.simctrl = simctrl
     self.count = 0
+
   def execute(self) :
     if int(self.obj) : return # ignore rising edge
     for blk in self.blks :
@@ -91,17 +70,32 @@ class cbClk(verilog.callback) :
     self.count += 1
     if self.count == 100 :
       # stop
-      simctrl.direct.sim_ctrl_finish_r = 1
+      self.simctrl.direct.sim_ctrl_finish_r = 1
 
-# register call back
-cbClk0 = cbClk(simctrl.sim_ctrl_clk_op.set_type(verilog.vpiInt))
+class thistest(test.test) :
+  name='test vpi'
+  def prologue(self) :
+    # initialize random seed with deterministic value
+    random.seed(1)
+    
+    def root() :
+      return 'example'
+    
+    simctrl = verilog.scope(root() + '.simctrl_0_u')
+    arr = dict([(i, verilog.scope(root() + '.duv_0_u.arr[%d].arr' % i)) for i in range(1,255)])
+    
+    # up timeout beyond test time
+    simctrl.direct.sim_ctrl_timeout_i = 200
+    # reduce time step
+    simctrl.direct.sim_ctrl_cycles_freq_i = 1
+    
+    for scope in arr.values() :
+      scope.direct.verbose = 0 # display values
+    
+    # register call back
+    cbClk0 = cbClk(simctrl.sim_ctrl_clk_op.set_type(verilog.vpiInt), simctrl, arr)
 
-class cbEoS(verilog.callback) :
-  def __init__(self) :
-    verilog.callback.__init__(self, name='end of simulation callback', reason=verilog.callback.cbEndOfSimulation, func=self.success)
-  def success(self) :
-     message.success('End of Simulation')
+  def epilogue(self) :
+    message.success('End of Simulation')
 
-cbEoS0 = cbEoS()
-
-mdb.finalize_all()
+testing = thistest()

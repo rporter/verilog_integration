@@ -14,8 +14,11 @@ class test(object) :
   def __init__(self, name=None, db=None) :
     self.epilogue_cb = epilogue(self.end_of_simulation)
     name = name or self.name
-    mdb.db.connection.set_default_db(db=self.default_db)
-    mdb.mdb(name)
+    try :
+      mdb.db.connection.set_default_db(db=self.default_db)
+      mdb.mdb(name)
+    except :
+      message.note('Not using mdb because ' + str(sys.exc_info()))
 
     try :
       self.prologue()

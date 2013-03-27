@@ -27,6 +27,7 @@ class _mdb(object) :
     self.log_id = self.log(os.getuid(), root, parent, description)
     # install callbacks
     message.emit_cbs.add('mdb', 1, self.add, self.finalize)
+    message.terminate_cbs.add('mdb', 1, self.finalize, self.finalize)
     # flush queue every half second
     self.timer = self.repeatingTimer(0.5, self.flush)
     self.timer.start()
@@ -36,7 +37,7 @@ class _mdb(object) :
   def filter(self, cb_id, level, filename) :
     return False
 
-  def finalize(self) :
+  def finalize(self, inst=None) :
     'set test status & clean up'
     if self.timer.running() :
       message.debug('bye ...')

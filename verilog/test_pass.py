@@ -1,13 +1,15 @@
 # Copyright (c) 2012 Rich Porter - see LICENSE for further details
 
-import mdb
 import message
+import test
 
-mdb.db.connection.set_default_db(db='../db/mdb.db')
-mdb.mdb('test mdb pass')
-message.message.verbosity(message.INT_DEBUG)
-message.warning('a warning %(c)d', c=666)
-message.note('a note')
-message.success('should be success')
+class thistest(test.test) :
+  name='test mdb pass'
+  def prologue(self) :
+    message.message.verbosity(message.INT_DEBUG)
+    message.warning('a warning %(c)d', c=666)
+    message.note('a note')
+  def epilogue(self) :
+    message.success('should be success')
 
-mdb.finalize_all()
+testing = thistest()
