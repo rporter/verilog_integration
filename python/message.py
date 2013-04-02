@@ -31,14 +31,15 @@ class message(object) :
   def verbosity(cls, verbosity=INFORMATION) :
     cls.instance.verbosity(verbosity)
 
-class int_debug(message) : pass
-class debug(message)     : pass
-class note(message)      : pass
-class success(message)   : pass
-class warning(message)   : pass
-class error(message)     : pass
-class fatal(message)     : pass
-class internal(message)  : pass
+class int_debug(message)   : pass
+class debug(message)       : pass
+class note(message)        : pass
+class information(message) : pass
+class success(message)     : pass
+class warning(message)     : pass
+class error(message)       : pass
+class fatal(message)       : pass
+class internal(message)    : pass
 
 try :
   import vpi

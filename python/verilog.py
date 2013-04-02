@@ -31,6 +31,16 @@ class vpiInfo(object) :
       vpi.vpi_get_vlog_info(self._instance)
     return self._instance
 
+class platform(object) :
+  iverilog  = 'Icarus Verilog'
+  verilator = 'Verilator'
+  @classmethod
+  def is_icarus(cls) :
+    return vpiInfo().product == cls.iverilog
+  @classmethod
+  def is_verilator(cls) :
+    return vpiInfo().product == cls.verilator
+
 ################################################################################
 
 class vpiChkError(object) :
@@ -114,9 +124,13 @@ class vpiNumStr(vpiString) :
     self.encode(self.__add__(other).decode())
     return self
   def encode(self, value) :
-    self.vpi_value.value.str = self.cast(value).rstrip('L').lstrip('0b')
+    self.vpi_value.value.str = self.cast(value).rstrip('L')
+    if platform.is_icarus() :
+      self.vpi_value.str = self.vpi_value.str.lstrip('0b')
   def decode(self) :
-    return self.copy.replace('X','0').replace('x','0')
+    if platform.is_icarus() :
+      return self.copy.replace('X','0').replace('x','0')
+    return self.copy
 
 class vpiBinStr(vpiNumStr) :
   vpi_type = vpi.vpiBinStrVal

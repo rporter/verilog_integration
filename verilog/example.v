@@ -168,8 +168,8 @@ module example;
   );
 
   duv_grey_box duv_grey_box_0_u (
-    .duv_clk_ip(duv_clk_ip),
-    .duv_rst_ip(duv_clk_ip)
+    .duv_clk_ip(duv_0_u.duv_clk_ip),
+    .duv_rst_ip(duv_0_u.duv_clk_ip)
   );
 
 endmodule : example

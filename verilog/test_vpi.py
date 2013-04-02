@@ -69,10 +69,12 @@ class cbClk(verilog.callback) :
   def execute(self) :
     if int(self.obj) : return # ignore rising edge
     for blk in self.blks :
-      blk.get()
-      blk.put()
+      if self.count & 1 :
+        blk.get()
+      else :
+        blk.put()
     self.count += 1
-    if self.count == 100 :
+    if self.count == 200 :
       # stop
       self.simctrl.direct.sim_ctrl_finish_r = 1
 

@@ -135,7 +135,7 @@ $report = function(){
     return '           '.substr(c.length) + c;
   }
   $report.openLog.msg = function (m) {
-    return m.replace('>', '&gt;').replace('<', '&lt;');
+    return m.replace(/>/g, '&gt;').replace(/</g, '&lt;');
   }
   $report.openLog.tab = function(event) {
     var id  = $report.tab_id();
