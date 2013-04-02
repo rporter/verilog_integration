@@ -124,16 +124,20 @@ $report = function(){
       "aoColumns": data.cols(),
       "aaSorting": [[0, "desc"]],
       "fnRowCallback": function(nRow, aData, iDisplayIndex) {
-	  $(nRow).bind('click.example', {log_id : aData[0]}, $report.openLogTab)
+	  $(nRow).bind('click.example', {log_id : aData[0]}, $report.openLog.tab)
       }
     });
     return container;
   };
 
-  $report.openLogTab = function(event) {
-    function ident(c) {
-      return '(' + '           '.substr(c.length) + c + ') ';
-    }
+  $report.openLog = function(){};
+  $report.openLog.ident = function (c) {
+    return '           '.substr(c.length) + c;
+  }
+  $report.openLog.msg = function (m) {
+    return m.replace('>', '&gt;').replace('<', '&lt;');
+  }
+  $report.openLog.tab = function(event) {
     var id  = $report.tab_id();
     var div = $('<div/>', {class: "tab", id:id});
     div.appendTo($report.report());
@@ -141,9 +145,9 @@ $report = function(){
       url : 'msgs/'+event.data.log_id,
       dataType : 'json',
       success : function (json) {
-        json.forEach(function(msg){msg.date = new Date(msg.date*1000)});
+        //json.forEach(function(msg){msg.date = new Date(msg.date*1000)});
         div.jqoteapp('#template', json);
-        $report.openLogWidget(div);
+        $report.openLog.widget(div);
       },
       error : function(xhr, status, index, anchor) {
         console.log(xhr, status, index);
@@ -151,8 +155,7 @@ $report = function(){
     });
     $report.tabs('add', '#'+id, event.data.log_id+' log');
   };
-
-  $report.openLogWidget = function(div) {
+  $report.openLog.widget = function(div) {
     var nodes  = $('code', div);
     var widget = $('<div class="widget"/>').appendTo(div);
     var align  = function() {
@@ -232,7 +235,6 @@ $report = function(){
       }
     });
   };
-
 
 })($report);
 

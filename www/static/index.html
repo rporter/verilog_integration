@@ -46,21 +46,19 @@
       });
     </script>
     <script type="text/html" id="template">
-      <![CDATA[
         <%
-    function ident(c) {
-      return '           '.substr(c.length) + c;
-    }
+    var date = new Date(this.date*1000);
         %>
+      <![CDATA[
         <a class="popup">
-          <code class="<%= this.severity %>" level="<%= this.level %>">(<%= ident(this.severity) %><time> <%= this.date.toLocaleTimeString() %></time>) <%= this.msg %></code>
+          <code class="<%= this.severity %>" level="<%= this.level %>">(<%= $report.openLog.ident(this.severity) %><time> <%= date.toLocaleTimeString() %></time>) <%= $report.openLog.msg(this.msg) %></code>
           <span title="x">
-            <%= this.date.toGMTString() %>
+            <%= date.toGMTString() %>
           </span>
         </a>
       ]]>
     </script>
-  </head>
+ </head>
   <body>
     <div id="report">
       <ul>
