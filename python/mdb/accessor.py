@@ -1,4 +1,4 @@
-# Copyright (c) 2012 Rich Porter - see LICENSE for further details
+# Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 def as_a_accessor(cursor) :
   for row in cursor :
@@ -27,5 +27,6 @@ class accessor(dict) :
     return self.__class__(self.items() + other.items())
 
 def accessor_factory(cursor, row) :
-  return accessor([(name[0], row[idx]) for idx, name in enumerate(cursor.description)])
+  'Horrible, horrible hack here. Reverse list as when there are duplicates for fields we want use to 1st'
+  return accessor(reversed([(name[0], row[idx]) for idx, name in enumerate(cursor.description)]))
 

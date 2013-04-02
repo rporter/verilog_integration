@@ -1,8 +1,9 @@
-# Copyright (c) 2012 Rich Porter - see LICENSE for further details
+# Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 import message
 import os
 import Queue
+import socket
 import threading
 from accessor import *
 
@@ -24,10 +25,10 @@ class _mdb(object) :
     # init filter
     self.filter_fn = self.filter
     # create log entry for this run
-    self.log_id = self.log(os.getuid(), root, parent, description)
+    self.log_id = self.log(os.getuid(), socket.gethostname(), root, parent, description)
     # install callbacks
-    message.emit_cbs.add('mdb', 1, self.add, self.finalize)
-    message.terminate_cbs.add('mdb', 1, self.finalize, self.finalize)
+    message.emit_cbs.add('mdb emit', 1, self.add, self.finalize)
+    message.terminate_cbs.add('mdb terminate', 1, self.finalize, self.finalize)
     # flush queue every half second
     self.timer = self.repeatingTimer(0.5, self.flush)
     self.timer.start()

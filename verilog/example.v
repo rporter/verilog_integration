@@ -1,4 +1,4 @@
-// Copyright (c) 2012 Rich Porter - see LICENSE for further details
+// Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 `include "std.h"
 
@@ -119,7 +119,7 @@ module arr (
    parameter LENGTH = 1;
    reg [LENGTH-1:0] sig0 /*verilator public_flat_rw*/;
    reg [LENGTH-1:0] sig1 /*verilator public_flat_rw*/;
-   bit verbose /*verilator public_flat_rw*/;
+   reg verbose /*verilator public_flat_rw*/;
 
    always @(posedge clk)
      begin
@@ -167,7 +167,7 @@ module example;
     .duv_rst_ip(example_rst_w)
   );
 
-  bind duv_0_u duv_grey_box duv_grey_box_0_u (
+  duv_grey_box duv_grey_box_0_u (
     .duv_clk_ip(duv_clk_ip),
     .duv_rst_ip(duv_clk_ip)
   );

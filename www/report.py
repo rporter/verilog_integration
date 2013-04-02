@@ -1,4 +1,4 @@
-# Copyright (c) 2012 Rich Porter - see LICENSE for further details
+# Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 import bottle
 import cStringIO
@@ -99,24 +99,24 @@ class serve_something(object) :
 
 # stolen from python website
 class groupby:
-    def __init__(self, iterable):
-        self.it = iter(iterable)
-        self.tgtkey = self.currkey = self.currvalue = object()
-        self.keyfunc = lambda x : x.log_id
-    def __iter__(self):
-        return self
-    def __next__(self):
-        while self.currkey == self.tgtkey:
-            self.currvalue = next(self.it)    # Exit on StopIteration
-            self.currkey = self.keyfunc(self.currvalue)
-        self.tgtkey = self.currkey
-        return (dict(log_id=self.currvalue.log_id, user=pwd.getpwuid(self.currvalue.uid).pw_name, block=self.currvalue.block, activity=self.currvalue.activity, version=self.currvalue.version, description=self.currvalue.description), self._grouper(self.tgtkey))
-    next=__next__
-    def _grouper(self, tgtkey):
-        while self.currkey == tgtkey:
-            yield dict(level=self.currvalue.level, severity=self.currvalue.severity, msg=self.currvalue.msg, count=self.currvalue.count)
-            self.currvalue = next(self.it)    # Exit on StopIteration
-            self.currkey = self.keyfunc(self.currvalue)
+  def __init__(self, iterable):
+    self.it = iter(iterable)
+    self.tgtkey = self.currkey = self.currvalue = object()
+    self.keyfunc = lambda x : x.log_id
+  def __iter__(self):
+    return self
+  def __next__(self):
+    while self.currkey == self.tgtkey:
+      self.currvalue = next(self.it)    # Exit on StopIteration
+      self.currkey = self.keyfunc(self.currvalue)
+    self.tgtkey = self.currkey
+    return (dict(log_id=self.currkey, user=pwd.getpwuid(self.currvalue.uid).pw_name, block=self.currvalue.block, activity=self.currvalue.activity, version=self.currvalue.version, description=self.currvalue.description), self._grouper(self.tgtkey))
+  next=__next__
+  def _grouper(self, tgtkey):
+    while self.currkey == tgtkey:
+      yield dict(level=self.currvalue.level, severity=self.currvalue.severity, msg=self.currvalue.msg, count=self.currvalue.count)
+      self.currvalue = next(self.it)    # Exit on StopIteration
+      self.currkey = self.keyfunc(self.currvalue)
 
 class index(serve_something) :
   CONTENTTYPE='application/json'
@@ -129,7 +129,7 @@ class index(serve_something) :
       where = 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) group by l0.log_id having l1.log_id is not null'
     else :
       where = 'SELECT * FROM log'
-    db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%(where)s ORDER BY log_id DESC LIMIT %(start)s, %(finish)s) AS log NATURAL JOIN message GROUP BY log_id, level ORDER By log_id, msg_id, level ASC;' % locals())
+    db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%(where)s ORDER BY log_id DESC LIMIT %(start)s, %(finish)s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER By log_id, msg_id, level ASC;' % locals())
     json.dump([{'log' : log, 'msgs' : list(msgs)} for log, msgs in groupby(db.fetchall())], self.page)
 
 ################################################################################

@@ -1,7 +1,9 @@
-# Copyright (c) 2012 Rich Porter - see LICENSE for further details
+# Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 import message
 import test
+
+################################################################################
 
 class thistest(test.test) :
   name='test mdb fail'
@@ -10,6 +12,8 @@ class thistest(test.test) :
     message.note('a note')
   def epilogue(self) :
     message.success('no')
+
+################################################################################
 
 testing = thistest()
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2012 Rich Porter - see LICENSE for further details
+# Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 import mdb
 import message
@@ -23,7 +23,9 @@ class test(object) :
     try :
       self.prologue()
     except :
-      message.error("prologue failed because " + str(sys.exc_info()))
+      exc = sys.exc_info()
+      message.error("prologue failed because " + str(exc[0]))
+      self.traceback(exc[2])
 
   def end_of_simulation(self) :
     'Wrapper for epilogue'
@@ -31,7 +33,14 @@ class test(object) :
     try :
       self.epilogue()
     except :
-      message.error("prologue failed because " + str(sys.exc_info()))
+      exc = sys.exc_info()
+      message.error("prologue failed because " + str(exc[0]))
+      self.traceback(exc[2])
     # tidy up
     mdb.finalize_all()
 
+  def traceback(self, _traceback) :
+    import traceback
+    for details in traceback.format_tb(_traceback) :
+      for detail in details.strip('\n').split('\n') :
+        message.warning(detail)

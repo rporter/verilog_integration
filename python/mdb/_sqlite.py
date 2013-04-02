@@ -1,10 +1,10 @@
-# Copyright (c) 2012 Rich Porter - see LICENSE for further details
+# Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 import accessor
 import message
 import Queue
-import sys
 import sqlite3
+import sys
 import threading
 
 class connection(object) :
@@ -69,8 +69,8 @@ class mixin(object) :
       except Queue.Empty :
         pass # done
 
-  def log(self, uid, root, parent, description) :
+  def log(self, uid, hostname, root, parent, description) :
     'create entry in log table'
     with self.cursor() as db :
-      db.execute('INSERT INTO log (uid, root, parent, description) VALUES (?, ?, ?, ?);', (uid, root, parent, description))
+      db.execute('INSERT INTO log (uid, root, parent, description, hostname) VALUES (?, ?, ?, ?, ?);', (uid, root, parent, description, hostname))
       return db.lastrowid

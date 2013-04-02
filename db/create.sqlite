@@ -7,6 +7,7 @@ CREATE TABLE log (
   block       TEXT,
   version     TEXT,
   description TEXT,
+  hostname    TEXT,
   status      INTEGER
 );
 
@@ -20,6 +21,8 @@ CREATE TABLE message (
   level    INTEGER NOT NULL,
   severity TEXT,
   date     DATETIME,
+  ident    TEXT,
+  subident INTEGER,
   filename TEXT,
   line     INTEGER,
   msg      TEXT,

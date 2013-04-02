@@ -1,9 +1,13 @@
-# Copyright (c) 2012 Rich Porter - see LICENSE for further details
+# Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 import message
 import random
 import test
 import verilog
+
+################################################################################
+
+message.control.ERROR.threshold = 100
 
 # use verilog callback on each clock
 class cbClk(verilog.callback) :
@@ -72,6 +76,8 @@ class cbClk(verilog.callback) :
       # stop
       self.simctrl.direct.sim_ctrl_finish_r = 1
 
+################################################################################
+
 class thistest(test.test) :
   name='test vpi'
   def prologue(self) :
@@ -97,5 +103,7 @@ class thistest(test.test) :
 
   def epilogue(self) :
     message.success('End of Simulation')
+
+################################################################################
 
 testing = thistest()

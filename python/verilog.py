@@ -1,4 +1,4 @@
-# Copyright (c) 2012 Rich Porter - see LICENSE for further details
+# Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 import re
 import sys
@@ -114,7 +114,9 @@ class vpiNumStr(vpiString) :
     self.encode(self.__add__(other).decode())
     return self
   def encode(self, value) :
-    self.vpi_value.value.str = self.cast(value).rstrip('L')
+    self.vpi_value.value.str = self.cast(value).rstrip('L').lstrip('0b')
+  def decode(self) :
+    return self.copy.replace('X','0').replace('x','0')
 
 class vpiBinStr(vpiNumStr) :
   vpi_type = vpi.vpiBinStrVal
@@ -169,9 +171,10 @@ class viterate(object) :
   def __iter__(self):
     return self
   def next(self) :
-    v = vpi.vpi_scan(self.vpi_i)
-    if v :
-      return v
+    if self.vpi_i :
+      v = vpi.vpi_scan(self.vpi_i)
+      if v :
+        return v
     raise StopIteration
 
 class viter_int(viterate) :

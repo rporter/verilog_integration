@@ -1,4 +1,4 @@
-// Copyright (c) 2012 Rich Porter - see LICENSE for further details
+// Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 `define true 1'b1
 `define false 1'b0
