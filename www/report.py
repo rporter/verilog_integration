@@ -13,40 +13,19 @@ import time
 
 ################################################################################
 
-from optparse import OptionParser
+def increase_verbosity(option, opt, value, parser) :
+  parser.values.verbosity -= 1
 
-class reportOptionParser(OptionParser):
-  def exit(self, status=0, msg=None):
-    if msg:
-        message.fatal(msg.rstrip())
-    sys.exit(status)
-  def error(self, msg):
-    """error(msg : string)
-
-    Print a usage message incorporating 'msg' to stderr and exit.
-    If you override this in a subclass, it should not return -- it
-    should either exit or raise an exception.
-    """
-    chan = cStringIO.StringIO()
-    self.print_usage(chan)
-    for line in chan :
-      message.warning(line.rstrip())
-    chan.close()
-    self.exit(2, "%s: error: %s\n" % (self.get_prog_name(), msg))
-
-################################################################################
-
-parser = reportOptionParser()
+parser = message.reportOptionParser()
 parser.add_option('-p', '--port', default='8080', help='port to serve on')
 parser.add_option('-r', '--root', help='root directory for server')
+parser.add_option('-v', '', help='increase verbosity', action='callback', callback=increase_verbosity)
 options, values = parser.parse_args()
 
 ################################################################################
 
-mdb.db.connection.set_default_db(db=os.path.join(options.root, '../db/mdb.db'))
+mdb.db.connection.set_default_db(db='../db/mdb.db', root=options.root)
 m=mdb.mdb('mdb report')
-
-message.message.instance.verbosity(0)
 
 # intercept log messages and redirect to our logger
 def bottle_log(msg) :
@@ -122,7 +101,7 @@ class index(serve_something) :
   CONTENTTYPE='application/json'
   encapsulate=False
   def doit(self, variant, start=0, finish=20):
-    db   = mdb.db.connection().row_cursor()
+    db = mdb.db.connection().row_cursor()
     if variant == 'sng' :
       where = 'SELECT l0.* FROM log as l0 left join log as l1 on (l0.log_id = l1.root) where l1.log_id is null'
     elif variant == 'rgr' :
@@ -143,10 +122,6 @@ class msgs(serve_something) :
     db.execute('SELECT * FROM message WHERE log_id = %(log_id)s;' % locals())
     json.dump(db.fetchall(), self.page)
     return
-    self.page.write('<code class="log">')
-    for msg in db :
-      self.page.write('<p>(%(severity)08s) %(msg)s</p>' % msg)
-    self.page.write('/<code>')
 
 ################################################################################
 

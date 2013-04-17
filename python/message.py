@@ -4,8 +4,13 @@ import atexit
 import collections
 import exm_msg
 from exm_msg import INT_DEBUG, DEBUG, INFORMATION, NOTE, WARNING, ERROR, INTERNAL, FATAL
+import sys
+
+################################################################################
 
 class SeverityError(Exception) : pass
+
+################################################################################
 
 class message(object) :
   instance = exm_msg.message.instance()
@@ -21,6 +26,8 @@ class message(object) :
     return getattr(self.instance, self.name)
 
   def formatted(self) :
+    if self.args.get('formatted', False) :
+      return self.msg
     return self.msg % self.args
 
   @classmethod
@@ -31,6 +38,8 @@ class message(object) :
   def verbosity(cls, verbosity=INFORMATION) :
     cls.instance.verbosity(verbosity)
 
+################################################################################
+
 class int_debug(message)   : pass
 class debug(message)       : pass
 class note(message)        : pass
@@ -40,6 +49,8 @@ class warning(message)     : pass
 class error(message)       : pass
 class fatal(message)       : pass
 class internal(message)    : pass
+
+################################################################################
 
 try :
   import vpi
@@ -58,6 +69,8 @@ try :
 except ImportError :
   pass
 
+################################################################################
+
 class _control(object) :
   def __getattribute__(self, attr) :
     return message.instance.get_ctrl(getattr(exm_msg, attr))
@@ -72,6 +85,8 @@ class _control(object) :
     raise SeverityError('No severity of level ' + str(idx))
 
 control = _control()
+
+################################################################################
 
 class CallbackError(Exception) : pass
 
@@ -100,5 +115,44 @@ class callback(object) :
     self.cb_map.rm_callback(name)
     del self.callbacks[name]
 
+################################################################################
+
 emit_cbs = callback(message.instance.get_cb_emit())
 terminate_cbs = callback(message.instance.get_cb_terminate())
+
+################################################################################
+
+import cStringIO
+from optparse import OptionParser
+
+class reportOptionParser(OptionParser):
+  def exit(self, status=0, msg=None):
+    if msg:
+        fatal(msg.rstrip())
+    sys.exit(status)
+  def error(self, msg):
+    """error(msg : string)
+
+    Print a usage message incorporating 'msg' to stderr and exit.
+    If you override this in a subclass, it should not return -- it
+    should either exit or raise an exception.
+    """
+    chan = cStringIO.StringIO()
+    self.print_usage(chan)
+    for line in chan :
+      warning(line.rstrip())
+    chan.close()
+    self.exit(2, "%s: error: %s\n" % (self.get_prog_name(), msg))
+
+################################################################################
+
+def excepthook(type, value, traceback) :
+  import traceback as _traceback
+  warning('Exception encountered : %(type)s', type=str(type))
+  warning(' %(value)s', value=str(value))
+  for detail in _traceback.extract_tb(traceback) :
+    warning(detail[-1], file=detail[0], line=detail[1], formatted=True)
+  internal('Exception encountered')
+  sys.exit(1)
+
+sys.excepthook = excepthook

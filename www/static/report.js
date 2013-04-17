@@ -1,3 +1,5 @@
+// Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
+
 $report = function(){
 };
 

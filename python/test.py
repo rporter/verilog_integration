@@ -13,10 +13,11 @@ class test(object) :
   default_db = '../db/mdb.db'
   def __init__(self, name=None, db=None) :
     self.epilogue_cb = epilogue(self.end_of_simulation)
-    name = name or self.name
+    self.name = name or self.name
+    message.terminate_cbs.add(self.name, 20, self.nop, self.nop)
     try :
       mdb.db.connection.set_default_db(db=self.default_db)
-      mdb.mdb(name)
+      mdb.mdb(self.name)
     except :
       message.note('Not using mdb because ' + str(sys.exc_info()))
 
@@ -24,7 +25,7 @@ class test(object) :
       self.prologue()
     except :
       exc = sys.exc_info()
-      message.error("prologue failed because " + str(exc[0]))
+      message.error('prologue failed because ' + str(exc[0]))
       self.traceback(exc[2])
 
   def end_of_simulation(self) :
@@ -34,10 +35,40 @@ class test(object) :
       self.epilogue()
     except :
       exc = sys.exc_info()
-      message.error("prologue failed because " + str(exc[0]))
+      message.error('epilogue failed because ' + str(exc[0]))
       self.traceback(exc[2])
+    # remove fatal callback
+    message.terminate_cbs.rm(self.name)
     # tidy up
     mdb.finalize_all()
+
+  def nop(self) :
+    pass
+
+  def pdb(self) :
+    message.note('entering pdb command line')
+    try :
+      import pdb
+      pdb.set_trace()
+      pass
+    except :
+      pass
+    message.note('leaving pdb command line')
+
+  def fatal(self) :
+    'Default fatal epilogue'
+    message.note('Default - Fatal - End of Simulation')
+
+  def simulation_fatal(self) :
+    'Wrapper for fatal epilogue'
+    message.debug('Fatal - End of Simulation')
+    return
+    try :
+      self.fatal()
+    except :
+      exc = sys.exc_info()
+      message.error('fatal epilogue failed because ' + str(exc[0]))
+      self.traceback(exc[2])
 
   def traceback(self, _traceback) :
     import traceback

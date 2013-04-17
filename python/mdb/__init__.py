@@ -7,6 +7,15 @@ import socket
 import threading
 from accessor import *
 
+class mdbDefault(dict) :
+  'Pull some attributes from the enviroment'
+  __env = None
+  def __init__(self) :
+    if self.env is None :
+      self.env = map(lambda x : x.split('='), os.environ.get('MDB', '').split(','))
+  def __getattr__(self, attr) :
+    return self.get(attr, None)
+
 class _mdb(object) :
   queue_limit = 10
   instances = []
@@ -24,6 +33,8 @@ class _mdb(object) :
     self.queue = Queue.Queue()
     # init filter
     self.filter_fn = self.filter
+    root = root or mdbDefault().root
+    parent = parent or mdbDefault().parent
     # create log entry for this run
     self.log_id = self.log(os.getuid(), socket.gethostname(), root, parent, description)
     # install callbacks
@@ -34,6 +45,7 @@ class _mdb(object) :
     self.timer.start()
     # add to list of instances
     self.instances.append(self)
+    message.debug('hello ...')
 
   def filter(self, cb_id, level, filename) :
     return False
@@ -41,7 +53,7 @@ class _mdb(object) :
   def finalize(self, inst=None) :
     'set test status & clean up'
     if self.timer.running() :
-      message.debug('bye ...')
+      message.debug('... bye')
       self.timer.cancel()
     self.flush()
 

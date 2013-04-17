@@ -355,7 +355,8 @@ class scope(vpiObject) :
       getattr(self._scope, attr).set_value(value)
 
   def __init__(self, _scope) :
-    self.read_only = False
+    self._read_only = False
+    self._signals   = dict()
     if isinstance(_scope, str) :
       handle = vpi.vpi_handle_by_name(_scope, None)
       if handle is None :
@@ -367,16 +368,17 @@ class scope(vpiObject) :
     for viter in [viter_net, viter_reg, viter_int] :
       for sig in map(signal, viter(self.handle)) :
         setattr(self, sig.name, sig)
+        self._signals[sig.name] = sig
     #for hier in map(scope, viter_scope(self.handle)) :
     #  setattr(self, scope.name, scope)
-    self.read_only = True
+    self._read_only = True
 
   def __getattr__(self, name) :
     message.error('scope %(scope)s contains no object %(name)s', scope=self.name, name=name)
     raise scopeException
 
   def __setattr__(self, name, value) :
-    if hasattr(self, 'read_only') and self.read_only :
+    if hasattr(self, '_read_only') and self._read_only :
       raise ReadOnlyException
     object.__setattr__(self, name, value)
 

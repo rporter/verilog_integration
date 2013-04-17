@@ -5,3 +5,7 @@ An example showing how to integrate python as a command shell for verilog simula
 to run vpi put/get tests
 
 % make -C test verilate SCRIPT=test_vpi
+
+to start server (defaults to localhost:8080)
+
+% www/report

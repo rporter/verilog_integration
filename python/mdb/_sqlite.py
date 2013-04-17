@@ -2,6 +2,7 @@
 
 import accessor
 import message
+import os.path
 import Queue
 import sqlite3
 import sys
@@ -53,7 +54,7 @@ class connection(object) :
 
   @classmethod
   def set_default_db(cls, **args) :
-    cls.default_db = args['db']
+    cls.default_db = os.path.join(args.get('root',''), args['db'])
 
 class mixin(object) :
   def cursor(self) :
