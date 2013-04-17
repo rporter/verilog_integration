@@ -62,7 +62,7 @@ class _mdb(object) :
     if self.filter_fn(cb_id, level, filename) :
       return
     # add to queue
-    self.queue.put([cb_id, when, level, severity, filename, line, msg])
+    self.queue.put([cb_id, accessor(tv_sec=when.tv_sec, tv_nsec=when.tv_nsec), level, severity, filename, line, msg])
     # flush to db if this message has high severity or there are a number of outstanding messages
     if level >= self.commit_level or self.queue.qsize() >= self.queue_limit :
       self.flush()

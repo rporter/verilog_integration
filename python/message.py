@@ -4,6 +4,7 @@ import atexit
 import collections
 import exm_msg
 from exm_msg import INT_DEBUG, DEBUG, INFORMATION, NOTE, WARNING, ERROR, INTERNAL, FATAL
+import inspect
 import sys
 
 ################################################################################
@@ -20,10 +21,14 @@ class message(object) :
     self.msg = msg
     self.args = args
     self.name = self.__class__.__name__
-    self.fn()('file', 0, self.formatted())
+    # default to scope above
+    file, line = inspect.stack()[1][1:3]
+    # call library function
+    self.emit(args.setdefault('file', file), args.setdefault('line', line), self.formatted())
 
-  def fn(self) :
-    return getattr(self.instance, self.name)
+  def emit(self, *args) :
+    'get library function and apply arguments'
+    return getattr(self.instance, self.name)(*args)
 
   def formatted(self) :
     if self.args.get('formatted', False) :
