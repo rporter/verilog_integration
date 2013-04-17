@@ -132,6 +132,20 @@ void message::emit(unsigned int level, char* file, unsigned int line, char* text
   }
 }
 
+void message::by_id(char* ident, unsigned int subident, char* file, unsigned int line, ...) {
+  va_list args;
+  va_start(args, line);
+/*
+  char buff[8192];
+  if (args) {
+    vsnprintf(buff, sizeof(buff), text, args);
+  }
+
+  emit(level, file, line, text, args);
+*/
+  va_end(args);
+}
+
 int message::errors() {
   return self->attrs[ERROR].count + self->attrs[INTERNAL].count + self->attrs[FATAL].count;
 }
