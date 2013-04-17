@@ -3,10 +3,10 @@
 include make.inc
 
 VERILOG=../verilog
-SCRIPT?=example
+SCRIPT?=test_example
 TIMEOUT?=3000
 
-SIM_ARGS=+python+$(VERILOG)/$(SCRIPT).py +timeout+$(TIMEOUT)
+SIM_ARGS=+python+$(SCRIPT).py +timeout+$(TIMEOUT)
 LIBEXM=../c/libexm_vpi
 
 .PHONY : all build verilog iverilog verilate cver clean
