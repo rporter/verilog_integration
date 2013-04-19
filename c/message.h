@@ -27,14 +27,8 @@ enum levels {
 struct cb_id {
   std::string name;
   int         priority;
-  bool operator> (const cb_id& key) const {
-    if (key.name == name) return false;
-    return key.priority < priority;
-  }
-  bool operator< (const cb_id& key) const {
-    if (key.name == name) return false;
-    return key.priority > priority;
-  }
+  bool operator> (const cb_id& key) const;
+  bool operator< (const cb_id& key) const;
 };
 
 template <typename func_t>
@@ -54,7 +48,7 @@ protected :
       }
     }
     return map->end();
-  };
+  }
 public :
   callbacks() : map(NULL) {};
   ~callbacks() {};
@@ -103,75 +97,37 @@ public :
 
 ////////////////////////////////////////////////////////////////////////////////
 
-   struct tag {
-     const char* ident;
-     const unsigned int subident;
-     char *str;
-     static const unsigned int size;
-     tag(const char* ident, const unsigned int subident) : ident(ident), subident(subident), str(NULL) {};
-     ~tag() {
-       if (str != NULL) free(str);
-     }
-     bool operator> (const tag& key) const {
-       int cmp = strcmp(key.ident, ident);
-       if (cmp == 0) return key.subident > subident;
-       return cmp > 0;
-     }
-     bool operator< (const tag& key) const {
-       int cmp = strcmp(key.ident, ident);
-       if (cmp == 0) return key.subident < subident;
-       return cmp < 0;
-     }
-     const char* id() {
-       str = (char *)malloc(size);
-       snprintf(str, sizeof(str), "%s-%d", ident, subident);
-       return str;
-     }
-   };
+struct tag {
+  const char* ident;
+  const unsigned int subident;
+  char *str;
+  static const unsigned int size;
+  tag(const char* ident, const unsigned int subident);
+  ~tag();
+  bool operator> (const tag& key) const;
+  bool operator< (const tag& key) const;
+  const char* id();
+};
 
-  const unsigned int tag::size = 16;
+struct msg {
+  const unsigned int level;
+  const char* text;
+  msg(const unsigned int level, const char* text);
+};
 
-  struct msg {
-    const unsigned int level;
-    const char* text;
-    msg(const unsigned int level, const char* text) : level(level), text(text) {};
-  };
-
- class msg_tags {
+class msg_tags {
  public :
-   typedef std::map<const tag, const msg*> tagmap;
-   typedef tagmap::const_iterator const_iterator;
-  private :
-   tagmap* map;
-  public :
-   msg_tags() : map(NULL) {
-   }
-   ~msg_tags() {
-     if (map != NULL) {
-       delete map;
-     }
-   }
-   tagmap& getmap() {
-     if (map == NULL) {
-       map = new tagmap();
-     }
-     return *map;
-   }
-   void add(const char* ident, const unsigned int subident, unsigned int level, const char* text) {
-     tag _tag(ident, subident);
-     msg* _msg = new msg(level, text);
-     getmap()[_tag] = _msg; // memory leak on replace
-   }
-   const msg& get(const char* ident, const unsigned int subident) {
-     tag _tag(ident, subident);
-     const_iterator it = getmap().find(_tag);
-     if (it == getmap().end()) {
-       static msg err = msg(ERROR, "can't find message by id");
-       return err;
-     }
-     return *getmap()[_tag];
-   }
-  };
+  typedef std::map<const tag, const msg*> tagmap;
+  typedef tagmap::const_iterator const_iterator;
+ private :
+  tagmap* map;
+ public :
+  msg_tags();
+  ~msg_tags();
+  tagmap& getmap();
+  void add(const char* ident, const unsigned int subident, unsigned int level, const char* text);
+  const msg& get(const char* ident, const unsigned int subident);
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -186,8 +142,8 @@ struct status_result {
   const char* text;
 };
 
- typedef void cb_emit_fn(const cb_id&, unsigned int, timespec&, char*, char*, unsigned int, char*);
- typedef void cb_terminate_fn(const cb_id&);
+typedef void cb_emit_fn(const cb_id&, unsigned int, timespec&, char*, char*, unsigned int, char*);
+typedef void cb_terminate_fn(const cb_id&);
 
 class message {
  public :

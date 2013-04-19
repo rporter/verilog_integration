@@ -26,6 +26,77 @@ void cb_terminate_default(const cb_id& id) {
   exit(1);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+bool cb_id::operator> (const cb_id& key) const {
+  if (key.name == name) return false;
+  return key.priority < priority;
+}
+bool cb_id::operator< (const cb_id& key) const {
+  if (key.name == name) return false;
+  return key.priority > priority;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+const unsigned int tag::size = 16;
+
+tag::tag(const char* ident, const unsigned int subident) : ident(ident), subident(subident), str(NULL) {};
+tag::~tag() {
+  if (str != NULL) free(str);
+}
+bool tag::operator> (const tag& key) const {
+  int cmp = strcmp(key.ident, ident);
+  if (cmp == 0) return key.subident > subident;
+  return cmp > 0;
+}
+bool tag::operator< (const tag& key) const {
+  int cmp = strcmp(key.ident, ident);
+  if (cmp == 0) return key.subident < subident;
+  return cmp < 0;
+}
+const char* tag::id() {
+  str = (char *)malloc(size);
+  snprintf(str, sizeof(str), "%s-%d", ident, subident);
+  return str;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+msg::msg(const unsigned int level, const char* text) : level(level), text(text) {};
+
+////////////////////////////////////////////////////////////////////////////////
+
+msg_tags::msg_tags() : map(NULL) {
+}
+msg_tags::~msg_tags() {
+  if (map != NULL) {
+    delete map;
+  }
+}
+msg_tags::tagmap& msg_tags::getmap() {
+  if (map == NULL) {
+    map = new tagmap();
+  }
+  return *map;
+}
+void msg_tags::add(const char* ident, const unsigned int subident, unsigned int level, const char* text) {
+  tag _tag(ident, subident);
+  msg* _msg = new msg(level, text);
+  getmap()[_tag] = _msg; // memory leak on replace
+}
+const msg& msg_tags::get(const char* ident, const unsigned int subident) {
+  tag _tag(ident, subident);
+  const_iterator it = getmap().find(_tag);
+  if (it == getmap().end()) {
+    static msg err = msg(ERROR, "can't find message by id");
+    return err;
+  }
+  return *getmap()[_tag];
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 message::message() : terminating_cnt(0) {
   cb_emit.insert("account", 99, cb_account);
   cb_emit.insert("default", 0, cb_emit_default);
