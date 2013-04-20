@@ -29,3 +29,4 @@ CREATE TABLE message (
   FOREIGN KEY (log_id) REFERENCES log (log_id)
 );
 
+CREATE INDEX ident_idx ON message (ident, subident);
