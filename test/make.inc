@@ -7,7 +7,7 @@ ROOT?=$(shell dirname $$PWD)
 
 TOOL_ROOT?=/enalvo/ap
 
-IVERILOG_ROOT=/enalvo/ap/iverilog/20130307
+IVERILOG_ROOT=/opt/ap/iverilog/20130307
 IBUILD=$(IVERILOG_ROOT)/bin/iverilog
 IRUN=$(IVERILOG_ROOT)/bin/vvp
 
