@@ -70,8 +70,8 @@ class mixin(object) :
       except Queue.Empty :
         pass # done
 
-  def log(self, uid, hostname, root, parent, description) :
+  def log(self, uid, hostname, abv, root, parent, description) :
     'create entry in log table'
     with self.cursor() as db :
-      db.execute('INSERT INTO log (uid, root, parent, description, hostname) VALUES (?, ?, ?, ?, ?);', (uid, root, parent, description, hostname))
+      db.execute('INSERT INTO log (uid, root, parent, activity, block, version, description, hostname) VALUES (?, ?, ?, ?, ?, ?, ?, ?);', (uid, root, parent, abv.activity, abv.block, abv.version, description, hostname))
       return db.lastrowid

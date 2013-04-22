@@ -7,6 +7,19 @@ import socket
 import threading
 from accessor import *
 
+class activityBlockVersion :
+  def __init__(self, **kwargs) :
+    self.activity = kwargs.get('activity', None)
+    self.block    = kwargs.get('block', None)
+    self.version  = kwargs.get('version', self.get_version())
+
+  def get_version(self) :
+    import subprocess
+    try :
+      return subprocess.check_output(['git', 'log', '-1', '--format=%h']).strip()
+    except :
+      return 'Not available'
+
 class mdbDefault(dict) :
   'Pull some attributes from the enviroment'
   __env = None
@@ -28,15 +41,16 @@ class _mdb(object) :
     def running(self) :
       return not self.finished.is_set()
 
-  def __init__(self, description='none given', root=None, parent=None, level=message.ERROR) :
+  def __init__(self, description='none given', root=None, parent=None, level=message.ERROR, **kwargs) :
     self.commit_level = level
+    self.abv = activityBlockVersion(**kwargs)
     self.queue = Queue.Queue()
     # init filter
     self.filter_fn = self.filter
     root = root or mdbDefault().root
     parent = parent or mdbDefault().parent
     # create log entry for this run
-    self.log_id = self.log(os.getuid(), socket.gethostname(), root, parent, description)
+    self.log_id = self.log(os.getuid(), socket.gethostname(), self.abv, root, parent, description)
     # install callbacks
     message.emit_cbs.add('mdb emit', 1, self.add, self.finalize)
     message.terminate_cbs.add('mdb terminate', 1, self.finalize, self.finalize)
