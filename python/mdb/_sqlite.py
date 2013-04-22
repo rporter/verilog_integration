@@ -62,8 +62,8 @@ class mixin(object) :
 
   def flush(self) :
     with self.cursor() as cursor :
-      def insert(cb_id, when, level, severity, filename, line, msg) :
-        cursor.execute('INSERT INTO message (log_id, level, severity, date, filename, line, msg) VALUES (?, ?, ?, ?, ?, ?, ?);', (self.log_id, level, severity, when.tv_sec, filename, line, msg))
+      def insert(cb_id, when, level, severity, ident, subident, filename, line, msg) :
+        cursor.execute('INSERT INTO message (log_id, level, severity, date, ident, subident, filename, line, msg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);', (self.log_id, level, severity, when.tv_sec, ident, subident, filename, line, msg))
       try :
         while (1) :
           insert(*self.queue.get(False))

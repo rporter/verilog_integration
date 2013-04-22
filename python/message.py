@@ -3,7 +3,7 @@
 import atexit
 import collections
 import exm_msg
-from exm_msg import INT_DEBUG, DEBUG, INFORMATION, NOTE, WARNING, ERROR, INTERNAL, FATAL
+from exm_msg import INT_DEBUG, DEBUG, INFORMATION, NOTE, SUCCESS, WARNING, ERROR, INTERNAL, FATAL
 import inspect
 import sys
 
@@ -54,6 +54,13 @@ class warning(message)     : pass
 class error(message)       : pass
 class fatal(message)       : pass
 class internal(message)    : pass
+
+class by_id(message) :
+  def __init__(self, ident, subident, **args) :
+    self.args = args
+    # default to scope above
+    file, line = inspect.stack()[1][1:3]
+    self.instance.by_id(ident, subident, args.setdefault('file', file), args.setdefault('line', line))
 
 ################################################################################
 

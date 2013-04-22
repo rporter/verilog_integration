@@ -1,10 +1,9 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include "message.h"
 
 namespace example {
 
-void cb_account(const cb_id& id, unsigned int level, timespec& when, char* severity, char *file, unsigned int line, char* text) {
+void cb_account(const cb_id& id, unsigned int level, timespec& when, char* severity, tag* tag, char *file, unsigned int line, char* text) {
   control* attr = message::get_ctrl(level);
   ++attr->count;
   if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
@@ -15,7 +14,7 @@ void cb_account(const cb_id& id, unsigned int level, timespec& when, char* sever
   }
 }
 
-void cb_emit_default(const cb_id& id, unsigned int level, timespec& when, char* severity, char *file, unsigned int line, char* text) {
+void cb_emit_default(const cb_id& id, unsigned int level, timespec& when, char* severity, tag* tag, char *file, unsigned int line, char* text) {
   if (message::get_ctrl(level)->echo) {
     fprintf(stderr, "(%12s) %s\n",  severity, text);
     fflush(stderr);
@@ -63,9 +62,18 @@ const char* tag::id() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-msg::msg(const unsigned int level, const char* text) : level(level), text(text) {};
+msg::msg(const unsigned int level, const char* text) : level(level) {
+  this->text = (const char*)malloc(strlen(text));
+  strcpy((char*)this->text, text);
+}
+
+const char* msg::severity() const {
+  return message::name(level);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
+
+class noMessageError {};
 
 msg_tags::msg_tags() : map(NULL) {
 }
@@ -87,12 +95,14 @@ void msg_tags::add(const char* ident, const unsigned int subident, unsigned int 
 }
 const msg& msg_tags::get(const char* ident, const unsigned int subident) {
   tag _tag(ident, subident);
-  const_iterator it = getmap().find(_tag);
+  return get(_tag);
+}
+const msg& msg_tags::get(const tag& id) {
+  const_iterator it = getmap().find(id);
   if (it == getmap().end()) {
-    static msg err = msg(ERROR, "can't find message by id");
-    return err;
+    throw noMessageError();
   }
-  return *getmap()[_tag];
+  return *it->second;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -188,6 +198,9 @@ callbacks<cb_emit_fn>* message::get_cb_emit() {
 callbacks<cb_terminate_fn>* message::get_cb_terminate() {
   return &self->cb_terminate;
 }
+msg_tags& message::get_tags() {
+  return self->tags;
+}
 
 void message::emit(unsigned int level, char* file, unsigned int line, char* text, va_list args) {
   char buff[8192];
@@ -199,21 +212,26 @@ void message::emit(unsigned int level, char* file, unsigned int line, char* text
   clock_gettime(CLOCK_REALTIME, &when);
   callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
   for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
-    _cb->second(_cb->first, level, when, severity, file, line, args?buff:text);
+    _cb->second(_cb->first, level, when, severity, NULL, file, line, args?buff:text);
   }
 }
 
 void message::by_id(char* ident, unsigned int subident, char* file, unsigned int line, ...) {
   va_list args;
   va_start(args, line);
-/*
-  char buff[8192];
-  if (args) {
-    vsnprintf(buff, sizeof(buff), text, args);
+  tag tag_id(ident, subident);
+  try {
+    const msg& msg_id = get_tags().get(tag_id);
+    struct timespec when;
+    clock_gettime(CLOCK_REALTIME, &when);
+    callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
+    for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
+      _cb->second(_cb->first, msg_id.level, when, (char*)msg_id.severity(), &tag_id, file, line, (char*)msg_id.text);
+    }
+  } catch (noMessageError &e) {
+    ERROR("No matching message ident found %s", tag_id.id());
   }
 
-  emit(level, file, line, text, args);
-*/
   va_end(args);
 }
 

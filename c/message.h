@@ -1,4 +1,4 @@
-#include <cstddef>
+#include <stdio.h>
 #include <stdarg.h>
 #include <time.h>
 #include <string>
@@ -113,6 +113,7 @@ struct msg {
   const unsigned int level;
   const char* text;
   msg(const unsigned int level, const char* text);
+  const char* severity() const;
 };
 
 class msg_tags {
@@ -127,6 +128,7 @@ class msg_tags {
   tagmap& getmap();
   void add(const char* ident, const unsigned int subident, unsigned int level, const char* text);
   const msg& get(const char* ident, const unsigned int subident);
+  const msg& get(const tag& id);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -142,7 +144,7 @@ struct status_result {
   const char* text;
 };
 
-typedef void cb_emit_fn(const cb_id&, unsigned int, timespec&, char*, char*, unsigned int, char*);
+typedef void cb_emit_fn(const cb_id&, unsigned int, timespec&, char*, tag*, char*, unsigned int, char*);
 typedef void cb_terminate_fn(const cb_id&);
 
 class message {
@@ -151,6 +153,7 @@ class message {
   static message* self;
   callbacks<cb_emit_fn> cb_emit;
   callbacks<cb_terminate_fn> cb_terminate;
+  msg_tags tags;
 
   int terminating_cnt;
   control attrs[MAX_LEVEL];
@@ -172,6 +175,7 @@ class message {
 
   static callbacks<cb_emit_fn>* get_cb_emit();
   static callbacks<cb_terminate_fn>* get_cb_terminate();
+  static msg_tags& get_tags();
 
   void emit(unsigned int level, char* file, unsigned int line, char* text, va_list args);
   void by_id(char* ident, unsigned int subident, char* file, unsigned int line, ...);

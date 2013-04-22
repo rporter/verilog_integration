@@ -6,13 +6,17 @@
 #include "vpi_user.h"
 #include "message.h"
 
-void cb_vpi_printf(const example::cb_id& id, unsigned int level, timespec& when, char* severity, char *file, unsigned int line, char* text) {
+void cb_vpi_printf(const example::cb_id& id, unsigned int level, timespec& when, char* severity, example::tag* tag, char *file, unsigned int line, char* text) {
   if (example::message::get_ctrl(level)->echo) {
     struct tm date;
     char buf[16];
     localtime_r(&(when.tv_sec), &date);
     strftime((PLI_BYTE8*)buf, sizeof(buf), "%T", &date);
-    vpi_printf((PLI_BYTE8*)"(%12s %s) %s\n", severity, buf, text);
+    if (tag == NULL) {
+      vpi_printf((PLI_BYTE8*)"(%12s %s) %s\n", severity, buf, text);
+    } else {
+      vpi_printf((PLI_BYTE8*)"(%12s %s) [%s] %s\n", severity, buf, tag->id(), text);
+    }
   }
 }
 
