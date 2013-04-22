@@ -3,7 +3,8 @@
 import message
 import test
 
-message.message.instance.get_tags().add('PYTN', 0, message.SUCCESS, 'this is a success')
+message.ident.add('PYTN', 0, message.SUCCESS, 'this is a success')
+message.ident.add('PYTN', 1, message.FATAL, 'this is fatal')
 
 ################################################################################
 
@@ -17,6 +18,8 @@ class thistest(test.test) :
     message.note('a note')
   def epilogue(self) :
     message.by_id('PYTN', 0)
+  def fatal(self) :
+    message.by_id('PYTN', 1)
 
 ################################################################################
 

@@ -55,6 +55,16 @@ class error(message)       : pass
 class fatal(message)       : pass
 class internal(message)    : pass
 
+################################################################################
+
+class ident :
+  @classmethod
+  def add(cls, ident, subident, level, msg) :
+    message.instance.get_tags().add(ident, subident, level, msg)
+  @classmethod
+  def get(cls, ident, subident) :
+    return message.instance.get_tags().get(ident, subident)
+
 class by_id(message) :
   def __init__(self, ident, subident, **args) :
     self.args = args
