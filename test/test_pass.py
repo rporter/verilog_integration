@@ -6,6 +6,8 @@ import test
 ################################################################################
 
 class thistest(test.test) :
+  activity='simulation'
+  block='default'
   name='test mdb pass'
   def prologue(self) :
     message.message.verbosity(message.INT_DEBUG)
