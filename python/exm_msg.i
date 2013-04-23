@@ -3,6 +3,8 @@
 %module exm_msg
 
 %{
+  #define SWIG_PYTHON_EXTRA_NATIVE_CONTAINERS 
+
   #include "message.h"
 
   template <typename func_t>
@@ -62,7 +64,7 @@
       return;
     }
 
-    void operator()(const example::cb_id& id, unsigned int level, timespec& when, char* severity, example::tag* tag, char *file, unsigned int line, char* text) {
+    void operator()(const example::cb_id& id, unsigned int level, timespec& when, char* severity, const example::tag* tag, char *file, unsigned int line, char* text) {
 
       PyObject *result, *arglist;
     

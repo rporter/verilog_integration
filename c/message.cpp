@@ -1,9 +1,10 @@
 #include <stdlib.h>
+#include <sstream>
 #include "message.h"
 
 namespace example {
 
-void cb_account(const cb_id& id, unsigned int level, timespec& when, char* severity, tag* tag, char *file, unsigned int line, char* text) {
+void cb_account(const cb_id& id, unsigned int level, timespec& when, char* severity, const tag* tag, char *file, unsigned int line, char* text) {
   control* attr = message::get_ctrl(level);
   ++attr->count;
   if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
@@ -14,7 +15,7 @@ void cb_account(const cb_id& id, unsigned int level, timespec& when, char* sever
   }
 }
 
-void cb_emit_default(const cb_id& id, unsigned int level, timespec& when, char* severity, tag* tag, char *file, unsigned int line, char* text) {
+void cb_emit_default(const cb_id& id, unsigned int level, timespec& when, char* severity, const tag* tag, char *file, unsigned int line, char* text) {
   if (message::get_ctrl(level)->echo) {
     fprintf(stderr, "(%12s) %s\n",  severity, text);
     fflush(stderr);
@@ -39,11 +40,10 @@ bool cb_id::operator< (const cb_id& key) const {
 ////////////////////////////////////////////////////////////////////////////////
 
 const unsigned int tag::size = 16;
+#define STR(x) static_cast<std::ostringstream*>(&(std::ostringstream() << x))->str()
 
-tag::tag(const char* ident, const unsigned int subident) : ident(ident), subident(subident), str(NULL) {};
-tag::~tag() {
-  if (str != NULL) free(str);
-}
+tag::tag(const char* ident, const unsigned int subident) : ident(ident), subident(subident), str(std::string(ident) +  '-' + STR(subident)) {}
+tag::~tag() {}
 bool tag::operator> (const tag& key) const {
   int cmp = strcmp(key.ident, ident);
   if (cmp == 0) return key.subident > subident;
@@ -54,10 +54,8 @@ bool tag::operator< (const tag& key) const {
   if (cmp == 0) return key.subident < subident;
   return cmp < 0;
 }
-const char* tag::id() {
-  str = (char *)malloc(size);
-  snprintf(str, sizeof(str), "%s-%d", ident, subident);
-  return str;
+const char* tag::id() const {
+  return str.c_str();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -88,10 +86,12 @@ msg_tags::tagmap& msg_tags::getmap() {
   }
   return *map;
 }
-void msg_tags::add(const char* ident, const unsigned int subident, unsigned int level, const char* text) {
-  tag _tag(ident, subident);
-  msg* _msg = new msg(level, text);
-  getmap()[_tag] = _msg; // memory leak on replace
+const msg_tags::const_iterator msg_tags::add(const char* ident, const unsigned int subident, const unsigned int level, const char* text) {
+  const tag _tag(ident, subident);
+  const msg _msg(level, text);
+  const value_type value(_tag, _msg);
+  std::pair<const_iterator,bool> result = getmap().insert(value);
+  return result.first;
 }
 const msg& msg_tags::get(const char* ident, const unsigned int subident) {
   tag _tag(ident, subident);
@@ -102,7 +102,7 @@ const msg& msg_tags::get(const tag& id) {
   if (it == getmap().end()) {
     throw noMessageError();
   }
-  return *it->second;
+  return it->second;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -230,6 +230,20 @@ void message::by_id(char* ident, unsigned int subident, char* file, unsigned int
     }
   } catch (noMessageError &e) {
     ERROR("No matching message ident found %s", tag_id.id());
+  }
+
+  va_end(args);
+}
+
+void message::by_msg(const msg_tags::const_iterator& msg, char* file, unsigned int line, ...) {
+  va_list args;
+  va_start(args, line);
+
+  struct timespec when;
+  clock_gettime(CLOCK_REALTIME, &when);
+  callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
+  for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
+    _cb->second(_cb->first, (*msg).second.level, when, (char*)(*msg).second.severity(), &((*msg).first), file, line, (char*)(*msg).second.text);
   }
 
   va_end(args);

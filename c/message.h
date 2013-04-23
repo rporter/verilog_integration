@@ -100,17 +100,17 @@ public :
 struct tag {
   const char* ident;
   const unsigned int subident;
-  char *str;
+  const std::string str;
   static const unsigned int size;
   tag(const char* ident, const unsigned int subident);
   ~tag();
   bool operator> (const tag& key) const;
   bool operator< (const tag& key) const;
-  const char* id();
+  const char* id() const;
 };
 
 struct msg {
-  const unsigned int level;
+  unsigned int level;
   const char* text;
   msg(const unsigned int level, const char* text);
   const char* severity() const;
@@ -118,15 +118,16 @@ struct msg {
 
 class msg_tags {
  public :
-  typedef std::map<const tag, const msg*> tagmap;
+  typedef std::map<const tag, const msg> tagmap;
   typedef tagmap::const_iterator const_iterator;
+  typedef tagmap::value_type value_type;
  private :
   tagmap* map;
  public :
   msg_tags();
   ~msg_tags();
   tagmap& getmap();
-  void add(const char* ident, const unsigned int subident, unsigned int level, const char* text);
+  const const_iterator add(const char* ident, const unsigned int subident, const unsigned int level, const char* text);
   const msg& get(const char* ident, const unsigned int subident);
   const msg& get(const tag& id);
 };
@@ -144,7 +145,7 @@ struct status_result {
   const char* text;
 };
 
-typedef void cb_emit_fn(const cb_id&, unsigned int, timespec&, char*, tag*, char*, unsigned int, char*);
+typedef void cb_emit_fn(const cb_id&, unsigned int, timespec&, char*, const tag*, char*, unsigned int, char*);
 typedef void cb_terminate_fn(const cb_id&);
 
 class message {
@@ -179,6 +180,7 @@ class message {
 
   void emit(unsigned int level, char* file, unsigned int line, char* text, va_list args);
   void by_id(char* ident, unsigned int subident, char* file, unsigned int line, ...);
+  void by_msg(const msg_tags::const_iterator& msg, char* file, unsigned int line, ...);
 
   int  errors();
   struct status_result status();

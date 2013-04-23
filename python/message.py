@@ -57,13 +57,20 @@ class internal(message)    : pass
 
 ################################################################################
 
-class ident :
+class ident(message) :
+  def __init__(self, msg_id) :
+    self.msg_id = msg_id
+  def __call__(self, **args) :
+    # default to scope above
+    file, line = inspect.stack()[1][1:3]
+    self.instance.by_msg(self.msg_id, args.setdefault('file', file), args.setdefault('line', line))
+
   @classmethod
   def add(cls, ident, subident, level, msg) :
-    message.instance.get_tags().add(ident, subident, level, msg)
+    return cls(cls.instance.get_tags().add(ident, subident, level, msg))
   @classmethod
   def get(cls, ident, subident) :
-    return message.instance.get_tags().get(ident, subident)
+    return cls.instance.get_tags().get(ident, subident)
 
 class by_id(message) :
   def __init__(self, ident, subident, **args) :

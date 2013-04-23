@@ -6,7 +6,7 @@
 #include "vpi_user.h"
 #include "message.h"
 
-void cb_vpi_printf(const example::cb_id& id, unsigned int level, timespec& when, char* severity, example::tag* tag, char *file, unsigned int line, char* text) {
+void cb_vpi_printf(const example::cb_id& id, unsigned int level, timespec& when, char* severity, const example::tag* tag, char *file, unsigned int line, char* text) {
   if (example::message::get_ctrl(level)->echo) {
     struct tm date;
     char buf[16];
