@@ -97,11 +97,12 @@ public :
 
 ////////////////////////////////////////////////////////////////////////////////
 
-struct tag {
+class tag {
+  const std::string _ident;
+  const std::string str;
+ public :
   const char* ident;
   const unsigned int subident;
-  const std::string str;
-  static const unsigned int size;
   tag(const char* ident, const unsigned int subident);
   ~tag();
   bool operator> (const tag& key) const;

@@ -18,7 +18,6 @@
     }
     ~ident() {};
     void operator()(char* file, unsigned int line) {
-      std::cerr << (*msg).first.ident << ' ' << (*msg).first.id() << std::endl;
       example::message::instance()->by_msg(msg, file, line);
     }
   };

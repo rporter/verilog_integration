@@ -43,10 +43,15 @@ bool cb_id::operator< (const cb_id& key) const {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const unsigned int tag::size = 16;
 #define STR(x) static_cast<std::ostringstream*>(&(std::ostringstream() << x))->str()
 
-tag::tag(const char* ident, const unsigned int subident) : ident(ident), subident(subident), str(std::string(ident) +  '-' + STR(subident)) {}
+tag::tag(const char* ident, const unsigned int subident) : 
+  _ident(std::string(ident)),
+  ident(_ident.c_str()),
+  subident(subident),
+  str(_ident +  '-' + STR(subident)) 
+{
+}
 tag::~tag() {}
 bool tag::operator> (const tag& key) const {
   int cmp = strcmp(key.ident, ident);
