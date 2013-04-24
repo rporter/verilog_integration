@@ -38,14 +38,18 @@
 
    a.popup thead tr.source { text-transform: none; text-align : right }
    a.popup thead tr.source th:first-of-type { text-align : left }
-   a.popup td {
-     text-align : right;
+   a.popup span p {
+margin : 0;
+}
+   a.popup span p.id {
+     font-weight : bold;
+     text-align : center;
    }
-   a.popup td.attr {
+   a.popup span p.file {
      font-weight : italic;
-     text-align  : left;
    }
 
    time       { display : none }
+   ident      { display : none }
    div.widget { position : absolute; float : right ; right : 5px}
    .example-highlight { background:#FF9 }

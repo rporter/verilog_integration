@@ -133,8 +133,9 @@ $report = function(){
   };
 
   $report.openLog = function(){};
-  $report.openLog.ident = function (c) {
-    return '           '.substr(c.length) + c;
+  $report.openLog.justify = function (c, l) {
+    l = l || 12;
+    return Array(l).join(' ').substr(c.length) + c;
   }
   $report.openLog.msg = function (m) {
     return m.replace(/>/g, '&gt;').replace(/</g, '&lt;');
@@ -149,7 +150,7 @@ $report = function(){
       success : function (json) {
         //json.forEach(function(msg){msg.date = new Date(msg.date*1000)});
         div.jqoteapp('#template', json);
-        $report.openLog.widget(div);
+          $report.openLog.widget(div, json);
       },
       error : function(xhr, status, index, anchor) {
         console.log(xhr, status, index);
@@ -157,7 +158,10 @@ $report = function(){
     });
     $report.tabs('add', '#'+id, event.data.log_id+' log');
   };
-  $report.openLog.widget = function(div) {
+  $report.openLog.widget = function(div, json) {
+    function has_ident(json) {
+      return json[0].ident !== null || (json.length > 1 && has_ident(json.splice(1)));
+    }
     var nodes  = $('code', div);
     var widget = $('<div class="widget"/>').appendTo(div);
     var align  = function() {
@@ -166,6 +170,12 @@ $report = function(){
     $(div).scroll(align);
     // show/hide timestamp
     $('<input type="checkbox">').appendTo(widget).bind('change.time', function(event){$('time', div).toggle()}).wrap('<p>Show time</p>');
+    var ident =  $('<input type="checkbox">').appendTo(widget).bind('change.tag', function(event){$('ident', div).toggle()}).wrap('<p>Show ident</p>');
+    if (has_ident(json)) {
+      ident.trigger('click');
+    } else {
+      ident.prop('title', 'there are no given idents');
+    }
     // filter by severity
     var slider = $('<div class="slider"/>').appendTo(widget);
     var lower  = $("<div/>").css({ position : 'absolute' , top : 10, left : 0 }).text($report.levels.severity(0)).hide();

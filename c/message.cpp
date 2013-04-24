@@ -17,7 +17,11 @@ void cb_account(const cb_id& id, unsigned int level, timespec& when, char* sever
 
 void cb_emit_default(const cb_id& id, unsigned int level, timespec& when, char* severity, const tag* tag, char *file, unsigned int line, char* text) {
   if (message::get_ctrl(level)->echo) {
-    fprintf(stderr, "(%12s) %s\n",  severity, text);
+    if (tag == NULL) {
+      fprintf(stderr, "(%12s) %s\n",  severity, text);
+    } else {
+      fprintf(stderr, "(%12s) [%s] %s\n",  severity, tag->id(), text);
+    }
     fflush(stderr);
   }
 }
