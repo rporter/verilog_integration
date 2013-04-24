@@ -4,7 +4,7 @@ import message
 import test
 
 class pytn :
-  test    = message.ident('PYTN', 69, message.INFORMATION, 'a message')
+  test = message.ident('PYTN', 69, message.INFORMATION, 'a message')
 
 ################################################################################
 
