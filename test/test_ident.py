@@ -4,9 +4,7 @@ import message
 import test
 
 class pytn :
-  test = message.ident.add('PYTN', 69, message.INFORMATION, 'a message')
-  success = message.ident.add('PYTN', 0, message.SUCCESS, 'this is a success')
-  fatal = message.ident.add('PYTN', 1, message.FATAL, 'this is fatal')
+  test    = message.ident('PYTN', 69, message.INFORMATION, 'a message')
 
 ################################################################################
 
@@ -20,9 +18,7 @@ class thistest(test.test) :
     message.note('a note')
     pytn.test()
   def epilogue(self) :
-    message.by_id('PYTN', 0)
-  def fatal(self) :
-    message.by_id('PYTN', 1)
+    self.SUCCESS()
 
 ################################################################################
 

@@ -58,19 +58,13 @@ class internal(message)    : pass
 ################################################################################
 
 class ident(message) :
-  def __init__(self, msg_id) :
-    self.msg_id = msg_id
+  'thin wrapper around ident class which is declared in swig exm_msg.i'
+  def __init__(self, ident, subident, level, msg) :
+    self.msg_id = exm_msg.ident(ident, subident, level, msg)
   def __call__(self, **args) :
     # default to scope above
     file, line = inspect.stack()[1][1:3]
-    self.instance.by_msg(self.msg_id, args.setdefault('file', file), args.setdefault('line', line))
-
-  @classmethod
-  def add(cls, ident, subident, level, msg) :
-    return cls(cls.instance.get_tags().add(ident, subident, level, msg))
-  @classmethod
-  def get(cls, ident, subident) :
-    return cls.instance.get_tags().get(ident, subident)
+    self.msg_id(args.setdefault('file', file), args.setdefault('line', line))
 
 class by_id(message) :
   def __init__(self, ident, subident, **args) :

@@ -7,6 +7,22 @@
 
   #include "message.h"
 
+  class ident {
+    // This is a simple class that wraps around code adding and emitting message by ident
+    // Fixes issue in swig with destructor of std::map::const_iterator (there isn't one)
+  protected :
+    example::msg_tags::const_iterator msg;
+  public:
+    ident(const char* ident, const unsigned int subident, const unsigned int level, const char* text) {
+      msg = example::message::instance()->get_tags().add(ident, subident, level, text);
+    }
+    ~ident() {};
+    void operator()(char* file, unsigned int line) {
+      std::cerr << (*msg).first.ident << ' ' << (*msg).first.id() << std::endl;
+      example::message::instance()->by_msg(msg, file, line);
+    }
+  };
+
   template <typename func_t>
     class callbacks {
   public :
@@ -115,11 +131,19 @@
 /* Parse the header file to generate wrappers */
 %include "message.h"
 
-  struct timespec {
-      long     tv_sec;        /* seconds */
-      long     tv_nsec;       /* nanoseconds */
-  };
+struct timespec {
+    long     tv_sec;        /* seconds */
+    long     tv_nsec;       /* nanoseconds */
+};
 
+class ident {
+protected :
+  const example::msg_tags::const_iterator msg;
+public:
+  ident(const char* ident, const unsigned int subident, const unsigned int level, const char* text);
+  ~ident();
+  void operator()(char* file, unsigned int line);
+};
 
 namespace example {
 

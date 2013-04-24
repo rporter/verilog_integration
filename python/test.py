@@ -13,6 +13,8 @@ class test(object) :
   default_db = '../db/mdb.db'
   activity=None
   block=None
+  SUCCESS = message.ident('PYTN', 0, message.SUCCESS, 'test successful')
+  FATAL   = message.ident('PYTN', 1, message.FATAL,   'something nasty happened')
   def __init__(self, name=None, activity=None, block=None, db=None) :
     self.epilogue_cb = epilogue(self.end_of_simulation)
     self.name = name or self.name
@@ -61,7 +63,7 @@ class test(object) :
 
   def fatal(self) :
     'Default fatal epilogue'
-    message.note('Default - Fatal - End of Simulation')
+    self.FATAL()
 
   def simulation_fatal(self) :
     'Wrapper for fatal epilogue'
