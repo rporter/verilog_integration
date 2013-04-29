@@ -52,27 +52,29 @@ class regression :
     message.debug('enqueue %(cmd)s', cmd=cmd)
     result = subprocess.Popen(cmd.split(' '), env={'MDB': 'root='+str(m.get_root())+',parent='+str(m.log_id)}).wait()
     if result > 0 :
-      message.note('process %(cmd)s returned non zero %(result)d', cmd=cmd, result=result)
+      message.warning('process %(cmd)s returned non zero %(result)d', cmd=cmd, result=result)
 
   def run(self, subset) :
     if subset is None :
       self.tree(self.xml.getRootElement())
     else :
-      for node in subset :
-        for node in self.xml.xpathEval('//*[@name="%s" or @nid="%s"]' % (node, node)) :
+      for name in subset :
+        for node in self.xml.xpathEval('''
+(//*[@nid="%(name)s"]/* | //test[text()="%(name)s"] | //*[@name="%(name)s"])
+[not(@ignore)]''' % locals()) :
           self.tree(node)
 
   def tree(self, node) :
-    for child in node.xpathEval('child::*[not(@ignore)]') :
-      if child.name == 'test' :
-        self.enqueue('make -C test ' + self.getopt('target', child) + ' SCRIPT=test_' + child.getContent())
-      else :
-        self.enqueue('echo ' + child.name)
+    if node.name == 'test' :
+      self.enqueue('make -C test ' + self.getopt('target', node) + ' SCRIPT=test_' + node.getContent())
+    else :
+      self.enqueue('test/regress -s ' + node.prop('nid'))
 
 ################################################################################
 
 suite=regression(options.xml)
 suite.run(options.subset)
+message.success('end of tests')
 
 ################################################################################
 
