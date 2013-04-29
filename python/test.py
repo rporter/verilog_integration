@@ -51,6 +51,7 @@ class test(object) :
   def nop(self) :
     pass
 
+  @classmethod
   def pdb(self) :
     message.note('entering pdb command line')
     try :

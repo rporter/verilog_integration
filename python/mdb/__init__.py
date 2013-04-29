@@ -24,8 +24,13 @@ class mdbDefault(dict) :
   'Pull some attributes from the enviroment'
   __env = None
   def __init__(self) :
-    if self.env is None :
-      self.env = map(lambda x : x.split('='), os.environ.get('MDB', '').split(','))
+    if self.__env is None :
+      MDB=os.environ.get('MDB', [])
+      if MDB :
+        self.__env = map(lambda x : x.split('='), MDB.split(','))
+        self.update(self.__env)
+      else :
+        self.__env = []
   def __getattr__(self, attr) :
     return self.get(attr, None)
 
@@ -47,10 +52,10 @@ class _mdb(object) :
     self.queue = Queue.Queue()
     # init filter
     self.filter_fn = self.filter
-    root = root or mdbDefault().root
-    parent = parent or mdbDefault().parent
+    self.root = root or mdbDefault().root
+    self.parent = parent or mdbDefault().parent
     # create log entry for this run
-    self.log_id = self.log(os.getuid(), socket.gethostname(), self.abv, root, parent, description)
+    self.log_id = self.log(os.getuid(), socket.gethostname(), self.abv, self.root, self.parent, description)
     # install callbacks
     message.emit_cbs.add('mdb emit', 1, self.add, self.finalize)
     message.terminate_cbs.add('mdb terminate', 1, self.finalize, self.finalize)
@@ -80,6 +85,9 @@ class _mdb(object) :
     # flush to db if this message has high severity or there are a number of outstanding messages
     if level >= self.commit_level or self.queue.qsize() >= self.queue_limit :
       self.flush()
+
+  def get_root(self) :
+    return self.root or self.log_id
 
   @classmethod
   def finalize_all(cls) :

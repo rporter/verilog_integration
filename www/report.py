@@ -102,8 +102,8 @@ class index(serve_something) :
   encapsulate=False
   def doit(self, variant, start=0, finish=20):
     db = mdb.db.connection().row_cursor()
-    if variant == 'sng' :
-      where = 'SELECT l0.* FROM log as l0 left join log as l1 on (l0.log_id = l1.root) where l1.log_id is null'
+    if variant == 'sngl' :
+      where = 'SELECT l0.* FROM log as l0 left join log as l1 on (l0.log_id = l1.root) where l1.log_id is null and l0.root is null'
     elif variant == 'rgr' :
       where = 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) group by l0.log_id having l1.log_id is not null'
     else :

@@ -15,9 +15,6 @@ class thistest(test.test) :
   def epilogue(self) :
     'Should not be executed'
     message.success('Should not be executed')
-  def fatal(self) :
-    'Should be executed'
-    message.note('Exiting early ...')
 
 ################################################################################
 
