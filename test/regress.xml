@@ -1,0 +1,36 @@
+<regression name='all'>
+  <group name='verilator'>
+    <option ignore='1'>
+      <target>verilate</target>
+    </option>
+    <group name='basic'>
+      <test>pass</test>
+      <test>fail</test>
+    </group>
+    <group name='mdb'>
+      <test>info</test>
+      <test>message</test>
+      <test>mdb</test>
+    </group>
+    <test>example</test>
+    <test>segv</test>
+    <test>vpi</test>
+  </group>
+  <group name='icarus'>
+    <option ignore='1'>
+      <target>iverilog</target>
+    </option>
+    <group name='basic'>
+      <test>pass</test>
+      <test>fail</test>
+    </group>
+    <group name='mdb'>
+      <test>info</test>
+      <test>message</test>
+      <test>mdb</test>
+    </group>
+    <test>example</test>
+    <test>segv</test>
+  </group>
+</regression>
+
