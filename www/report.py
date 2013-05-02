@@ -58,58 +58,96 @@ class serve_something(object) :
 
   def GET(self, **args):
     self.headers()
-    elapsed=time.time()
-    if self.encapsulate : self.page.write('<div%s>\n' % self.div())
-    self.doit(**args)
-    elapsed = time.time()-elapsed
-    if self.encapsulate : 
-      self.page.write('<p class="time" title="Generated in %0.2fs">Generated in %0.2fs</p>' % (elapsed, elapsed))
-      self.page.write('</div>\n<b/>\n')
-    message.note('page %(page)s served in %(time)0.2fs', page=bottle.request.url, time=elapsed)
+    (self.wrap if self.encapsulate else self.time)(**args)
     return self.page.getvalue().replace('&', '&amp;')
 
+  def wrap(self, **args) :
+    self.page.write('<div%s>\n' % self.div())
+    elapsed = self.time(**args)
+    self.page.write('<p class="time" title="Generated in %(elapsed)0.2fs">Generated in %(elapsed)0.2fs</p>' % locals())
+    self.page.write('</div>\n<b/>\n')
+
+  def time(self, **args) :
+    elapsed=time.time()
+    self.doit(**args)
+    elapsed = time.time()-elapsed
+    message.note('page %(page)s served in %(time)0.2fs', page=bottle.request.url, time=elapsed)
+    return elapsed
+
   def doit(self, inv_id):
-    self.serve(inv_id).html(self.page)
+    self.page.write('no content')
 
   def headers(self):
     bottle.response.content_type = self.CONTENTTYPE
 
 ################################################################################
 
-# stolen from python website
-class groupby:
-  def __init__(self, iterable):
-    self.it = iter(iterable)
-    self.tgtkey = self.currkey = self.currvalue = object()
-    self.keyfunc = lambda x : x.log_id
-  def __iter__(self):
-    return self
-  def __next__(self):
-    while self.currkey == self.tgtkey:
-      self.currvalue = next(self.it)    # Exit on StopIteration
-      self.currkey = self.keyfunc(self.currvalue)
-    self.tgtkey = self.currkey
-    return (dict(log_id=self.currkey, user=pwd.getpwuid(self.currvalue.uid).pw_name, block=self.currvalue.block, activity=self.currvalue.activity, version=self.currvalue.version, description=self.currvalue.description), self._grouper(self.tgtkey))
-  next=__next__
-  def _grouper(self, tgtkey):
-    while self.currkey == tgtkey:
-      yield dict(level=self.currvalue.level, severity=self.currvalue.severity, msg=self.currvalue.msg, count=self.currvalue.count)
-      self.currvalue = next(self.it)    # Exit on StopIteration
-      self.currkey = self.keyfunc(self.currvalue)
 
 class index(serve_something) :
+  # stolen from python website
+  # and mashed around a bit
+  class groupby:
+    def __init__(self, iterable, keyfunc=None, keyfact=None, grpfact=None):
+      self.it = iter(iterable)
+      self.tgtkey = self.currkey = self.currvalue = object()
+      self.keyfunc, self.keyfact, self.grpfact = keyfunc, keyfact, grpfact
+    def __iter__(self):
+      return self
+    def __next__(self):
+      while self.currkey == self.tgtkey:
+        self.currvalue = next(self.it)    # Exit on StopIteration
+        self.currkey = self.keyfunc(self.currvalue)
+      self.tgtkey = self.currkey
+      return self.keyfact(self)
+ 
+    next=__next__
+    def _grouper(self, tgtkey):
+      while self.currkey == tgtkey:
+        yield self.grpfact(self)
+        self.currvalue = next(self.it)    # Exit on StopIteration
+        self.currkey = self.keyfunc(self.currvalue)
+  
+  class limit :
+    def __init__(self, finish=None, start=None) :
+      self.start, self.finish = start, finish
+    def __str__(self) :
+      if self.finish :
+        if self.start :
+          return "LIMIT %(start)d, %(finish)d" % self.__dict__
+        else :
+          return "LIMIT %(finish)d" % self.__dict__
+      return ""
+ 
   CONTENTTYPE='application/json'
   encapsulate=False
+  order = 'log_id, msg_id, level ASC'
   def doit(self, variant, start=0, finish=20):
-    db = mdb.db.connection().row_cursor()
+    self.json(self.where(variant), self.limit(finish, start))
+
+  def json(self, where, limit) :
+    json.dump([{'log' : log, 'msgs' : list(msgs)} for log, msgs in self.groupby(self.execute(where, limit), lambda x : x.log_id, self.keyfact, self.grpfact)], self.page)
+
+  def where(self, variant) :
     if variant == 'sngl' :
-      where = 'SELECT l0.* FROM log as l0 left join log as l1 on (l0.log_id = l1.root) where l1.log_id is null and l0.root is null'
+      return 'SELECT l0.* FROM log as l0 left join log as l1 on (l0.log_id = l1.root) where l1.log_id is null and l0.root is null'
     elif variant == 'rgr' :
-      where = 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) group by l0.log_id having l1.log_id is not null'
+      return 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) group by l0.log_id having l1.log_id is not null'
     else :
-      where = 'SELECT * FROM log'
-    db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%(where)s ORDER BY log_id DESC LIMIT %(start)s, %(finish)s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER By log_id, msg_id, level ASC;' % locals())
-    json.dump([{'log' : log, 'msgs' : list(msgs)} for log, msgs in groupby(db.fetchall())], self.page)
+      return 'SELECT * FROM log'
+
+  def execute(self, where, limit) :
+    with mdb.db.connection().row_cursor() as db :
+      db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%s ORDER BY log_id DESC %s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER BY %s;' % (where, str(limit), self.order))
+      return db.fetchall()
+
+  @staticmethod
+  def keyfact(self) :
+    'key factory for grouping'
+    return [dict(log_id=self.currkey, user=pwd.getpwuid(self.currvalue.uid).pw_name, block=self.currvalue.block, activity=self.currvalue.activity, version=self.currvalue.version, description=self.currvalue.description), self._grouper(self.tgtkey)]
+  @staticmethod
+  def grpfact(self) :
+    'group factory for grouping'
+    return dict(level=self.currvalue.level, severity=self.currvalue.severity, msg=self.currvalue.msg, count=self.currvalue.count)
 
 ################################################################################
 
@@ -118,10 +156,23 @@ class msgs(serve_something) :
   encapsulate=False
   def doit(self, log_id):
     db = mdb.db.connection().row_cursor()
-    message.debug('retrieving %(log_id)s', log_id=log_id)
+    message.debug('retrieving %(log_id)s messages', log_id=log_id)
     db.execute('SELECT * FROM message WHERE log_id = %(log_id)s;' % locals())
     json.dump(db.fetchall(), self.page)
     return
+
+################################################################################
+
+class rgr(index) :
+  order = 'parent ASC, log_id, msg_id, level ASC'
+  
+  def doit(self, log_id):
+    self.json('SELECT * FROM log WHERE log_id = %(log_id)s or root = %(log_id)s' % locals(), self.limit())
+  
+  @staticmethod
+  def keyfact(self) :
+    'key factory for grouping'
+    return [dict(log_id=self.currkey, parent=self.currvalue.parent, user=pwd.getpwuid(self.currvalue.uid).pw_name, block=self.currvalue.block, activity=self.currvalue.activity, version=self.currvalue.version, description=self.currvalue.description), self._grouper(self.tgtkey)]
 
 ################################################################################
 
@@ -137,6 +188,7 @@ def index_html() :
 urls = (
   ('/index/:variant', index,),
   ('/msgs/:log_id', msgs,),
+  ('/rgr/:log_id', rgr,),
 )
 
 for path, cls in urls:
