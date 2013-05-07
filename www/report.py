@@ -82,7 +82,6 @@ class serve_something(object) :
 
 ################################################################################
 
-
 class index(serve_something) :
   # stolen from python website
   # and mashed around a bit
@@ -106,7 +105,56 @@ class index(serve_something) :
         yield self.grpfact(self)
         self.currvalue = next(self.it)    # Exit on StopIteration
         self.currkey = self.keyfunc(self.currvalue)
-  
+
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  class result(dict) :
+
+    class messages(list) :
+      class message(dict) :
+        def __init__(self, values) :
+          dict.__init__(self, values)
+        def __getattr__(self, attr) :
+          return self[attr]
+        @property
+        def isfail(self) :
+          return self.level >= message.ERROR
+      def __init__(self, msgs) :
+        list.__init__(self, map(self.message, msgs))
+        self.sort(key=lambda k : k.level, reverse=True)
+      def __getattr__(self, attr) :
+        attr = attr.upper()
+        for msg in self :
+          if msg.severity == attr : return msg
+        return None
+
+    def __init__(self, log, msgs, **kwargs) :
+      dict.__init__(self, log = log, msgs = self.messages(msgs))
+      self.update(status=self.compute_status())
+
+    def __getattr__(self, attr) :
+      try : 
+        return self[attr]
+      except :
+        return self.msgs.__getattr__(attr)
+
+    def compute_status(self) :
+      'compute status'
+      if self.first.isfail :
+        return dict(status='FAIL', reason='('+self.first.severity+') '+self.first.msg)
+      if self.SUCCESS :
+        if self.SUCCESS.count == 1 :
+	  return dict(status='PASS', reason=self.SUCCESS.msg)
+        else :
+          return dict(status='FAIL', reason='Too many SUCCESSes (%d)' % self.SUCCESS.count)
+      return dict(status='FAIL', reason='No SUCCESS')
+
+    @property
+    def first(self) :
+      return self.msgs[0]
+
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
   class limit :
     def __init__(self, finish=None, start=None) :
       self.start, self.finish = start, finish
@@ -117,7 +165,9 @@ class index(serve_something) :
         else :
           return "LIMIT %(finish)d" % self.__dict__
       return ""
- 
+
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
   CONTENTTYPE='application/json'
   encapsulate=False
   order = 'log_id, msg_id, level ASC'
@@ -125,15 +175,15 @@ class index(serve_something) :
     self.json(self.where(variant), self.limit(finish, start))
 
   def json(self, where, limit) :
-    json.dump([{'log' : log, 'msgs' : list(msgs)} for log, msgs in self.groupby(self.execute(where, limit), lambda x : x.log_id, self.keyfact, self.grpfact)], self.page)
+    json.dump([self.result(log, msgs) for log, msgs in self.groupby(self.execute(where, limit), lambda x : x.log_id, self.keyfact, self.grpfact)], self.page)
 
   def where(self, variant) :
     if variant == 'sngl' :
-      return 'SELECT l0.* FROM log as l0 left join log as l1 on (l0.log_id = l1.root) where l1.log_id is null and l0.root is null'
+      return 'SELECT l0.*, null as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) where l1.log_id is null and l0.root is null'
     elif variant == 'rgr' :
       return 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) group by l0.log_id having l1.log_id is not null'
     else :
-      return 'SELECT * FROM log'
+      return 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) group by l0.log_id'
 
   def execute(self, where, limit) :
     with mdb.db.connection().row_cursor() as db :

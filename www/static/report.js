@@ -70,20 +70,6 @@ $report = function(){
         }
         return '';
       }
-      var status = function() {
-          var sorted = this.msgs.sort(function(a,b){return a.level<b.level});
-          if (sorted[0].level>=$report.levels.ERROR) {
-              return {status: 'FAIL', reason : '('+sorted[0].severity+') '+sorted[0].msg};
-          }
-          var success = this.get('SUCCESS');
-          if (success === undefined) {
-              return {status: 'FAIL', reason : 'No SUCCESS'};
-	  }
-          if (success.count > 1) {
-              return {status: 'FAIL', reason : 'Too many SUCCESSes'};
-	  }
-	  return {status : 'PASS', reason : success.msg};
-      };
 
     this.cols = function() {
       return [
@@ -95,7 +81,7 @@ $report = function(){
 	{ "sTitle": "errors" },
 	{ "sTitle": "warnings" },
 	{ "sTitle": "message" },
-	{ "sTitle": "status" }
+	{ "sTitle": "status" },
       ];
     };
 
@@ -104,15 +90,15 @@ $report = function(){
             return '<abbr title="'+attr.msg.replace('"', '&quot;')+'">'+attr.count+'</abbr>';
 	}
 	return data.map(function(log){
-            var status = log.status();
-            return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), status.reason, status.status];
+            return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, log.status.status];
 	});
     };
-		       
-      for (log in data) {
-          data[log].get    = get;
-          data[log].status = status;
-     }
+
+    // attach methods to individual data		       
+    for (log in data) {
+      data[log].get = get;
+    }
+    
   };
 
   $report.renderTestJSON = function(data, type) {
