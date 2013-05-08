@@ -145,9 +145,8 @@ $report = function(){
       url : 'msgs/'+event.data.log_id,
       dataType : 'json',
       success : function (json) {
-        //json.forEach(function(msg){msg.date = new Date(msg.date*1000)});
         div.jqoteapp('#template', json);
-          $report.openLog.widget(div, json);
+        $report.openLog.widget(div, json);
       },
       error : function(xhr, status, index, anchor) {
         console.log(xhr, status, index);
