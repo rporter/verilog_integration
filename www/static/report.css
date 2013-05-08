@@ -53,3 +53,6 @@ margin : 0;
    ident      { display : none }
    div.widget { position : absolute; float : right ; right : 5px}
    .example-highlight { background:#FF9 }
+
+   div.explorer { width : 20% ; float : left  }
+   div.children { width : 80% ; float : right }

@@ -59,8 +59,6 @@ $report = function(){
   };
 
   $report.testJSON = function(data){
-    // jsonify data
-    data = $.parseJSON(data);
 
     var get = function(severity, attr) {
       var result = this.msgs.filter(function(a){return a.severity === severity})[0];
@@ -237,12 +235,6 @@ $report = function(){
       });
     }
 
-    this.build = function(data) {
-      self.json = data;
-      self.div.jqoteapp('#template', self.json);
-      self.widget();
-    }
-
     this.add = function(tabs) {
       tabs.tabs('add', '#'+self.id, data.log_id+' log');
     }
@@ -251,7 +243,11 @@ $report = function(){
     $.ajax({
       url : 'msgs/'+data.log_id,
       dataType : 'json',
-      success : self.build,
+      success : function(data) {
+        self.json = data;
+        self.div.jqoteapp('#template', self.json);
+        self.widget();
+      },
       error : function(xhr, status, index) {
         console.log(xhr, status, index);
       }
@@ -267,13 +263,65 @@ $report = function(){
     return m.replace(/>/g, '&gt;').replace(/</g, '&lt;');
   }
 
-  $report.openHier = function(data){
+  $report.openHier = function(data, anchor){
     var self = this;
     this.id  = $report.tab_id();
     this.div = $('<div>', {id : this.id});
+
+    // find all logs with given parent id and return with children
+    // in extreme cases it will be more expedient to do this on the server
+    // as output is grouped by parent
+    this.build = function build(parent) {
+      return self.json.filter(
+        function(it){
+          if (it.log.parent === parent) {
+            it.children = build(it.log.log_id);
+            return true;
+          }
+          return false;
+        });
+    };
+
     this.add = function(tabs) {
       tabs.tabs('add', '#'+self.id, data.log_id+' hier');
+    };
+
+    this.table = function(log_id, anchor) {
+      anchor.html((new $report.testJSON(self.json)).render());
+    };
+
+    this.pane = function() {
+      function hier(json) {
+        return json.map(function(it){return {title : it.log.description + '(' + it.log.log_id + ')', isFolder : it.children.length, key : it.log.log_id, children : hier(it.children || [])}});
+      }
+      var explorer = $('<div class="explorer">');
+      var children = $('<div class="children">');
+      var tree = $('<div>').dynatree({
+        children : [
+            {title : "ALL", isFolder : true, key : null, children : hier(self.json)},
+            hier(self.tree)[0]
+        ],
+        onActivate: function(node) {
+          self.table(node.data.key, children);
+        },
+      });
+      explorer.append(tree);
+      this.div.append(explorer, children);
     }
+
+    this.div.appendTo(anchor);
+    $.ajax({
+      url : 'rgr/'+data.log_id,
+      dataType : 'json',
+      success : function(data) {
+        self.json = data;
+        self.tree = self.build(null);
+        self.pane();
+      },
+      error : function(xhr, status, index) {
+        console.log(xhr, status, index);
+      }
+    });
   }
 
 
@@ -283,7 +331,7 @@ $report = function(){
     this.div = $('<div>', {id : this.id}).append('<ul>');
     this.add = function(tabs) {
       tabs.tabs('add', '#'+self.id, data.log_id+' regr');
-    }
+    };
 
     this.div.appendTo(data.anchor);
     this.tabs = this.div.tabs();
