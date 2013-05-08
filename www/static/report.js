@@ -58,18 +58,37 @@ $report = function(){
     });     
   };
 
-  function testJSON(data) {
-      var get = function(severity, attr) {
-        var result = this.msgs.filter(function(a){return a.severity === severity})[0];
-        if (attr === undefined) return result;
-	if (result === undefined) return '';
-        if (attr instanceof Function) {
-          return attr(result);
-	} else if (result.hasOwnProperty(attr)) {
-          return result[attr];
-        }
-        return '';
+  $report.testJSON = function(data){
+    // jsonify data
+    data = $.parseJSON(data);
+
+    var get = function(severity, attr) {
+      var result = this.msgs.filter(function(a){return a.severity === severity})[0];
+      if (attr === undefined) return result;
+    	if (result === undefined) return '';
+      if (attr instanceof Function) {
+        return attr(result);
+    	} else if (result.hasOwnProperty(attr)) {
+        return result[attr];
       }
+      return '';
+    }
+
+    this.render = function() {
+      var container = $('<div><table class="display"></table></div>');
+      $('table', container).dataTable({
+        "bJQueryUI": true,
+        "bPaginate": false,
+        "bFilter": false,
+        "aaData" : this.rows(),
+        "aoColumns": this.cols(),
+        "aaSorting": [[0, "desc"]],
+        "fnRowCallback": function(nRow, aData, iDisplayIndex) {
+       	  $(nRow).bind('click.example', {log_id : aData[0]}, $report.openLog.tab)
+        }
+      });
+      return container;
+    }
 
     this.cols = function() {
       return [
@@ -99,23 +118,6 @@ $report = function(){
       data[log].get = get;
     }
     
-  };
-
-  $report.renderTestJSON = function(data, type) {
-    data = new testJSON($.parseJSON(data));
-    var container = $('<div><table class="display"></table></div>');
-    $('table', container).dataTable({
-      "bJQueryUI": true,
-      "bPaginate": false,
-      "bFilter": false,
-      "aaData" : data.rows(),
-      "aoColumns": data.cols(),
-      "aaSorting": [[0, "desc"]],
-      "fnRowCallback": function(nRow, aData, iDisplayIndex) {
-	  $(nRow).bind('click.example', {log_id : aData[0]}, $report.openLog.tab)
-      }
-    });
-    return container;
   };
 
   $report.openLog = function(){};

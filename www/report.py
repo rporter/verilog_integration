@@ -193,7 +193,7 @@ class index(serve_something) :
   @staticmethod
   def keyfact(self) :
     'key factory for grouping'
-    return [dict(log_id=self.currkey, user=pwd.getpwuid(self.currvalue.uid).pw_name, block=self.currvalue.block, activity=self.currvalue.activity, version=self.currvalue.version, description=self.currvalue.description), self._grouper(self.tgtkey)]
+    return [dict(user=pwd.getpwuid(self.currvalue.uid).pw_name, **self.currvalue), self._grouper(self.tgtkey)]
   @staticmethod
   def grpfact(self) :
     'group factory for grouping'
@@ -217,12 +217,7 @@ class rgr(index) :
   order = 'parent ASC, log_id, msg_id, level ASC'
   
   def doit(self, log_id):
-    self.json('SELECT * FROM log WHERE log_id = %(log_id)s or root = %(log_id)s' % locals(), self.limit())
-  
-  @staticmethod
-  def keyfact(self) :
-    'key factory for grouping'
-    return [dict(log_id=self.currkey, parent=self.currvalue.parent, user=pwd.getpwuid(self.currvalue.uid).pw_name, block=self.currvalue.block, activity=self.currvalue.activity, version=self.currvalue.version, description=self.currvalue.description), self._grouper(self.tgtkey)]
+    self.json('SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) WHERE l0.log_id = %(log_id)s or l0.root = %(log_id)s group by l0.log_id' % locals(), self.limit())
 
 ################################################################################
 

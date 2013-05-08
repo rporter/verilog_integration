@@ -16,7 +16,7 @@
           ajaxOptions : {
             cache      : false,
             dataType   : 'html', // it will be html in the end
-            dataFilter : $report.renderTestJSON,
+            dataFilter : function(data) {return (new $report.testJSON(data)).render()},
             error : function(xhr, status, index, anchor) {
               console.log(xhr, status, index);
             }
