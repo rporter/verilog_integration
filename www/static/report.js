@@ -92,19 +92,20 @@ $report = function(){
         ],
         "aaSorting": [[0, "desc"]],
         "fnRowCallback": function(nRow, aData, iDisplayIndex) {
-       	    $(nRow).bind('click.example', {log_id : aData[0], anchor : $report.report()}, 
+            $(nRow).bind('click.example', {log_id : aData[0], children : aData[8], anchor : $report.report()},
               function(event) {
                 var log;
                 if (event.data.children) {
+                  // this will be a tab-within-tab
+                  log = new $report.openRegr(event.data);
                 } else {
                   // place report log in new tab
                   log = new $report.openLog(event.data);
-		    console.log(log)
                 }
-                $report.tabs('add', '#'+log.id, event.data.log_id+' log');
+                log.add($report.tabs());
               }
             );
-	}
+        }
       });
       return container;
     }
@@ -140,10 +141,11 @@ $report = function(){
     
   };
 
-  $report.openLog = function(data){
+  $report.openLog = function(data, anchor) {
     var self = this;
     this.id  = $report.tab_id();
     this.div = $('<div/>', {class: "tab", id:self.id});
+    anchor = anchor || data.anchor;
 
     this.widget = function() {
       function has_ident(json) {
@@ -173,11 +175,11 @@ $report = function(){
         max: $report.levels._SIZE-1,
         values: [ 0, $report.levels._SIZE-1 ]
       }).bind('slide.example', function(event, ui) {
-        div.hide();
+        self.div.hide();
         lower.text($report.levels.severity(ui.values[0]));
         upper.text($report.levels.severity(ui.values[1]));
         nodes.each(function(index){if(($(this).attr('level') >= ui.values[0]) && ($(this).attr('level') <= ui.values[1])){$(this).show()}else{$(this).hide()}})
-        div.show();
+        self.div.show();
       });
       slider.find(".ui-slider-handle:first")
         .append(lower)
@@ -241,12 +243,16 @@ $report = function(){
       self.widget();
     }
 
-    this.div.appendTo(data.anchor);
+    this.add = function(tabs) {
+      tabs.tabs('add', '#'+self.id, data.log_id+' log');
+    }
+
+    this.div.appendTo(anchor);
     $.ajax({
       url : 'msgs/'+data.log_id,
       dataType : 'json',
       success : self.build,
-      error : function(xhr, status, index, anchor) {
+      error : function(xhr, status, index) {
         console.log(xhr, status, index);
       }
     });
@@ -259,6 +265,35 @@ $report = function(){
   }
   $report.openLog.msg = function (m) {
     return m.replace(/>/g, '&gt;').replace(/</g, '&lt;');
+  }
+
+  $report.openHier = function(data){
+    var self = this;
+    this.id  = $report.tab_id();
+    this.div = $('<div>', {id : this.id});
+    this.add = function(tabs) {
+      tabs.tabs('add', '#'+self.id, data.log_id+' hier');
+    }
+  }
+
+
+  $report.openRegr = function(data){
+    var self = this;
+    this.id  = $report.tab_id();
+    this.div = $('<div>', {id : this.id}).append('<ul>');
+    this.add = function(tabs) {
+      tabs.tabs('add', '#'+self.id, data.log_id+' regr');
+    }
+
+    this.div.appendTo(data.anchor);
+    this.tabs = this.div.tabs();
+
+    this.hier = new $report.openHier(data, this.tabs);
+    this.hier.add(this.tabs);
+
+    this.log = new $report.openLog(data, this.tabs);
+    this.log.add(this.tabs);
+
   }
 
 })($report);
