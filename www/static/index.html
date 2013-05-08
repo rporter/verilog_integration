@@ -13,6 +13,17 @@
     <script type="text/javascript">
       $(document).ready(function() {
         $report.tabs({
+/*
+          beforeLoad : function (event, ui) {
+            var class = $report.testJSON;
+            if ($(ui.tab).hasClass('all')) {
+              class = $report.testSnglJSON;
+            }
+            ui.ajaxSettings.dataFilter = function(data) {
+              return (new class(data)).render();
+            });
+          },
+*/
           ajaxOptions : {
             cache      : false,
             dataType   : 'html', // it will be html in the end

@@ -82,6 +82,14 @@ $report = function(){
         "bFilter": false,
         "aaData" : this.rows(),
         "aoColumns": this.cols(),
+        "aoColumnDefs": [
+                {
+                    "aTargets":[this.cols().length-1], // last col
+                    "fnCreatedCell": function(nTd, sData, oData, iRow, iCol) {
+                        $(nTd).addClass(sData);
+                    },                   
+                }
+        ],
         "aaSorting": [[0, "desc"]],
         "fnRowCallback": function(nRow, aData, iDisplayIndex) {
        	  $(nRow).bind('click.example', {log_id : aData[0]}, $report.openLog.tab)
@@ -100,6 +108,7 @@ $report = function(){
 	{ "sTitle": "errors" },
 	{ "sTitle": "warnings" },
 	{ "sTitle": "message" },
+	{ "sTitle": "children" },
 	{ "sTitle": "status" },
       ];
     };
@@ -109,7 +118,7 @@ $report = function(){
             return '<abbr title="'+attr.msg.replace('"', '&quot;')+'">'+attr.count+'</abbr>';
 	}
 	return data.map(function(log){
-            return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, log.status.status];
+            return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, log.log.children, log.status.status];
 	});
     };
 

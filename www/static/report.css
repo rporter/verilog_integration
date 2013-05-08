@@ -7,9 +7,9 @@
    th          { border: 2px solid black }
    tr:hover    { background-color : #ddd }
    td          { border: 1px solid black ; text-align : center }
-   td.pass     { background-color : #8f8 }
-   td.fail     { background-color : #f88 }
-   td.running  { background-color : #88f }
+   td.PASS     { background-color : #8f8 }
+   td.FAIL     { background-color : #f88 }
+   td.RUNNING  { background-color : #88f }
 
    div.tab     { height: 600px; overflow: auto; position : relative }
    code        { display: block; white-space : pre }
