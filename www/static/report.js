@@ -92,8 +92,19 @@ $report = function(){
         ],
         "aaSorting": [[0, "desc"]],
         "fnRowCallback": function(nRow, aData, iDisplayIndex) {
-       	  $(nRow).bind('click.example', {log_id : aData[0]}, $report.openLog.tab)
-        }
+       	    $(nRow).bind('click.example', {log_id : aData[0], anchor : $report.report()}, 
+              function(event) {
+                var log;
+                if (event.data.children) {
+                } else {
+                  // place report log in new tab
+                  log = new $report.openLog(event.data);
+		    console.log(log)
+                }
+                $report.tabs('add', '#'+log.id, event.data.log_id+' log');
+              }
+            );
+	}
       });
       return container;
     }
@@ -129,7 +140,119 @@ $report = function(){
     
   };
 
-  $report.openLog = function(){};
+  $report.openLog = function(data){
+    var self = this;
+    this.id  = $report.tab_id();
+    this.div = $('<div/>', {class: "tab", id:self.id});
+
+    this.widget = function() {
+      function has_ident(json) {
+        return json[0].ident !== null || (json.length > 1 && has_ident(json.splice(1)));
+      }
+      var nodes  = $('code', self.div);
+      var widget = $('<div class="widget"/>').appendTo(self.div);
+      var align  = function() {
+        widget.animate({top:$(self.div).scrollTop()},{duration:100,queue:false});
+      };
+      $(this.div).scroll(align);
+      // show/hide timestamp
+      $('<input type="checkbox">').appendTo(widget).bind('change.time', function(event){$('time', self.div).toggle()}).wrap('<p>Show time</p>');
+      var ident =  $('<input type="checkbox">').appendTo(widget).bind('change.tag', function(event){$('ident', self.div).toggle()}).wrap('<p>Show ident</p>');
+      if (has_ident(self.json)) {
+        ident.trigger('click');
+      } else {
+        ident.prop('title', 'there are no given idents');
+      }
+      // filter by severity
+      var slider = $('<div class="slider"/>').appendTo(widget);
+      var lower  = $("<div/>").css({ position : 'absolute' , top : 10, left : 0 }).text($report.levels.severity(0)).hide();
+      var upper  = $("<div/>").css({ position : 'absolute' , top : 10, left : 0 }).text($report.levels.severity($report.levels._SIZE-1)).hide();
+      slider.slider({
+        range: true,
+        min: 0,
+        max: $report.levels._SIZE-1,
+        values: [ 0, $report.levels._SIZE-1 ]
+      }).bind('slide.example', function(event, ui) {
+        div.hide();
+        lower.text($report.levels.severity(ui.values[0]));
+        upper.text($report.levels.severity(ui.values[1]));
+        nodes.each(function(index){if(($(this).attr('level') >= ui.values[0]) && ($(this).attr('level') <= ui.values[1])){$(this).show()}else{$(this).hide()}})
+        div.show();
+      });
+      slider.find(".ui-slider-handle:first")
+        .append(lower)
+        .bind('mouseenter.example', function(event){lower.show()})
+        .bind('mouseleave.example', function(event){lower.hide()});
+      slider.find(".ui-slider-handle:last")
+        .append(upper)
+        .bind('mouseenter.example', function(event){upper.show()})
+        .bind('mouseleave.example', function(event){upper.hide()});
+      // message indexed by severity
+      function getBySeverity() {
+        function sorted(nodes) {
+          function children(nodes) {
+            return nodes.slice(0,11).map(
+              function(it, idx){
+                return {
+                  "title"    : (idx>9)?'...':$report.levels.severity(parseInt($(it).attr('level'))),
+                  "key"      : it.idx
+                };
+            });
+          };
+          return Object.keys(nodes).sort().map(
+            function(it) {
+              return {
+        	      "title"    : '(' + it.slice(1) + ') ' + $report.levels.severity(parseInt(it.slice(1))) + ' <s' + parseInt(it.slice(1))/10 + '><i>' + nodes[it].length + '</i></s>',
+                "key"      : nodes[it][0].idx,
+                "children" : children(nodes[it])
+             }}
+          );
+        };
+  	return sorted(nodes.toArray().reduce(function(levels, node, idx) {
+          var level = 's'+$(node).attr('level');
+          node.idx = idx;
+          if (!levels.hasOwnProperty(level)) levels[level]=[];
+          levels[level].push(node);
+          return levels;
+        }, {}));
+      }
+  
+      var msgIndex = $('<div/>').appendTo(widget);
+      msgIndex.dynatree({
+        children : [
+            {title : "Messages", isFolder : true, children : getBySeverity(nodes)},
+        ],
+        onActivate: function(node) {
+            self.div.animate({scrollTop : $(nodes[node.data.key]).offset().top - self.div.offset().top + self.div.scrollTop() - self.div.height()/2});
+        },
+        onRender : function(dtnode, nodeSpan) {
+          $('a', dtnode.li).hover(
+            function(){$(nodes[$.ui.dynatree.getNode(this).data.key]).addClass(   'example-highlight')},
+            function(){$(nodes[$.ui.dynatree.getNode(this).data.key]).removeClass('example-highlight')}
+          );
+          align();
+        }
+      });
+    }
+
+    this.build = function(data) {
+      self.json = data;
+      self.div.jqoteapp('#template', self.json);
+      self.widget();
+    }
+
+    this.div.appendTo(data.anchor);
+    $.ajax({
+      url : 'msgs/'+data.log_id,
+      dataType : 'json',
+      success : self.build,
+      error : function(xhr, status, index, anchor) {
+        console.log(xhr, status, index);
+      }
+    });
+
+  };
+
   $report.openLog.justify = function (c, l) {
     l = l || 12;
     return Array(l).join(' ').substr(c.length) + c;
@@ -137,112 +260,6 @@ $report = function(){
   $report.openLog.msg = function (m) {
     return m.replace(/>/g, '&gt;').replace(/</g, '&lt;');
   }
-  $report.openLog.tab = function(event) {
-    var id  = $report.tab_id();
-    var div = $('<div/>', {class: "tab", id:id});
-    div.appendTo($report.report());
-    $.ajax({
-      url : 'msgs/'+event.data.log_id,
-      dataType : 'json',
-      success : function (json) {
-        div.jqoteapp('#template', json);
-        $report.openLog.widget(div, json);
-      },
-      error : function(xhr, status, index, anchor) {
-        console.log(xhr, status, index);
-      }
-    });
-    $report.tabs('add', '#'+id, event.data.log_id+' log');
-  };
-  $report.openLog.widget = function(div, json) {
-    function has_ident(json) {
-      return json[0].ident !== null || (json.length > 1 && has_ident(json.splice(1)));
-    }
-    var nodes  = $('code', div);
-    var widget = $('<div class="widget"/>').appendTo(div);
-    var align  = function() {
-      widget.animate({top:$(div).scrollTop()},{duration:100,queue:false});
-    };
-    $(div).scroll(align);
-    // show/hide timestamp
-    $('<input type="checkbox">').appendTo(widget).bind('change.time', function(event){$('time', div).toggle()}).wrap('<p>Show time</p>');
-    var ident =  $('<input type="checkbox">').appendTo(widget).bind('change.tag', function(event){$('ident', div).toggle()}).wrap('<p>Show ident</p>');
-    if (has_ident(json)) {
-      ident.trigger('click');
-    } else {
-      ident.prop('title', 'there are no given idents');
-    }
-    // filter by severity
-    var slider = $('<div class="slider"/>').appendTo(widget);
-    var lower  = $("<div/>").css({ position : 'absolute' , top : 10, left : 0 }).text($report.levels.severity(0)).hide();
-    var upper  = $("<div/>").css({ position : 'absolute' , top : 10, left : 0 }).text($report.levels.severity($report.levels._SIZE-1)).hide();
-    slider.slider({
-      range: true,
-      min: 0,
-      max: $report.levels._SIZE-1,
-      values: [ 0, $report.levels._SIZE-1 ]
-    }).bind('slide.example', function(event, ui) {
-      div.hide();
-      lower.text($report.levels.severity(ui.values[0]));
-      upper.text($report.levels.severity(ui.values[1]));
-      nodes.each(function(index){if(($(this).attr('level') >= ui.values[0]) && ($(this).attr('level') <= ui.values[1])){$(this).show()}else{$(this).hide()}})
-      div.show();
-    });
-    slider.find(".ui-slider-handle:first")
-      .append(lower)
-      .bind('mouseenter.example', function(event){lower.show()})
-      .bind('mouseleave.example', function(event){lower.hide()});
-    slider.find(".ui-slider-handle:last")
-      .append(upper)
-      .bind('mouseenter.example', function(event){upper.show()})
-      .bind('mouseleave.example', function(event){upper.hide()});
-    // message indexed by severity
-    function getBySeverity() {
-      function sorted(nodes) {
-        function children(nodes) {
-          return nodes.slice(0,11).map(
-            function(it, idx){
-              return {
-                "title"    : (idx>9)?'...':$report.levels.severity(parseInt($(it).attr('level'))),
-                "key"      : it.idx
-              };
-          });
-        };
-        return Object.keys(nodes).sort().map(
-          function(it) {
-            return {
-      	      "title"    : '(' + it.slice(1) + ') ' + $report.levels.severity(parseInt(it.slice(1))) + ' <s' + parseInt(it.slice(1))/10 + '><i>' + nodes[it].length + '</i></s>',
-              "key"      : nodes[it][0].idx,
-              "children" : children(nodes[it])
-           }}
-        );
-      };
-	return sorted(nodes.toArray().reduce(function(levels, node, idx) {
-        var level = 's'+$(node).attr('level');
-        node.idx = idx;
-        if (!levels.hasOwnProperty(level)) levels[level]=[];
-        levels[level].push(node);
-        return levels;
-      }, {}));
-    }
-
-    var msgIndex = $('<div/>').appendTo(widget);
-    msgIndex.dynatree({
-      children : [
-          {title : "Messages", isFolder : true, children : getBySeverity(nodes)},
-      ],
-      onActivate: function(node) {
-          div.animate({scrollTop : $(nodes[node.data.key]).offset().top - div.offset().top + div.scrollTop() - div.height()/2});
-      },
-      onRender : function(dtnode, nodeSpan) {
-        $('a', dtnode.li).hover(
-          function(){$(nodes[$.ui.dynatree.getNode(this).data.key]).addClass(   'example-highlight')},
-          function(){$(nodes[$.ui.dynatree.getNode(this).data.key]).removeClass('example-highlight')}
-        );
-        align();
-      }
-    });
-  };
 
 })($report);
 
