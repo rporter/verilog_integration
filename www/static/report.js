@@ -283,6 +283,14 @@ $report = function(){
           return false;
         });
     };
+    // opposite-ish of above
+    this.flatten = function flatten(json) {
+	return json.concat(json.reduce(function(p,c){return p.concat(flatten(c.children));}, Array()));
+    }
+
+    this.find = function (log_id) {
+      for (o in self.json) if (self.json[o].log.log_id == log_id) return self.json[o];
+    }
 
     this.add = function(tabs) {
       tabs.tabs('add', '#'+self.id, data.log_id+' hier');
@@ -293,37 +301,56 @@ $report = function(){
     };
 
     this.pane = function() {
-      function hier(json) {
-        return json.map(function(it){return {title : it.log.description + '(' + it.log.log_id + ')', isFolder : it.children.length, key : it.log.log_id, children : hier(it.children || [])}});
+      function hier(json, flat) {
+        flat = flat || false;
+          return json.map(function(it){return {title : it.log.description + '(' + it.log.log_id + ')', isFolder : it.children.length, key : it.log.log_id, children : flat?[]:hier(it.children || [], flat)}});
       }
       var tree = $('<div>').dynatree({
         children : [
-          {title : "ALL", isFolder : true, key : null, children : hier(self.json)},
+            {title : "ALL", isFolder : true, key : null, children : hier(self.json, true)},
           hier(self.tree)[0]
         ],
+        onExpand: function(flag, node) {
+          if (flag) {
+            self.table(node.data.key.log_id);
+	  }
+        },
         onActivate: function(node) {
-          self.table(node.data.key);
+          var create = node.data.children.length?$report.openRegr:$report.openLog;
+          // this will be a tab-within-tab
+          (new create({log_id : node.data.key, hier : [self.find(node.data.key),], anchor : anchor})).add(anchor);
         },
       });
       this.explorer.append(tree);
     }
 
+    this.init = function(data) {
+      self.json = data;
+      self.tree = self.build(null);
+      self.pane();
+    }
+
     this.div.appendTo(anchor);
     this.div.append(this.explorer, this.children);
-    $.ajax({
-      url : 'rgr/'+data.log_id,
-      dataType : 'json',
-      success : function(data) {
-        self.json = data;
-        self.tree = self.build(null);
-        self.pane();
-      },
-      error : function(xhr, status, index) {
-        console.log(xhr, status, index);
-      }
-    });
+    if (data.hasOwnProperty('hier')) {
+      self.tree = data.hier;
+      self.json = self.flatten(self.tree);
+      self.pane();
+    } else {
+      $.ajax({
+        url : 'rgr/'+data.log_id,
+        dataType : 'json',
+        success : function(data) {
+          self.json = data;
+          self.tree = self.build(null);
+          self.pane();
+        },
+        error : function(xhr, status, index) {
+          console.log(xhr, status, index);
+        }
+      });
+    }
   }
-
 
   $report.openRegr = function(data){
     var self = this;
