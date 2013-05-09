@@ -283,9 +283,9 @@ $report = function(){
           return false;
         });
     };
-    // opposite-ish of above
+
     this.flatten = function flatten(json) {
-	return json.concat(json.reduce(function(p,c){return p.concat(flatten(c.children));}, Array()));
+      return json.concat(json.reduce(function(p,c){return p.concat(flatten(c.children));}, Array()));
     }
 
     this.find = function (log_id) {
@@ -297,7 +297,7 @@ $report = function(){
     };
 
     this.table = function(log_id) {
-      this.children.html((new $report.testJSON(self.json, anchor)).render());
+      self.children.html((new $report.testJSON(self.flatten([self.find(log_id),]), anchor)).render());
     };
 
     this.pane = function() {
@@ -312,7 +312,7 @@ $report = function(){
         ],
         onExpand: function(flag, node) {
           if (flag) {
-            self.table(node.data.key.log_id);
+            self.table(node.data.key);
 	  }
         },
         onActivate: function(node) {
