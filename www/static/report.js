@@ -90,7 +90,7 @@ $report = function(){
           }
         ],
         "aaSorting": [[0, "desc"]],
-        "fnRowCallback": function(nRow, aData, iDisplayIndex) {
+        "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
           $(nRow).bind('click.example', {log_id : aData[0], children : aData[8], anchor : anchor},
             function(event) {
               var log;
