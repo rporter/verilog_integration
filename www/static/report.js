@@ -58,15 +58,16 @@ $report = function(){
     });     
   };
 
-  $report.testJSON = function(data){
+  $report.testJSON = function(data, anchor){
+    anchor = anchor || $report.tabs();
 
     var get = function(severity, attr) {
       var result = this.msgs.filter(function(a){return a.severity === severity})[0];
       if (attr === undefined) return result;
-    	if (result === undefined) return '';
+      if (result === undefined) return '';
       if (attr instanceof Function) {
         return attr(result);
-    	} else if (result.hasOwnProperty(attr)) {
+      } else if (result.hasOwnProperty(attr)) {
         return result[attr];
       }
       return '';
@@ -81,28 +82,28 @@ $report = function(){
         "aaData" : this.rows(),
         "aoColumns": this.cols(),
         "aoColumnDefs": [
-                {
-                    "aTargets":[this.cols().length-1], // last col
-                    "fnCreatedCell": function(nTd, sData, oData, iRow, iCol) {
-                        $(nTd).addClass(sData);
-                    },                   
-                }
+          {
+            "aTargets": [this.cols().length-1], // last col
+            "fnCreatedCell": function(nTd, sData, oData, iRow, iCol) {
+              $(nTd).addClass(sData);
+            },
+          }
         ],
         "aaSorting": [[0, "desc"]],
         "fnRowCallback": function(nRow, aData, iDisplayIndex) {
-            $(nRow).bind('click.example', {log_id : aData[0], children : aData[8], anchor : $report.report()},
-              function(event) {
-                var log;
-                if (event.data.children) {
-                  // this will be a tab-within-tab
-                  log = new $report.openRegr(event.data);
-                } else {
-                  // place report log in new tab
-                  log = new $report.openLog(event.data);
-                }
-                log.add($report.tabs());
+          $(nRow).bind('click.example', {log_id : aData[0], children : aData[8], anchor : anchor},
+            function(event) {
+              var log;
+              if (event.data.children) {
+                // this will be a tab-within-tab
+                log = new $report.openRegr(event.data);
+              } else {
+                // place report log in new tab
+                log = new $report.openLog(event.data);
               }
-            );
+              log.add(anchor);
+            }
+          );
         }
       });
       return container;
@@ -124,19 +125,18 @@ $report = function(){
     };
 
     this.rows = function() {
-        function popup(attr) {
-            return '<abbr title="'+attr.msg.replace('"', '&quot;')+'">'+attr.count+'</abbr>';
-	}
-	return data.map(function(log){
-            return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, log.log.children, log.status.status];
-	});
+      function popup(attr) {
+          return '<abbr title="'+attr.msg.replace('"', '&quot;')+'">'+attr.count+'</abbr>';
+      }
+      return data.map(function(log){
+        return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, log.log.children, log.status.status];
+      });
     };
 
     // attach methods to individual data		       
     for (log in data) {
       data[log].get = get;
     }
-    
   };
 
   $report.openLog = function(data, anchor) {
@@ -267,6 +267,8 @@ $report = function(){
     var self = this;
     this.id  = $report.tab_id();
     this.div = $('<div>', {id : this.id});
+    this.explorer = $('<div class="explorer">');
+    this.children = $('<div class="children">');
 
     // find all logs with given parent id and return with children
     // in extreme cases it will be more expedient to do this on the server
@@ -286,30 +288,28 @@ $report = function(){
       tabs.tabs('add', '#'+self.id, data.log_id+' hier');
     };
 
-    this.table = function(log_id, anchor) {
-      anchor.html((new $report.testJSON(self.json)).render());
+    this.table = function(log_id) {
+      this.children.html((new $report.testJSON(self.json, anchor)).render());
     };
 
     this.pane = function() {
       function hier(json) {
         return json.map(function(it){return {title : it.log.description + '(' + it.log.log_id + ')', isFolder : it.children.length, key : it.log.log_id, children : hier(it.children || [])}});
       }
-      var explorer = $('<div class="explorer">');
-      var children = $('<div class="children">');
       var tree = $('<div>').dynatree({
         children : [
-            {title : "ALL", isFolder : true, key : null, children : hier(self.json)},
-            hier(self.tree)[0]
+          {title : "ALL", isFolder : true, key : null, children : hier(self.json)},
+          hier(self.tree)[0]
         ],
         onActivate: function(node) {
-          self.table(node.data.key, children);
+          self.table(node.data.key);
         },
       });
-      explorer.append(tree);
-      this.div.append(explorer, children);
+      this.explorer.append(tree);
     }
 
     this.div.appendTo(anchor);
+    this.div.append(this.explorer, this.children);
     $.ajax({
       url : 'rgr/'+data.log_id,
       dataType : 'json',
@@ -341,7 +341,6 @@ $report = function(){
 
     this.log = new $report.openLog(data, this.tabs);
     this.log.add(this.tabs);
-
   }
 
 })($report);
