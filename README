@@ -6,6 +6,10 @@ to run vpi put/get tests
 
 % make -C test verilate SCRIPT=test_vpi
 
+to run all
+
+% test/regress
+
 to start server (defaults to localhost:8080)
 
 % www/report
