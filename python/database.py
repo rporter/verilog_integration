@@ -133,7 +133,8 @@ class msgs :
 class rgr(index) :
   order = 'parent ASC, log_id, msg_id, level ASC'
   
-  def result(self, log_id):
-    return index.result(self, 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) WHERE l0.log_id = %(log_id)s or l0.root = %(log_id)s group by l0.log_id' % locals(), self.limit())
+  def result(self, log_id, root=True):
+    relationship = 'root' if root else 'parent'
+    return index.result(self, 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.%(relationship)s) WHERE l0.log_id = %(log_id)s or l0.%(relationship)s = %(log_id)s group by l0.log_id' % locals(), self.limit())
 
 ################################################################################

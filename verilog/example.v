@@ -117,9 +117,9 @@ module arr (
 ); // arr
    
    parameter LENGTH = 1;
-   reg [LENGTH-1:0] sig0 /*verilator public_flat_rw*/;
-   reg [LENGTH-1:0] sig1 /*verilator public_flat_rw*/;
-   reg verbose /*verilator public_flat_rw*/;
+   reg [LENGTH-1:0] sig0 `EXM_VLTOR_PUBLIC_RW;
+   reg [LENGTH-1:0] sig1 `EXM_VLTOR_PUBLIC_RW;
+   reg verbose           `EXM_VLTOR_PUBLIC_RW;
 
    always @(posedge clk)
      begin
@@ -142,6 +142,9 @@ module duv (
        arr #(.LENGTH(i)) arr(.clk(duv_clk_ip));
      end
    endgenerate
+ 
+   reg [31:0] mem [0:1023] `EXM_VLTOR_PUBLIC_RW;
+   
 endmodule : duv
 
 module duv_grey_box (

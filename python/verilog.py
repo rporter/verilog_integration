@@ -199,6 +199,8 @@ class viter_port(viterate) :
   vpi_default = vpi.vpiPort
 class viter_reg(viterate) :
   vpi_default = vpi.vpiReg
+class viter_mem(viterate) :
+  vpi_default = vpi.vpiMemory
 class viter_mod(viterate) :
   vpi_default = vpi.vpiModule
 class viter_beg(viterate) :
@@ -338,6 +340,51 @@ class signal(vpiObject) :
 
 ################################################################################
 
+def memoize(obj):
+  'http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize'
+  import functools
+  cache = obj.cache = {}
+  
+  @functools.wraps(obj)
+  def memoizer(*args, **kwargs):
+    if args not in cache:
+      cache[args] = obj(*args, **kwargs)
+    return cache[args]
+  return memoizer
+
+class memory(vpiObject) :
+
+  def __init__(self, handle, rtn=signal.vpiVectorVal, val_type=None) :
+    vpiObject.__init__(self, handle)
+    pass
+
+  @memoize
+  def __getitem__(self, idx) :
+    'Will need to memoize?'
+    return signal(vpi.vpi_handle_by_index(self.handle, idx))
+
+  def __setitem__(self, idx, val) :
+    self[idx].set_value(val)
+
+  def __iter__(self) :
+    return self.iterate()
+
+  def iterate(self, lo=None, hi=None) :
+    lo = lo or self.lhs
+    hi = hi or self.rhs
+    for idx in range(lo, hi+1) :
+      yield self[idx] 
+
+  @lazyProperty
+  def lhs(self) :
+    return vpi.vpi_handle(vpi.vpiLeftRange, self.handle)
+  
+  @lazyProperty
+  def rhs(self) :
+    return vpi.vpi_handle(vpi.vpiRightRange, self.handle)
+
+################################################################################
+
 class scopeException(Exception) : pass
 class ReadOnlyException(Exception) : pass
 
@@ -355,6 +402,11 @@ class scope(vpiObject) :
       getattr(self._scope, attr).set_value(value)
 
   def __init__(self, _scope) :
+    def abstraction_fcty(handle) :
+      'Abstraction factory - return memory or signal on handle type'
+      if vpi.vpi_get(vpi.vpiType, handle) == vpi.vpiMemory :
+        return memory(handle)
+      return signal(handle)
     self._read_only = False
     self._signals   = dict()
     if isinstance(_scope, str) :
@@ -365,8 +417,8 @@ class scope(vpiObject) :
       handle = _scope
     vpiObject.__init__(self, handle)
     self.direct = scope.direct(self)
-    for viter in [viter_net, viter_reg, viter_int] :
-      for sig in map(signal, viter(self.handle)) :
+    for viter in [viter_net, viter_reg, viter_int, viter_mem] :
+      for sig in map(abstraction_fcty, viter(self.handle)) :
         setattr(self, sig.name, sig)
         self._signals[sig.name] = sig
     #for hier in map(scope, viter_scope(self.handle)) :
