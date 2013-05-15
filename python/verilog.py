@@ -367,21 +367,17 @@ class memory(vpiObject) :
     self[idx].set_value(val)
 
   def __iter__(self) :
-    return self.iterate()
-
-  def iterate(self, lo=None, hi=None) :
-    lo = lo or self.lhs
-    hi = hi or self.rhs
-    for idx in range(lo, hi+1) :
-      yield self[idx] 
+    for idx, handle in enumerate(viterate(self.handle, vpi.vpiMemoryWord)) :
+      #result = self.cache[idx] = signal(handle)
+      yield signal(handle)
 
   @lazyProperty
   def lhs(self) :
-    return vpi.vpi_handle(vpi.vpiLeftRange, self.handle)
+    return int(signal(vpi.vpi_handle(vpi.vpiLeftRange, self.handle)))
   
   @lazyProperty
   def rhs(self) :
-    return vpi.vpi_handle(vpi.vpiRightRange, self.handle)
+    return int(signal(vpi.vpi_handle(vpi.vpiRightRange, self.handle)))
 
 ################################################################################
 

@@ -15,7 +15,7 @@ class thistest(test.test) :
   def prologue(self) :
     print duv.mem
     duv.mem[0] = 69
-    print [r for r in duv.mem]
+    print [int(r) for r in duv.mem]
   def epilogue(self) :
     message.note('memory is %d' % int(duv.mem[0]))
 
