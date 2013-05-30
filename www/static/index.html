@@ -13,17 +13,6 @@
     <script type="text/javascript">
       $(document).ready(function() {
         $report.tabs({
-/*
-          beforeLoad : function (event, ui) {
-            var class = $report.testJSON;
-            if ($(ui.tab).hasClass('all')) {
-              class = $report.testSnglJSON;
-            }
-            ui.ajaxSettings.dataFilter = function(data) {
-              return (new class(data)).render();
-            });
-          },
-*/
           ajaxOptions : {
             cache      : false,
             dataType   : 'html', // it will be html in the end
@@ -32,26 +21,8 @@
               console.log(xhr, status, index);
             }
          },
-         tabTemplate: '<li><a href="#{href}">#{label}</a><span class="ui-icon ui-icon-refresh"></span><span class="ui-icon ui-icon-close"></span></li>',
-         load : function(tab, ui) { 
-           $report.hijax(ui.panel); 
-         } 
         });
-
-        var tabIndex = function(it) {
-          return $(it).parent('li').prevAll('li').length;
-        }
-
-        // close icon: removing the tab on click
-        $report.tabs().delegate("span.ui-icon-close", "click", function() {
-    	  $report.tabs("remove", tabIndex(this));
-          $report.tabs("refresh");
-        });
-
-        $report.tabs().delegate("span.ui-icon-refresh", "click", function() {
-    	  $report.tabs("load", tabIndex(this));
-        });
-
+        $report.formatTabs($report.tabs());
       });
     </script>
     <script type="text/html" id="template">
@@ -74,9 +45,9 @@
   <body>
     <div id="report">
       <ul>
-        <li><a href="index/all"><span>All Tests</span></a></li>
-        <li><a href="index/rgr"><span>Regressions</span></a></li>
-        <li><a href="index/sngl"><span>Singletons</span></a></li>
+        <li><a href="index/all"><span>All Tests</span></a><span class="ui-icon ui-icon-refresh"></span></li>
+        <li><a href="index/rgr"><span>Regressions</span></a><span class="ui-icon ui-icon-refresh"></span></li>
+        <li><a href="index/sngl"><span>Singletons</span></a><span class="ui-icon ui-icon-refresh"></span></li>
       </ul>
     </div>
   </body>

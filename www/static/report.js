@@ -45,17 +45,42 @@ $report = function(){
     }
   }();
 
-  $report.hijax = function(panel){ 
-    $('a', panel).click(function() { 
-      if (this.href == '') return true;
-       /**makes children 'a' on panel load via ajax, hence hijax*/ 
-       $(panel).load(this.href, null, function(){ 
-         /**recursively apply the hijax to newly loaded panels*/ 
-         hijax(panel);                   
-       }); 
-       /**prevents propagation of click to document*/ 
-       return false; 
-    });     
+  $report.formatTabs = function(tabs) {
+      console.log('formatTabs', tabs);
+    function hijax(panel) { 
+      $('a', panel).click(function() { 
+        if (this.href == '') return true;
+         /**makes children 'a' on panel load via ajax, hence hijax*/ 
+         $(panel).load(this.href, null, function(){ 
+           /**recursively apply the hijax to newly loaded panels*/ 
+           hijax(panel);                   
+         }); 
+         /**prevents propagation of click to document*/ 
+         return false; 
+      });     
+    };
+    function tabIndex(it) {
+      return $(it).parent('li').prevAll('li').length;
+    }
+    tabs.tabs({
+      load : function(tab, ui) { 
+        hijax(ui.panel); 
+      },
+      tabTemplate: '<li><a href="#{href}">#{label}</a><span class="ui-icon ui-icon-refresh"></span><span class="ui-icon ui-icon-close"></span></li>'
+    });
+    // close icon: removing the tab on click
+    tabs.tabs().delegate("> ul span.ui-icon-close", "click", function() {
+      tabs.tabs("remove", tabIndex(this));
+      if (tabs.tabs('length') === 0) {
+        // no tabs left; remove 
+        tabs.tabs('destroy');
+      } else {
+        tabs.tabs("refresh");
+      }
+    });
+    tabs.tabs().delegate("> ul span.ui-icon-refresh", "click", function() {
+      tabs.tabs("load", tabIndex(this));
+    });
   };
 
   $report.testJSON = function(data, anchor){
@@ -362,12 +387,14 @@ $report = function(){
 
     this.div.appendTo(data.anchor);
     this.tabs = this.div.tabs();
+    $report.formatTabs(this.tabs);
 
     this.hier = new $report.openHier(data, this.tabs);
     this.hier.add(this.tabs);
 
     this.log = new $report.openLog(data, this.tabs);
     this.log.add(this.tabs);
+    console.log(this.tabs);
   }
 
 })($report);

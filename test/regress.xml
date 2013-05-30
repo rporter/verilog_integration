@@ -15,6 +15,7 @@
     <test>example</test>
     <test>segv</test>
     <test>vpi</test>
+    <test>mem_init</test>
   </group>
   <group name='icarus'>
     <option ignore='1'>
@@ -31,6 +32,7 @@
     </group>
     <test>example</test>
     <test>segv</test>
+    <test>mem_init</test>
   </group>
 </regression>
 
