@@ -213,6 +213,12 @@ class vpiObject(object) :
     self.handle = handle
 
   @lazyProperty
+  def size(self) :
+    result = vpi.vpi_get(vpi.vpiSize, self.handle)
+    self.vpi_chk_error = vpiChkError()
+    return result
+
+  @lazyProperty
   def name(self) :
     result = vpi.vpi_get_str(vpi.vpiName, self.handle)
     self.vpi_chk_error = vpiChkError()
@@ -356,7 +362,6 @@ class memory(vpiObject) :
 
   def __init__(self, handle, rtn=signal.vpiVectorVal, val_type=None) :
     vpiObject.__init__(self, handle)
-    pass
 
   @memoize
   def __getitem__(self, idx) :
@@ -368,8 +373,9 @@ class memory(vpiObject) :
 
   def __iter__(self) :
     for idx, handle in enumerate(viterate(self.handle, vpi.vpiMemoryWord)) :
-      #result = self.cache[idx] = signal(handle)
       yield signal(handle)
+      #result = memoize.cache[idx] = signal(handle)
+      #yield result
 
   @lazyProperty
   def lhs(self) :

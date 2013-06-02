@@ -9,7 +9,9 @@ module sim_ctrl (
 
 `ifdef EXM_USE_DPI
   import "DPI-C" context task sim_ctrl_scope_t ();
+`ifdef verilator
   export "DPI-C"         task sim_ctrl_sig_t;
+`endif
   import "DPI-C" context task `EXM_PYTHON (input string filename);
 `endif
 
@@ -35,7 +37,7 @@ module sim_ctrl (
   `endif
        ~sim_ctrl_clk_r;
   
-  endtask // sim_ctrl_t
+  endtask : sim_ctrl_sig_t
 
   assign sim_ctrl_clk_op = sim_ctrl_clk_r;
   
@@ -102,6 +104,7 @@ module sim_ctrl (
   initial if ($test$plusargs("python") > 0) 
     begin : sim_ctrl_python_l
       reg [`std_char_sz_c*128-1:0] sim_ctrl_python_filename_r;
+//       string sim_ctrl_python_filename_r;
       if ($value$plusargs("python+%s", sim_ctrl_python_filename_r) == 0)
 	begin
           sim_ctrl_python_filename_r = "stdin";
@@ -123,8 +126,8 @@ module arr (
 
    always @(posedge clk)
      begin
-       if (sig0 != sig1) `EXM_ERROR("%m : %x != %x", sig0, sig1);
-       else if (verbose) `EXM_INFORMATION("%m : %x == %x", sig0, sig1);
+//       if (sig0 != sig1) `EXM_ERROR("%m : %x != %x", sig0, sig1);
+//       else if (verbose) `EXM_INFORMATION("%m : %x == %x", sig0, sig1);
      end
    
 endmodule : arr
@@ -144,7 +147,8 @@ module duv (
    endgenerate
  
    reg [31:0] mem [0:1023] `EXM_VLTOR_PUBLIC_RW;
-   
+   reg [31:0] mem_array [0:15] [0:3] [0:3] `EXM_VLTOR_PUBLIC_RW;
+
 endmodule : duv
 
 module duv_grey_box (

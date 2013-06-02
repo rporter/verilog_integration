@@ -5,9 +5,9 @@ PY_CFLAGS?=$(shell python-config --includes)
 
 ROOT?=$(shell dirname $$PWD)
 
-TOOL_ROOT?=/enalvo/ap
+TOOL_ROOT?=/opt/ap
 
-IVERILOG_ROOT=/opt/ap/iverilog/20130307
+IVERILOG_ROOT=$(TOOL_ROOT)/iverilog/20130307
 IBUILD=$(IVERILOG_ROOT)/bin/iverilog
 IRUN=$(IVERILOG_ROOT)/bin/vvp
 
