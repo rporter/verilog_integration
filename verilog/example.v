@@ -146,6 +146,7 @@ module duv (
      end
    endgenerate
  
+   reg single_bit `EXM_VLTOR_PUBLIC_RW;
    reg [31:0] mem [0:1023] `EXM_VLTOR_PUBLIC_RW;
    reg [31:0] mem_array [0:15] [0:3] [0:3] `EXM_VLTOR_PUBLIC_RW;
 

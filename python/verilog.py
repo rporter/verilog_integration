@@ -313,12 +313,9 @@ class signal(vpiObject) :
   def set_format(self, format) :
     if format == self.vpi_value.format : return
     self.vpi_value.format = format
-    message.debug('%(signal)s format set to %(fmt)d', signal=self.fullname, fmt=format)
     return self
   def set_type(self, val_type) :
     self.type = val_type
-    if self.type :
-      message.debug('%(signal)s type set to %(name)s', signal=self.fullname, name=val_type.name)
     return self
 
   def encode(self, value) :

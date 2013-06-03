@@ -23,7 +23,7 @@ class test(object) :
     message.terminate_cbs.add(self.name, 20, self.nop, self.nop)
     try :
       mdb.db.connection.set_default_db(db=self.default_db)
-      mdb.mdb(self.name, activity=activity, block=block)
+      self.mdb = mdb.mdb(self.name, activity=activity, block=block)
     except :
       message.note('Not using mdb because ' + str(sys.exc_info()))
 

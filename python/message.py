@@ -85,10 +85,10 @@ try :
     vpi.vpiInternal : internal
   }
   note.level = vpi.vpiNotice
-  level = vpi.vpiWarning
-  level = vpi.vpiError
-  level = vpi.vpiSystem
-  level = vpi.vpiInternal
+  warning.level = vpi.vpiWarning
+  error.level = vpi.vpiError
+  fatal.level = vpi.vpiSystem
+  internal.level = vpi.vpiInternal
 except ImportError :
   pass
 
