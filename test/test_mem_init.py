@@ -25,7 +25,7 @@ class thistest(test.test) :
     sum = reduce(lambda a,b : int(a)+int(b), duv.mem)
     message.note('end read, sum is %(sum)d', sum=sum)
   def epilogue(self) :
-    message.note('memory[0] is %d' % int(duv.mem[0]))
+    message.success('memory[0] is %d' % int(duv.mem[0]))
 
 ################################################################################
 
