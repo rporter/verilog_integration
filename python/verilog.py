@@ -370,9 +370,8 @@ class memory(vpiObject) :
 
   def __iter__(self) :
     for idx, handle in enumerate(viterate(self.handle, vpi.vpiMemoryWord)) :
-      yield signal(handle)
-      #result = memoize.cache[idx] = signal(handle)
-      #yield result
+      result = self.__getitem__.cache[(self, idx)] = signal(handle)
+      yield result
 
   @lazyProperty
   def lhs(self) :
