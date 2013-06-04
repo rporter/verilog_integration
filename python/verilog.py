@@ -213,22 +213,43 @@ class vpiObject(object) :
     self.handle = handle
 
   @lazyProperty
-  def size(self) :
-    result = vpi.vpi_get(vpi.vpiSize, self.handle)
-    self.vpi_chk_error = vpiChkError()
-    return result
-
-  @lazyProperty
   def name(self) :
     result = vpi.vpi_get_str(vpi.vpiName, self.handle)
     self.vpi_chk_error = vpiChkError()
     return result
-
   @lazyProperty
   def fullname(self) :
     result = vpi.vpi_get_str(vpi.vpiFullName, self.handle)
     self.vpi_chk_error = vpiChkError()
     return result
+
+  @lazyProperty
+  def scalar(self) :
+    return vpi.vpi_get(vpi.vpiScalar, self.handle)
+  @lazyProperty
+  def vector(self) :
+    return vpi.vpi_get(vpi.vpiVector, self.handle)
+  @lazyProperty
+  def size(self) :
+    result = vpi.vpi_get(vpi.vpiSize, self.handle)
+    self.vpi_chk_error = vpiChkError()
+    return result
+  @lazyProperty
+  def index(self) :
+    result = vpi.vpi_get(vpi.vpiIndex, self.handle)
+    self.vpi_chk_error = vpiChkError()
+    return result
+
+  @lazyProperty
+  def lhs(self) :
+    'fix memory leak'
+    handle = vpi.vpi_handle(vpi.vpiLeftRange, self.handle)
+    self.vpi_chk_error = vpiChkError(True)
+    return int(signal(handle))
+  @lazyProperty
+  def rhs(self) :
+    return int(signal(vpi.vpi_handle(vpi.vpiRightRange, self.handle)))
+
 
 ################################################################################
 
@@ -372,14 +393,6 @@ class memory(vpiObject) :
     for idx, handle in enumerate(viterate(self.handle, vpi.vpiMemoryWord)) :
       result = self.__getitem__.cache[(self, idx)] = signal(handle)
       yield result
-
-  @lazyProperty
-  def lhs(self) :
-    return int(signal(vpi.vpi_handle(vpi.vpiLeftRange, self.handle)))
-  
-  @lazyProperty
-  def rhs(self) :
-    return int(signal(vpi.vpi_handle(vpi.vpiRightRange, self.handle)))
 
 ################################################################################
 

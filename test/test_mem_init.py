@@ -20,13 +20,16 @@ class thistest(test.test) :
     duv.mem[69] = 666
     totin = 0
     message.note('begin initialize')
-    for idx, r in enumerate(duv.mem) :
-       r.set_value(verilog.vpiInt(idx))
-       totin += idx
-    message.note('end initialize at %(idx)d, sum is %(tot)d', idx=idx, tot=totin)
+    for r in duv.mem :
+       r.set_value(verilog.vpiInt(r.index))
+       totin += r.index
+    message.note('end initialize at %(idx)d, sum is %(tot)d', idx=r.index, tot=totin)
     message.note('begin read')
     totout = reduce(lambda a,b : int(a)+int(b), duv.mem)
     message.note('end read, sum is %(tot)d', tot=totout)
+    duv.mem[666] = 69
+    message.note('size of [%(lhs)d:%(rhs)d] is %(size)d', lhs=duv.mem.lhs, rhs=duv.mem.rhs, size=duv.mem.size)
+    message.note('size of mem[0] [%(lhs)d:%(rhs)d] is %(size)d', lhs=duv.mem[0].lhs, rhs=duv.mem[0].rhs, size=duv.mem[0].size)
   def epilogue(self) :
     message.success('memory[0] is %d' % int(duv.mem[0]))
 
