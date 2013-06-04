@@ -182,6 +182,8 @@ class viterate(object) :
   def __init__(self, handle, _type=None) :
     self.vpi_i = vpi.vpi_iterate(_type or self.vpi_default, handle)
     self.vpi_chk_error = vpiChkError()
+  def __del__(self) :
+    vpi.vpi_free_object(self.vpi_i)
   def __iter__(self):
     return self
   def next(self) :
@@ -211,6 +213,8 @@ class viter_beg(viterate) :
 class vpiObject(object) :
   def __init__(self, handle) :
     self.handle = handle
+  def __del__(self) :
+    vpi.vpi_free_object(self.handle)
 
   @lazyProperty
   def name(self) :
@@ -242,7 +246,6 @@ class vpiObject(object) :
 
   @lazyProperty
   def lhs(self) :
-    'fix memory leak'
     handle = vpi.vpi_handle(vpi.vpiLeftRange, self.handle)
     self.vpi_chk_error = vpiChkError(True)
     return int(signal(handle))
@@ -509,6 +512,9 @@ class callback(object) :
     message.debug('registered callback "%(name)s" for %(reason)s', reason=self.cb_type(), name=self.name)
     self.callbacks.append(self)
 
+  def __del__(self) :
+    self.remove()
+
   def __iadd__(self, other) :
     if callable(other) :
       self.funcs |= set((other,))
@@ -543,11 +549,9 @@ class callback(object) :
   def remove(self) :
     vpi.vpi_remove_cb(self.cb)
     self.vpi_chk_error = vpiChkError()
+    vpi.vpi_free_object(self.cb)
     self.callbacks.remove(self)
     message.note('callback "%(name)s" called %(cnt)d times, filtered %(filtered)d, exceptions raised %(excepted)d', cnt=self.cnt, filtered=self.filtered, excepted=self.excepted, name=self.name)
-
-  def __del__(self) :
-    self.remove()
 
   @staticmethod
   def remove_all() :
