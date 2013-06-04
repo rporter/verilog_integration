@@ -104,7 +104,6 @@ module sim_ctrl (
   initial if ($test$plusargs("python") > 0) 
     begin : sim_ctrl_python_l
       reg [`std_char_sz_c*128-1:0] sim_ctrl_python_filename_r;
-//       string sim_ctrl_python_filename_r;
       if ($value$plusargs("python+%s", sim_ctrl_python_filename_r) == 0)
 	begin
           sim_ctrl_python_filename_r = "stdin";
