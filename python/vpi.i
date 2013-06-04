@@ -185,6 +185,15 @@ XXTERN PLI_DLLESPEC void (*vlog_startup_routines[])() /*ADDED*/ = { 0 } /*END AD
 
 %extend s_cb_data {
 
+  /*
+   * We're going to use the user_data record to store a pointer to
+   * the python callback function in this instance.
+   * So we're going to make sure the object passed is actually executable.
+   * Note that the function can be a class method, so we can store extra
+   * state (that might have been pointed to by user_data) as class member
+   * variables.
+   */
+
   void script(PyObject *pyfunc){
     if (!PyCallable_Check(pyfunc)) {
       PyErr_SetString(PyExc_TypeError, "Need a callable object!");
