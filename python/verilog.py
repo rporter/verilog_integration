@@ -380,6 +380,10 @@ def memoize(obj):
   return memoizer
 
 class memory(vpiObject) :
+  '''
+  This only provides an abstraction for verilog memories (which have two dimensions)
+  and not wire or reg arrays (which have multiple dimensions).
+  '''
 
   def __init__(self, handle, rtn=signal.vpiVectorVal, val_type=None) :
     vpiObject.__init__(self, handle)
