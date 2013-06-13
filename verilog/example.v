@@ -149,6 +149,11 @@ module duv (
    reg [31:0] mem [0:1023] `EXM_VLTOR_PUBLIC_RW;
    reg [31:0] mem_array [0:15] [0:3] [0:3] `EXM_VLTOR_PUBLIC_RW;
 
+   `ifdef IVERILOG
+   // seems icarus optimizes the signals away if they're not used
+   wire dummy = single_bit || mem[0][0] || mem_array[0][0][0][0];
+   `endif
+
 endmodule : duv
 
 module duv_grey_box (

@@ -31,7 +31,7 @@ class thistest(test.test) :
     message.note('size of [%(lhs)d:%(rhs)d] is %(size)d', lhs=duv.mem.lhs, rhs=duv.mem.rhs, size=duv.mem.size)
     message.note('size of mem[0] [%(lhs)d:%(rhs)d] is %(size)d', lhs=duv.mem[0].lhs, rhs=duv.mem[0].rhs, size=duv.mem[0].size)
   def epilogue(self) :
-    message.success('memory[0] is %d' % int(duv.mem[0]))
+    self.success()
 
 ################################################################################
 

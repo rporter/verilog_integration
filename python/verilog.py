@@ -183,14 +183,17 @@ class viterate(object) :
     self.vpi_i = vpi.vpi_iterate(_type or self.vpi_default, handle)
     self.vpi_chk_error = vpiChkError()
   def __del__(self) :
-    vpi.vpi_free_object(self.vpi_i)
+    if self.vpi_i  :
+      # final iterate may have free'd object
+      vpi.vpi_free_object(self.vpi_i)
   def __iter__(self):
     return self
   def next(self) :
     if self.vpi_i :
-      v = vpi.vpi_scan(self.vpi_i)
-      if v :
-        return v
+      value = vpi.vpi_scan(self.vpi_i)
+      if value :
+        return value
+    self.vpi_i = None
     raise StopIteration
 
 class viter_int(viterate) :
@@ -240,9 +243,9 @@ class vpiObject(object) :
     return result
   @lazyProperty
   def index(self) :
-    result = vpi.vpi_get(vpi.vpiIndex, self.handle)
+    handle = vpi.vpi_handle(vpi.vpiIndex, self.handle)
     self.vpi_chk_error = vpiChkError()
-    return result
+    return int(signal(handle))
 
   @lazyProperty
   def lhs(self) :
@@ -251,7 +254,9 @@ class vpiObject(object) :
     return int(signal(handle))
   @lazyProperty
   def rhs(self) :
-    return int(signal(vpi.vpi_handle(vpi.vpiRightRange, self.handle)))
+    handle = vpi.vpi_handle(vpi.vpiRightRange, self.handle)
+    self.vpi_chk_error = vpiChkError(True)
+    return int(signal(handle))
 
 
 ################################################################################
@@ -400,6 +405,23 @@ class memory(vpiObject) :
     for idx, handle in enumerate(viterate(self.handle, vpi.vpiMemoryWord)) :
       result = self.__getitem__.cache[(self, idx)] = signal(handle)
       yield result
+
+  def iter(self) :
+    'other iteration implementation'
+    for idx in self.range() :
+      yield self[idx]
+
+  def range(self) :
+    i = self.lhs
+    while (1) :
+      yield i
+      if i == self.rhs :
+        raise StopIteration
+      i += self.direction
+
+  @lazyProperty
+  def direction(self):
+    return -1 if self.lhs > self.rhs else 1
 
 ################################################################################
 

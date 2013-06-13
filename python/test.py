@@ -15,6 +15,7 @@ class test(object) :
   block=None
   SUCCESS = message.ident('PYTN', 0, message.SUCCESS, 'test successful')
   FATAL   = message.ident('PYTN', 1, message.FATAL,   'something nasty happened')
+  START   = message.ident('PYTN', 2, message.NOTE,    'simulation starts using %(platform)s[%(version)s]' % {'platform':verilog.vpiInfo().product, 'version':verilog.vpiInfo().version})
   def __init__(self, name=None, activity=None, block=None, db=None) :
     self.epilogue_cb = epilogue(self.end_of_simulation)
     self.name = name or self.name
@@ -26,6 +27,8 @@ class test(object) :
       self.mdb = mdb.mdb(self.name, activity=activity, block=block)
     except :
       message.note('Not using mdb because ' + str(sys.exc_info()))
+
+    self.START()
 
     try :
       self.prologue()
@@ -65,6 +68,10 @@ class test(object) :
   def fatal(self) :
     'Default fatal epilogue'
     self.FATAL()
+
+  def success(self) :
+    'Generic success hook'
+    self.SUCCESS()
 
   def simulation_fatal(self) :
     'Wrapper for fatal epilogue'

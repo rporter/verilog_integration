@@ -17,7 +17,7 @@ iverilog : iverilog-build $(LIBEXM).vpl
 	$(IRUN) -m $(LIBEXM) example.iverilog $(SIM_ARGS)
 
 iverilog-build : build
-	$(IBUILD) -g2005-sv -I$(VERILOG) $(VERILOG)/example.v -o example.iverilog
+	$(IBUILD) -g2005-sv -D IVERILOG -I$(VERILOG) $(VERILOG)/example.v -o example.iverilog
 
 verilate : verilog
 	$(VERILOG)/example/examplex $(SIM_ARGS)
