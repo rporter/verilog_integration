@@ -39,8 +39,8 @@
    a.popup thead tr.source { text-transform: none; text-align : right }
    a.popup thead tr.source th:first-of-type { text-align : left }
    a.popup span p {
-margin : 0;
-}
+     margin : 0;
+   }
    a.popup span p.id {
      font-weight : bold;
      text-align : center;
@@ -49,9 +49,27 @@ margin : 0;
      font-weight : italic;
    }
 
+   p.show {
+     font-size : 12pt;
+     position : relative;
+     white-space : nowrap;
+   }
+   p.show span {
+     float : right;
+   }
+   ul.popup {
+     display:none;
+     position:absolute;
+     z-index:24;
+   }
+   ul.popup li span.uncheck {
+     display:none;
+   }
+
    time       { display : none }
+   time.rel   { width : 6em; }
    ident      { display : none }
-   div.widget { position : absolute; float : right ; right : 5px}
+   div.widget { position : absolute; float : right ; right : -5px}
    .example-highlight { background:#FF9 }
 
    div.explorer { width : 20% ; float : left  }

@@ -181,13 +181,51 @@ $report = function(){
       };
       $(this.div).scroll(align);
       // show/hide timestamp
-      $('<input type="checkbox">').appendTo(widget).bind('change.time', function(event){$('time', self.div).toggle()}).wrap('<p>Show time</p>');
-      var ident =  $('<input type="checkbox">').appendTo(widget).bind('change.tag', function(event){$('ident', self.div).toggle()}).wrap('<p>Show ident</p>');
+      var show = $('<p class="show">Show<span class="ui-icon ui-icon-carat-1-s"></span></p>').appendTo(widget);
+      var menu = $($('#menu').text()).appendTo(show).menu();
+      show.bind('mouseenter.example', function() {menu.show();});
+      menu.bind('mouseleave.example', function() {menu.hide();});
+
+      var time = $('#time', menu);
+      $('#hide', time).bind('click.example', function () {
+        if ($('#hide span.ui-icon-check', time).hasClass('uncheck')) {
+          $('span.ui-icon-check', time).addClass('uncheck');
+          $('#hide span.ui-icon-check', time).removeClass('uncheck');
+          $('time', self.div).hide();
+	}
+        menu.hide();
+      });
+      $('#rel', time).bind('click.example', function () {
+        if ($('#rel span.ui-icon-check', time).hasClass('uncheck')) {
+          $('span.ui-icon-check', time).addClass('uncheck');
+          $('#rel span.ui-icon-check', time).removeClass('uncheck');
+          $('time.abs', self.div).hide();
+          $('time.rel', self.div).show();
+ 	}
+        menu.hide();
+      });
+      $('#abs', time).bind('click.example', function () {
+        if ($('#abs span.ui-icon-check', time).hasClass('uncheck')) {
+          $('span.ui-icon-check', time).addClass('uncheck');
+          $('#abs span.ui-icon-check', time).removeClass('uncheck');
+          $('time.rel', self.div).hide();
+          $('time.abs', self.div).show();
+ 	}
+        menu.hide();
+      });
+
+      var ident = $('#ident', menu).bind('click.example', function () {
+        $('#ident span.ui-icon-check', menu).toggleClass('uncheck');
+        $('ident', self.div).toggle();
+        menu.hide();
+      });
       if (has_ident(self.json)) {
         ident.trigger('click');
       } else {
-        ident.prop('title', 'there are no given idents');
+        $('a', ident).prop('title', 'there are no given idents');
+        ident.addClass('ui-state-disabled');
       }
+
       // filter by severity
       var slider = $('<div class="slider"/>').appendTo(widget);
       var lower  = $("<div/>").css({ position : 'absolute' , top : 10, left : 0 }).text($report.levels.severity(0)).hide();
@@ -269,7 +307,7 @@ $report = function(){
       url : 'msgs/'+data.log_id,
       dataType : 'json',
       success : function(data) {
-        self.json = data;
+        self.json = data.map(function(msg){msg.seconds = msg.date - data[0].date; return msg});
         self.div.jqoteapp('#template', self.json);
         self.widget();
       },

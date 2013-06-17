@@ -32,7 +32,7 @@
         %>
       <![CDATA[
         <a class="popup">
-          <code class="<%= this.severity %>" level="<%= this.level %>">(<%= $report.openLog.justify(this.severity) %><time> <%= date.toLocaleTimeString() %></time><ident><%= $report.openLog.justify(id, 10) %></ident>) <%= $report.openLog.msg(this.msg) %></code>
+          <code class="<%= this.severity %>" level="<%= this.level %>">(<%= $report.openLog.justify(this.severity) %><time class="abs"> <%= date.toLocaleTimeString() %></time><time class="rel"> <%= $report.openLog.justify(parseInt(this.seconds).toString(), 6) %></time><ident><%= $report.openLog.justify(id, 10) %></ident>) <%= $report.openLog.msg(this.msg) %></code>
           <span title="x">
             <% if (this.ident) out += '<p class="id">'+id+'</p>'; %>
             <p class="date"><%= date.toGMTString() %></p>
@@ -42,13 +42,13 @@
       ]]>
     </script>
     <script type="text/html" id="menu">
-      <ul> 
-        <li><span></span><a href="#">View Ident</a></li>
-        <li><a href="#">View Time</a>
+      <ul class="popup">
+        <li id="ident"><a href="#"><span class="uncheck ui-icon ui-icon-check"></span>View Ident</a></li>
+        <li id="time"><a href="#">View Time</a>
           <ul>
-            <li><span></span><a href="#">Hide</a></li>
-            <li><span></span><a href="#">Relative</a></li>
-            <li><span></span><a href="#">Absolute</a></li>
+            <li id="hide"><a href="#"><span class="        ui-icon ui-icon-check"></span>Hide</a></li>
+            <li id="rel" ><a href="#"><span class="uncheck ui-icon ui-icon-check"></span>Relative</a></li>
+            <li id="abs" ><a href="#"><span class="uncheck ui-icon ui-icon-check"></span>Absolute</a></li>
           </ul>
         </li>
       </ul>
