@@ -69,7 +69,7 @@
    time       { display : none }
    time.rel   { width : 6em; }
    ident      { display : none }
-   div.widget { position : absolute; float : right ; right : -5px}
+   div.widget { position : absolute; float : right ; right : 15px}
    .example-highlight { background:#FF9 }
 
    div.explorer { width : 20% ; float : left  }
