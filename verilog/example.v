@@ -1,6 +1,6 @@
 // Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
-`include "std.h"
+`include "example.h"
 
 module sim_ctrl (
   output sim_ctrl_clk_op `EXM_VLTOR_PUBLIC_RD,
