@@ -14,7 +14,7 @@ import "DPI-C" context task  exm_fatal      (input string formatted /*verilator 
 `define EXM_ERROR       exm_error
 `define EXM_FATAL       exm_fatal
 `else
-`define EXM_INFORMATION $display
+`define EXM_INFORMATION $exm_information
 `define EXM_ERROR       $display
 `define EXM_FATAL       $display
 `endif
