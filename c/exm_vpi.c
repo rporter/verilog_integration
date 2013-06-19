@@ -1,6 +1,7 @@
 // Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
-#include "boost/format.hpp"
+#include <boost/format.hpp>
+#include <boost/regex.hpp>
 
 #include "vpi_user.h"
 #include "exm_python.h"
@@ -28,6 +29,10 @@ int exm_message(char* level, ...) {
   va_list args;
   boost::format tmpl;
 
+  // regexp stuff
+  static boost::regex fmt("%(-?[0-9\056]+)?([defms])", boost::regex::extended);
+  static boost::regex mod("%m", boost::regex::extended);
+
   href = vpi_handle(vpiSysTfCall, 0);
   arglist = vpi_iterate(vpiArgument, href);
   vpi_value.format = vpiStringVal;
@@ -39,8 +44,16 @@ int exm_message(char* level, ...) {
     goto emit;
   }
 
+  {
+
+  boost::cregex_iterator re_match(vpi_value.value.str, vpi_value.value.str+strlen(vpi_value.value.str), fmt);
+  boost::cregex_iterator end;
+
+  // now replace %m with %s for format
+  std::string fmt_str(boost::regex_replace(std::string(vpi_value.value.str), mod, "%s"));
+
   try {
-    tmpl.parse(vpi_value.value.str);
+    tmpl.parse(fmt_str);
   } catch (boost::io::bad_format_string& exc) {
     WARNING("Format raised %s", exc.what());
     result = "** Format Failed **";
@@ -48,21 +61,47 @@ int exm_message(char* level, ...) {
   }
 
   // now iterate over remaining arguments
-  while (vpi_scan(arglist)) {
+  while (arg=vpi_scan(arglist)) {
+  again:
+    char fident;
+    if (re_match != end) {
+      fident = *(*re_match)[(*re_match).size()-1].first;
+      re_match++;
+      switch (fident) {
+      case 'd' : vpi_value.format = vpiIntVal; break;
+      case 'm' : goto insert;
+      case 's' : vpi_value.format = vpiStringVal;
+      }
+    } else {
+      WARNING("Not enough");
+      goto emit;
+    }
     vpi_get_value(arg, &vpi_value);
+  insert:
     try {
-      tmpl % vpi_value.value.str;
+      switch (fident) {
+      case 'd' : tmpl % vpi_value.value.integer; break;
+      case 'm' : {
+        vpiHandle scope = vpi_handle(vpiScope, href);
+        tmpl % vpi_get_str(vpiFullName, scope); 
+        break;
+      }
+      case 's' : tmpl % vpi_value.value.str;
+      }
     } catch (boost::io::too_many_args& exc) {
       WARNING(exc.what());
       goto emit;
     }
+    if (fident == 'm') goto again;
   }
 
- try {
-   result = tmpl.str().c_str();
- } catch (boost::io::too_many_args& exc) {
-   WARNING(exc.what());
- }
+  try {
+    result = tmpl.str().c_str();
+  } catch (boost::io::too_few_args& exc) {
+    WARNING(exc.what());
+    result = "** Format Failed **";
+  }
+  }
 
  emit:
   va_start(args, level); // will be empty
