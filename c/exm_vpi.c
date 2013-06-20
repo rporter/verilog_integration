@@ -30,8 +30,8 @@ int exm_message(char* level, ...) {
   boost::format tmpl;
 
   // regexp stuff
-  static boost::regex fmt("%(-?[0-9\056]+)?([defms])", boost::regex::extended);
-  static boost::regex mod("%m", boost::regex::extended);
+  static boost::regex fmt("%(-?[0-9\056]+)?([defhimosx])", boost::regex::extended);
+  static boost::regex mod("%[bhm]", boost::regex::extended);
 
   href = vpi_handle(vpiSysTfCall, 0);
   arglist = vpi_iterate(vpiArgument, href);
@@ -61,38 +61,46 @@ int exm_message(char* level, ...) {
   }
 
   // now iterate over remaining arguments
-  while (arg=vpi_scan(arglist)) {
-  again:
-    char fident;
-    if (re_match != end) {
-      fident = *(*re_match)[(*re_match).size()-1].first;
-      re_match++;
-      switch (fident) {
+  for (; re_match != end; re_match++) {
+    char fident = *(*re_match)[(*re_match).size()-1].first;
+    switch (fident) {
+      case 'b' : vpi_value.format = vpiBinStrVal; break;
+      case 'h' : vpi_value.format = vpiHexStrVal; break;
+      case 'e' :
+      case 'f' : vpi_value.format = vpiRealVal; break;
+      case 'i' :
+      case 'o' :
+      case 'x' :
       case 'd' : vpi_value.format = vpiIntVal; break;
       case 'm' : goto insert;
-      case 's' : vpi_value.format = vpiStringVal;
-      }
-    } else {
-      WARNING("Not enough");
+      case 's' : vpi_value.format = vpiStringVal; break;
+    }
+    if (!(arg=vpi_scan(arglist))) {
+      WARNING("Not enough vpi arguments");
       goto emit;
     }
     vpi_get_value(arg, &vpi_value);
   insert:
     try {
       switch (fident) {
-      case 'd' : tmpl % vpi_value.value.integer; break;
-      case 'm' : {
-        vpiHandle scope = vpi_handle(vpiScope, href);
-        tmpl % vpi_get_str(vpiFullName, scope); 
-        break;
-      }
-      case 's' : tmpl % vpi_value.value.str;
+        case 'i' :
+        case 'x' :
+        case 'o' :
+        case 'd' : tmpl % vpi_value.value.integer; break;
+        case 'm' : {
+          vpiHandle scope = vpi_handle(vpiScope, href);
+          tmpl % vpi_get_str(vpiFullName, scope);
+          vpi_free_object(scope);
+          break;
+        }
+        case 'b' :
+        case 'h' :
+        case 's' : tmpl % vpi_value.value.str;
       }
     } catch (boost::io::too_many_args& exc) {
       WARNING(exc.what());
       goto emit;
     }
-    if (fident == 'm') goto again;
   }
 
   try {
