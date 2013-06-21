@@ -14,6 +14,10 @@
    span.PASS   { display : inline-block; background-color : #8f8 }
    span.FAIL   { display : inline-block; background-color : #f88 }
 
+   result pass  { background-color : #8f8 }
+   result fail  { background-color : #f88 }
+   result other { background-color : #88f }
+
    div.tab     { height: 600px; overflow: auto; position : relative }
    code        { display: block; white-space : pre }
    code.INT_DEBUG   { color : #888 }

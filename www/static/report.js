@@ -333,6 +333,39 @@ $report = function(){
     this.explorer = $('<div class="explorer">');
     this.children = $('<div class="children">');
 
+    // summary object
+    this.summary = function() {
+      var self = this;
+      this.pass = 0;
+      this.fail = 0;
+      this.other = 0;
+      this.total = function() {
+        return self.pass + self.fail + self.other;
+      }
+      this.add = function(other) {
+        if (other.status === 'PASS') {
+          self.pass += 1;
+        } else if (other.status === 'FAIL') {
+          self.fail += 1;
+        } else {
+          self.other += 1;
+        }
+      }
+      this.acc = function(other) {
+        self.pass += other.pass;
+        self.fail += other.fail;
+        self.other += other.other;
+      }
+      this.html = function() {
+        var result = '<result>';
+        if (self.pass) result += ' <pass>'+self.pass+'</pass>';
+        if (self.fail) result += ' <fail>'+self.fail+'</fail>';
+        if (self.other) result += ' <other>'+self.other+'</other>';
+        result += '</result>';
+        return result;
+      }
+    };
+
     // find all logs with given parent id and return with children
     // in extreme cases it will be more expedient to do this on the server
     // as output is grouped by parent
@@ -346,6 +379,17 @@ $report = function(){
           return false;
         });
     };
+    // depth first summary generation
+    this.summarise = function summarise(tree) {
+      tree.status.summary = new self.summary();
+      tree.children.forEach(function(node){
+        if (node.children) {
+          self.summarise(node);
+          tree.status.summary.acc(node.status.summary);
+        }
+        tree.status.summary.add(node.status);
+      });
+    }
 
     this.flatten = function flatten(json) {
       return json.concat(json.reduce(function(p,c){return p.concat(flatten(c.children));}, Array()));
@@ -366,8 +410,7 @@ $report = function(){
     this.pane = function() {
       function hier(json, flat) {
         flat = flat || false;
-        return json.map(function(it){return {title : '<div><span class="' + it.status.status + ' ' + ((it.status.status=='PASS')?'ui-icon-check':'ui-icon-close') + ' ui-icon"></span>&nbsp;' + it.log.description + '(' + it.log.log_id + ')</div>' , isFolder : it.children.length, key : it.log.log_id, children : flat?[]:hier(it.children || [], flat)}});
-        return json.map(function(it){return {title : '<div><span class="PASS ui-icon-check ui-icon"></span>&nbsp;' + it.log.description + '(' + it.log.log_id + ')</div>' , isFolder : it.children.length, key : it.log.log_id, children : flat?[]:hier(it.children || [], flat)}});
+        return json.map(function(it){return {title : '<div><span class="' + it.status.status + ' ' + ((it.status.status=='PASS')?'ui-icon-check':'ui-icon-close') + ' ui-icon"></span>&nbsp;' + it.log.description + '(' + it.log.log_id + ')' + ((it.status.summary===undefined)?'':it.status.summary.html()) + '</div>' , isFolder : it.children.length, key : it.log.log_id, children : flat?[]:hier(it.children || [], flat)}});
       }
       var tree = $('<div>').dynatree({
         children : [
@@ -388,12 +431,6 @@ $report = function(){
       this.explorer.append(tree);
     }
 
-    this.init = function(data) {
-      self.json = data;
-      self.tree = self.build(null);
-      self.pane();
-    }
-
     this.div.appendTo(anchor);
     this.div.append(this.explorer, this.children);
     if (data.hasOwnProperty('hier')) {
@@ -407,6 +444,7 @@ $report = function(){
         success : function(data) {
           self.json = data;
           self.tree = self.build(null);
+          self.summarise(self.tree[0]);
           self.pane();
         },
         error : function(xhr, status, index) {
