@@ -366,7 +366,8 @@ $report = function(){
     this.pane = function() {
       function hier(json, flat) {
         flat = flat || false;
-          return json.map(function(it){return {title : it.log.description + '(' + it.log.log_id + ')', isFolder : it.children.length, key : it.log.log_id, children : flat?[]:hier(it.children || [], flat)}});
+        return json.map(function(it){return {title : '<div><span class="' + it.status.status + ' ' + ((it.status.status=='PASS')?'ui-icon-check':'ui-icon-close') + ' ui-icon"></span>&nbsp;' + it.log.description + '(' + it.log.log_id + ')</div>' , isFolder : it.children.length, key : it.log.log_id, children : flat?[]:hier(it.children || [], flat)}});
+        return json.map(function(it){return {title : '<div><span class="PASS ui-icon-check ui-icon"></span>&nbsp;' + it.log.description + '(' + it.log.log_id + ')</div>' , isFolder : it.children.length, key : it.log.log_id, children : flat?[]:hier(it.children || [], flat)}});
       }
       var tree = $('<div>').dynatree({
         children : [
