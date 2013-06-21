@@ -179,7 +179,8 @@ class message {
   static callbacks<cb_terminate_fn>* get_cb_terminate();
   static msg_tags& get_tags();
 
-  void emit(unsigned int level, char* file, unsigned int line, char* text, va_list args);
+  void emit(unsigned int level, char* file, unsigned int line, char* text);
+  void emitf(unsigned int level, char* file, unsigned int line, char* text, va_list args);
   void by_id(char* ident, unsigned int subident, char* file, unsigned int line, ...);
   void by_msg(const msg_tags::const_iterator& msg, char* file, unsigned int line, ...);
 

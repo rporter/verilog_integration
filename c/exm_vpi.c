@@ -26,12 +26,11 @@ int exm_message(char* level, ...) {
   vpiHandle arg;
   s_vpi_value vpi_value;
   const char *result;
-  va_list args;
   boost::format tmpl;
 
   // regexp stuff
-  static boost::regex fmt("%(-?[0-9\056]+)?([defhimosx])", boost::regex::extended);
-  static boost::regex mod("%[bhm]", boost::regex::extended);
+  static boost::regex fmt("(?<!%)%(-?[0-9\056]+)?([bdefhimosx])", boost::regex::perl);
+  static boost::regex mod("(?<!%)%[bhm]", boost::regex::perl);
 
   href = vpi_handle(vpiSysTfCall, 0);
   arglist = vpi_iterate(vpiArgument, href);
@@ -46,7 +45,8 @@ int exm_message(char* level, ...) {
 
   {
 
-  boost::cregex_iterator re_match(vpi_value.value.str, vpi_value.value.str+strlen(vpi_value.value.str), fmt);
+  std::string cp(vpi_value.value.str);
+  boost::cregex_iterator re_match(cp.c_str(), cp.c_str()+strlen(vpi_value.value.str), fmt);
   boost::cregex_iterator end;
 
   // now replace %m with %s for format
@@ -61,7 +61,7 @@ int exm_message(char* level, ...) {
   }
 
   // now iterate over remaining arguments
-  for (; re_match != end; re_match++) {
+  for (; re_match != end; ++re_match) {
     char fident = *(*re_match)[(*re_match).size()-1].first;
     switch (fident) {
       case 'b' : vpi_value.format = vpiBinStrVal; break;
@@ -112,9 +112,7 @@ int exm_message(char* level, ...) {
   }
 
  emit:
-  va_start(args, level); // will be empty
-  example::message::instance()->emit((int)*level, vpi_get_str(vpiFile, href), vpi_get(vpiLineNo, href), (char*)result, args);
-  va_end(args);
+  example::message::instance()->emit((int)*level, vpi_get_str(vpiFile, href), vpi_get(vpiLineNo, href), (char*)result);
 
   return 0;
 }
@@ -132,10 +130,11 @@ static PLI_BYTE8 levels[] = {
 };
 
 static s_vpi_systf_data vpi_systf_data[] = {
-  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_python", (PLI_INT32(*)(PLI_BYTE8*))exm_python_vpi, 0, 0, 0},
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_python",      (PLI_INT32(*)(PLI_BYTE8*))exm_python_vpi, 0, 0, 0},
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_note",        (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::NOTE},
   {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_information", (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::INFORMATION},
-  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_error", (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::ERROR},
-  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_fatal", (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0,levels + example::FATAL },
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_error",       (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::ERROR},
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_fatal",       (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::FATAL },
   0
 };
 

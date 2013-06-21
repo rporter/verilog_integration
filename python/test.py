@@ -23,7 +23,7 @@ class test(object) :
     block = block or self.block
     message.terminate_cbs.add(self.name, 20, self.nop, self.nop)
     try :
-      mdb.db.connection.set_default_db(db=self.default_db)
+      mdb.db.connection.set_default_db(db=self.get_db())
       self.mdb = mdb.mdb(self.name, activity=activity, block=block)
     except :
       message.note('Not using mdb because ' + str(sys.exc_info()))
@@ -36,6 +36,9 @@ class test(object) :
       exc = sys.exc_info()
       message.error('prologue failed because ' + str(exc[0]))
       self.traceback(exc[2])
+
+  def get_db(self) :
+    return verilog.plusargs().db or self.default_db
 
   def end_of_simulation(self) :
     'Wrapper for epilogue'

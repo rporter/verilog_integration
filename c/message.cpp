@@ -211,17 +211,21 @@ msg_tags& message::get_tags() {
   return self->tags;
 }
 
-void message::emit(unsigned int level, char* file, unsigned int line, char* text, va_list args) {
+void message::emitf(unsigned int level, char* file, unsigned int line, char* text, va_list args) {
   char buff[8192];
   if (args) {
     vsnprintf(buff, sizeof(buff), text, args);
   }
+  emit(level, file, line, buff);
+}
+
+void message::emit(unsigned int level, char* file, unsigned int line, char* text) {
   char *severity = message::name(level);
   struct timespec when;
   clock_gettime(CLOCK_REALTIME, &when);
   callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
   for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
-    _cb->second(_cb->first, level, when, severity, NULL, file, line, args?buff:text);
+    _cb->second(_cb->first, level, when, severity, NULL, file, line, text);
   }
 }
 
@@ -276,7 +280,7 @@ message* message::self = 0;
   void message::level(char *file, unsigned int line, char* text, ...) { \
     va_list args; \
     va_start(args, text); \
-    emit(LEVEL, file, line, text, args); \
+    emitf(LEVEL, file, line, text, args); \
     va_end(args); \
   }
 
@@ -298,7 +302,7 @@ void message::success(char *file, unsigned int line, char* text, ...) {
     WARNING("due to previous errors following message SUCCESS masked");
     level = WARNING;
   }
-  emit(level, file, line, text, args);
+  emitf(level, file, line, text, args);
   va_end(args);
 }
 

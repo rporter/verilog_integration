@@ -125,8 +125,8 @@ module arr (
 
    always @(posedge clk)
      begin
-//       if (sig0 != sig1) `EXM_ERROR("%m : %x != %x", sig0, sig1);
-//       else if (verbose) `EXM_INFORMATION("%m : %x == %x", sig0, sig1);
+       if (sig0 != sig1) `EXM_ERROR("%m : %x != %x", sig0, sig1);
+       else if (verbose) `EXM_INFORMATION("%m : %x == %x", sig0, sig1);
      end
    
 endmodule : arr
@@ -153,6 +153,10 @@ module duv (
    // seems icarus optimizes the signals away if they're not used
    wire dummy = single_bit || mem[0][0] || mem_array[0][0][0][0];
    `endif
+
+   reg test_message `EXM_VLTOR_PUBLIC_RW = 0;
+   final
+     if (test_message) `EXM_NOTE("%b %m %h %m %%many", 64, 16'haa);
 
 endmodule : duv
 

@@ -10,7 +10,7 @@ void exm_message(example::levels level, const char* formatted) {
   };
 
   const char* scope_name = svGetNameFromScope(scope);
-  example::message::instance()->emit(level, (char*)filename, line, (char*)formatted, NULL);
+  example::message::instance()->emit(level, (char*)filename, line, (char*)formatted);
 }
 
 #define SEVERITY(level, LEVEL) \
@@ -21,6 +21,7 @@ void exm_message(example::levels level, const char* formatted) {
 SEVERITY(exm_int_debug,   INT_DEBUG)
 SEVERITY(exm_debug,       DEBUG)
 SEVERITY(exm_information, INFORMATION)
+SEVERITY(exm_note,        NOTE)
 SEVERITY(exm_error,       ERROR)
 SEVERITY(exm_fatal,       FATAL)
 

@@ -122,7 +122,7 @@
 
 %}
 
-%ignore example::message::emit(unsigned int level, char *file, unsigned int line, char* text, va_list args);
+%ignore example::message::emitf(unsigned int level, char *file, unsigned int line, char* text, va_list args);
 
 %include "std_string.i"
 %include "std_map.i"
