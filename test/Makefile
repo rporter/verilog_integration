@@ -11,9 +11,9 @@ LIBEXM=../c/libexm_vpi
 
 .PHONY : all build verilog iverilog verilate cver clean
 
-all : iverilog verilator verilate
+all : iverilog icarus verilator verilate
 
-iverilog : iverilog-build $(LIBEXM).vpl
+iverilog icarus : iverilog-build $(LIBEXM).vpl
 	$(IRUN) -m $(LIBEXM) example.iverilog $(SIM_ARGS)
 
 iverilog-build : build

@@ -22,7 +22,7 @@ libmessage.so : message.o
 exm_python.o : exm_python.c exm_python.h
 	$(CXX) $(CFLAGS) $(PY_CFLAGS) $(VL_CFLAGS) -DPYTHONDIR=\"$(ROOT)/python\" -c $< -o $@
 
-exm_%pi.o : exm_%pi.c
+exm_%pi.o : exm_%pi.c exm_dpi.h
 	$(CXX) $(CFLAGS) $(VL_CFLAGS) -c $< -o $@
 
 exm_verilated.o : exm_verilated.cpp

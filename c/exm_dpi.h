@@ -9,7 +9,8 @@ extern "C" {
   void exm_information(const char* formatted);
   void exm_note       (const char* formatted);
   void exm_warning    (const char* formatted);
+  void exm_success    (const char* formatted);
   void exm_error      (const char* formatted);
-  void exm_critical   (const char* formatted);
+  void exm_internal   (const char* formatted);
   void exm_fatal      (const char* formatted);
 }

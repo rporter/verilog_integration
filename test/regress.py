@@ -50,7 +50,7 @@ class regression :
   def enqueue(self, cmd) :
     'just execute here'
     message.debug('enqueue %(cmd)s', cmd=cmd)
-    result = subprocess.Popen(cmd.split(' '), env={'MDB': 'root='+str(m.get_root())+',parent='+str(m.log_id)}).wait()
+    result = subprocess.Popen(cmd.split(' '), env=dict(os.environ, MDB='root='+str(m.get_root())+',parent='+str(m.log_id))).wait()
     if result > 0 :
       message.warning('process %(cmd)s returned non zero %(result)d', cmd=cmd, result=result)
 

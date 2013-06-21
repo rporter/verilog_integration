@@ -22,7 +22,10 @@ SEVERITY(exm_int_debug,   INT_DEBUG)
 SEVERITY(exm_debug,       DEBUG)
 SEVERITY(exm_information, INFORMATION)
 SEVERITY(exm_note,        NOTE)
+SEVERITY(exm_success,     SUCCESS)
+SEVERITY(exm_warning,     WARNING)
 SEVERITY(exm_error,       ERROR)
+SEVERITY(exm_internal,    INTERNAL)
 SEVERITY(exm_fatal,       FATAL)
 
 #undef SEVERITY

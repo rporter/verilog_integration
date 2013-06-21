@@ -131,10 +131,13 @@ static PLI_BYTE8 levels[] = {
 
 static s_vpi_systf_data vpi_systf_data[] = {
   {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_python",      (PLI_INT32(*)(PLI_BYTE8*))exm_python_vpi, 0, 0, 0},
-  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_note",        (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::NOTE},
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_int_debug",   (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::INT_DEBUG},
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_debug",       (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::DEBUG},
   {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_information", (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::INFORMATION},
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_note",        (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::NOTE},
   {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_error",       (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::ERROR},
-  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_fatal",       (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::FATAL },
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_internal",    (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::INTERNAL},
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_fatal",       (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::FATAL},
   0
 };
 
