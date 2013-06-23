@@ -32,8 +32,8 @@ class message(object) :
 
   def formatted(self) :
     if self.args.get('formatted', False) :
-      return self.msg
-    return self.msg % self.args
+      return str(self.msg) # cast from possible unicode
+    return str(self.msg % self.args) # cast from possible unicode
 
   @classmethod
   def status(cls) :
