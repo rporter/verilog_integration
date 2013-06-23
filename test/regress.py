@@ -67,7 +67,7 @@ class regression :
     return self
 
   def summary(self) :
-    result = database.rgr().result(mdb_conn.log_id, False).summary()
+    result = database.rgr().result(mdb_conn.log_id, mdb_conn.is_root()).summary()
     if result.passes != result.total :
       msg = message.error
     else :

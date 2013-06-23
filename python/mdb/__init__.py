@@ -88,6 +88,8 @@ class _mdb(object) :
 
   def get_root(self) :
     return self.root or self.log_id
+  def is_root(self) :
+    return self.get_root() == self.log_id
 
   @classmethod
   def finalize_all(cls) :
