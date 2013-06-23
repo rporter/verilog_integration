@@ -65,13 +65,13 @@ class index :
     def compute_status(self) :
       'compute status'
       if self.first.isfail :
-        return dict(status='FAIL', reason='('+self.first.severity+') '+self.first.msg)
+        return mdb.accessor(status='FAIL', reason='('+self.first.severity+') '+self.first.msg)
       if self.SUCCESS :
         if self.SUCCESS.count == 1 :
-	  return dict(status='PASS', reason=self.SUCCESS.msg)
+	  return mdb.accessor(status='PASS', reason=self.SUCCESS.msg)
         else :
-          return dict(status='FAIL', reason='Too many SUCCESSes (%d)' % self.SUCCESS.count)
-      return dict(status='FAIL', reason='No SUCCESS')
+          return mdb.accessor(status='FAIL', reason='Too many SUCCESSes (%d)' % self.SUCCESS.count)
+      return mdb.accessor(status='FAIL', reason='No SUCCESS')
 
     @property
     def first(self) :
@@ -92,10 +92,25 @@ class index :
 
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+  class summary(list) :
+    def __init__(self, results) :
+      list.__init__(self, results)
+    def summary(self, include=False) :
+      tests = self if include else self[1:]
+      result = mdb.accessor(passes=0, fails=0, total=len(tests))
+      for r in tests :
+        if r.status.status == 'PASS' :
+          result.passes += 1
+        else :
+          result.fails += 1
+      return result
+
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
   order = 'log_id, msg_id, level ASC'
 
   def result(self, where, limit) :
-    return [self.log(log, msgs) for log, msgs in self.groupby(self.execute(where, limit), lambda x : x.log_id, self.keyfact, self.grpfact)]
+    return self.summary([self.log(log, msgs) for log, msgs in self.groupby(self.execute(where, limit), lambda x : x.log_id, self.keyfact, self.grpfact)])
 
   def where(self, variant) :
     if variant == 'sngl' :
@@ -113,11 +128,11 @@ class index :
   @staticmethod
   def keyfact(self) :
     'key factory for grouping'
-    return [dict(user=pwd.getpwuid(self.currvalue.uid).pw_name, **self.currvalue), self._grouper(self.tgtkey)]
+    return [mdb.accessor(user=pwd.getpwuid(self.currvalue.uid).pw_name, **self.currvalue), self._grouper(self.tgtkey)]
   @staticmethod
   def grpfact(self) :
     'group factory for grouping'
-    return dict(level=self.currvalue.level, severity=self.currvalue.severity, msg=self.currvalue.msg, count=self.currvalue.count)
+    return mdb.accessor(level=self.currvalue.level, severity=self.currvalue.severity, msg=self.currvalue.msg, count=self.currvalue.count)
 
 ################################################################################
 
@@ -135,6 +150,7 @@ class rgr(index) :
   
   def result(self, log_id, root=True):
     relationship = 'root' if root else 'parent'
+    # call result method of parent class
     return index.result(self, 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.%(relationship)s) WHERE l0.log_id = %(log_id)s or l0.%(relationship)s = %(log_id)s group by l0.log_id' % locals(), self.limit())
 
 ################################################################################

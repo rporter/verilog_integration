@@ -1,5 +1,6 @@
 # Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
+import database
 import libxml2
 import mdb
 import message
@@ -24,7 +25,7 @@ options, values = parser.parse_args()
 
 mdb.db.connection.set_default_db(db='../db/mdb.db', root=options.root)
 message.message.verbosity(options.verbosity)
-m=mdb.mdb('regress', activity='regression')
+mdb_conn=mdb.mdb('regress', activity='regression')
 
 ################################################################################
 
@@ -50,7 +51,7 @@ class regression :
   def enqueue(self, cmd) :
     'just execute here'
     message.debug('enqueue %(cmd)s', cmd=cmd)
-    result = subprocess.Popen(cmd.split(' '), env=dict(os.environ, MDB='root='+str(m.get_root())+',parent='+str(m.log_id))).wait()
+    result = subprocess.Popen(cmd.split(' '), env=dict(os.environ, MDB='root='+str(mdb_conn.get_root())+',parent='+str(mdb_conn.log_id))).wait()
     if result > 0 :
       message.warning('process %(cmd)s returned non zero %(result)d', cmd=cmd, result=result)
 
@@ -63,6 +64,16 @@ class regression :
 (//*[@nid="%(name)s"]/* | //test[text()="%(name)s"] | //*[@name="%(name)s"])
 [not(@ignore)]''' % locals()) :
           self.tree(node)
+    return self
+
+  def summary(self) :
+    result = database.rgr().result(mdb_conn.log_id, False).summary()
+    if result.passes != result.total :
+      msg = message.error
+    else :
+      msg = message.information
+    msg('%(total)d tests, %(passes)d pass, %(fails)d fail', **result)
+    return result
 
   def tree(self, node) :
     if node.name == 'test' :
@@ -73,7 +84,7 @@ class regression :
 ################################################################################
 
 suite=regression(options.xml)
-suite.run(options.subset)
+suite.run(options.subset).summary()
 message.success('end of tests')
 
 ################################################################################
