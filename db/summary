@@ -1,0 +1,8 @@
+#!/bin/bash
+# Copyright (c) 2013 Rich Porter - see LICENSE for further details
+
+root=`dirname $0`
+
+LD_LIBRARY_PATH=$root/../python:$LD_LIBRARY_PATH \
+PYTHONPATH=.:$root/../python:$PYTHONPATH \
+exec python $0.py --root=$root "$@"
