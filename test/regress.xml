@@ -16,6 +16,7 @@
     <test>segv</test>
     <test>vpi</test>
     <test>mem_init</test>
+    <test>mdb_fmt</test>
   </group>
   <group name='icarus'>
     <option ignore='1'>
@@ -33,6 +34,7 @@
     <test>example</test>
     <test>segv</test>
     <test>mem_init</test>
+    <test>mdb_fmt</test>
   </group>
 </regression>
 
