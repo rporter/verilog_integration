@@ -10,21 +10,14 @@ import sys
 
 ################################################################################
 
-def increase_verbosity(option, opt, value, parser) :
-  parser.values.verbosity -= 1
-
 parser = message.reportOptionParser()
 parser.add_option('-s', '--subset', default=None, help='Test subset', action='append')
-parser.add_option('-r', '--root', help='root directory')
-parser.add_option('', '--verbosity', help='set absolute verbosity', default=message.INFORMATION)
-parser.add_option('-v', '', help='increase verbosity', action='callback', callback=increase_verbosity)
 parser.add_option('-x', '--xml', help='set regression xml description', default='test/regress.xml')
 options, values = parser.parse_args()
 
 ################################################################################
 
 mdb.db.connection.set_default_db(db='../db/mdb.db', root=options.root)
-message.message.verbosity(options.verbosity)
 mdb_conn=mdb.mdb('regress', activity='regression')
 
 ################################################################################

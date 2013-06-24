@@ -42,6 +42,10 @@ class message(object) :
   @classmethod
   def verbosity(cls, verbosity=INFORMATION) :
     cls.instance.verbosity(verbosity)
+  @classmethod
+  def summary(cls, display=True) :
+    if display is False :
+      terminate_cbs.rm('summary')
 
 ################################################################################
 
@@ -149,6 +153,16 @@ import cStringIO
 from optparse import OptionParser
 
 class reportOptionParser(OptionParser):
+  def __init__(self, *args, **kwargs) :
+    OptionParser.__init__(self, *args, **kwargs)
+
+    def increase_verbosity(option, opt, value, parser) :
+      parser.values.verbosity -= 1
+    
+    self.add_option('', '--root', help='root directory')
+    self.add_option('', '--verbosity', help='set absolute verbosity', default=INFORMATION)
+    self.add_option('-v', '', help='increase verbosity', action='callback', callback=increase_verbosity)
+
   def exit(self, status=0, msg=None):
     if msg:
         fatal(msg.rstrip())
@@ -166,6 +180,12 @@ class reportOptionParser(OptionParser):
       warning(line.rstrip())
     chan.close()
     self.exit(2, "%s: error: %s\n" % (self.get_prog_name(), msg))
+  def parse_args(self, *args, **kwargs) :
+    # call super
+    result = OptionParser.parse_args(self, *args, **kwargs)
+    # set message verbosity
+    message.verbosity(result[0].verbosity)
+    return result
 
 ################################################################################
 

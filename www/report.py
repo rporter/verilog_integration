@@ -12,13 +12,8 @@ import time
 
 ################################################################################
 
-def increase_verbosity(option, opt, value, parser) :
-  parser.values.verbosity -= 1
-
 parser = message.reportOptionParser()
 parser.add_option('-p', '--port', default='8080', help='port to serve on')
-parser.add_option('-r', '--root', help='root directory for server')
-parser.add_option('-v', '', help='increase verbosity', action='callback', callback=increase_verbosity)
 options, values = parser.parse_args()
 
 ################################################################################
