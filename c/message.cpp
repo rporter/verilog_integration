@@ -4,7 +4,7 @@
 
 namespace example {
 
-void cb_account(const cb_id& id, unsigned int level, timespec& when, char* severity, const tag* tag, char *file, unsigned int line, char* text) {
+static void cb_account(const cb_id& id, unsigned int level, timespec& when, char* severity, const tag* tag, char *file, unsigned int line, char* text) {
   control* attr = message::get_ctrl(level);
   ++attr->count;
   if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
@@ -15,7 +15,7 @@ void cb_account(const cb_id& id, unsigned int level, timespec& when, char* sever
   }
 }
 
-void cb_emit_default(const cb_id& id, unsigned int level, timespec& when, char* severity, const tag* tag, char *file, unsigned int line, char* text) {
+static void cb_emit_default(const cb_id& id, unsigned int level, timespec& when, char* severity, const tag* tag, char *file, unsigned int line, char* text) {
   if (message::get_ctrl(level)->echo) {
     if (tag == NULL) {
       fprintf(stderr, "(%12s) %s\n",  severity, text);
@@ -26,8 +26,15 @@ void cb_emit_default(const cb_id& id, unsigned int level, timespec& when, char* 
   }
 }
 
-void cb_terminate_default(const cb_id& id) {
-  exit(1);
+static void cb_terminate_summary(const cb_id& id) {
+  for (int i=MAX_LEVEL;--i>=INT_DEBUG;) {
+    control* attr = message::get_ctrl(i);
+    INFORMATION("%12s : %d", message::name(i), attr[i].count);
+  }
+}
+
+static void cb_terminate_default(const cb_id& id) {
+  exit(message::instance()->status().flag == 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -119,6 +126,7 @@ const msg& msg_tags::get(const tag& id) {
 message::message() : terminating_cnt(0) {
   cb_emit.insert("account", 99, cb_account);
   cb_emit.insert("default", 0, cb_emit_default);
+  cb_terminate.insert("summary", 98, cb_terminate_summary);
   cb_terminate.insert("exit", 99, cb_terminate_default);
   for (int i=INT_DEBUG; i<MAX_LEVEL; i++) {
     attrs[i].echo = i>DEBUG;
@@ -134,9 +142,7 @@ message::message() : terminating_cnt(0) {
 }
 
 message::~message() {
-  for (int i=MAX_LEVEL;--i>=INT_DEBUG;) {
-    INFORMATION("%12s : %d", name(i), attrs[i].count);
-  }
+  terminate();
 }
 
 message* message::instance() {
