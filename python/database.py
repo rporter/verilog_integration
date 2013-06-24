@@ -93,18 +93,30 @@ class index :
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   class summary(list) :
+    class result(mdb.accessor) :
+      def __init__(self, total) :
+        mdb.accessor.__init__(self, passes=0, fails=0, total=total)
+      def summary(self) :
+        if self.passes != self.total :
+          msg = message.error
+        else :
+          msg = message.information
+        msg('%(total)d %(tests)s, %(passes)d pass, %(fails)d fail', tests='test' if self.total == 1 else 'tests', **self)
+    
     def __init__(self, results) :
       list.__init__(self, results)
     def summary(self, include=False) :
       tests = self if include else self[1:]
-      result = mdb.accessor(passes=0, fails=0, total=len(tests))
+      result = self.result(total=len(tests))
       for r in tests :
         if r.status.status == 'PASS' :
           result.passes += 1
         else :
           result.fails += 1
       return result
-
+    def listing(self, include=False, verbose=True) :
+      tests = self if include else self[1:]
+      for test in tests : pass
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   order = 'log_id, msg_id, level ASC'

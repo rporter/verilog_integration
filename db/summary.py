@@ -8,7 +8,7 @@ import os.path
 ################################################################################
 
 parser = message.reportOptionParser()
-parser.add_option('-r', '--regression', action='store_true', help='is regression')
+parser.add_option('-r', '--regression', action='store_true', default=False, help='is regression')
 options, values = parser.parse_args()
 
 ################################################################################
@@ -21,9 +21,5 @@ for log_id in map(int, values) :
   result = results.summary(True)
   for test in results :
     (message.warning if test.status.status != 'PASS' else message.note)("[%(log_id)d, %(status)s] %(reason)s", log_id=test.log.log_id, **test.status)
-  if result.passes != result.total :
-    msg = message.error
-  else :
-    msg = message.information
-  msg('%(total)d %(tests)s, %(passes)d pass, %(fails)d fail', tests='test' if result.total == 1 else 'tests', **result)
+  result.summary()
 

@@ -64,14 +64,11 @@ class regression :
     results = database.rgr().result(mdb_conn.log_id, is_root)
     result = results.summary()
     if result.passes != result.total :
-      msg = message.error
       if is_root or verbose :
         for test in results[1:] : # drop this
           if test.status.status is not 'PASS' :
             message.warning("[%(log_id)d, %(status)s] %(reason)s", log_id=test.log.log_id, **test.status)
-    else :
-      msg = message.information
-    msg('%(total)d tests, %(passes)d pass, %(fails)d fail', **result)
+    result.summary()
     return result
 
   def tree(self, node) :
