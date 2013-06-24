@@ -45,8 +45,7 @@ $report = function(){
     }
   }();
 
-  $report.formatTabs = function(tabs) {
-      console.log('formatTabs', tabs);
+  $report.formatTabs = function(tabs, onempty) {
     function hijax(panel) { 
       $('a', panel).click(function() { 
         if (this.href == '') return true;
@@ -74,6 +73,9 @@ $report = function(){
       if (tabs.tabs('length') === 0) {
         // no tabs left; remove 
         tabs.tabs('destroy');
+        if (onempty instanceof Function) {
+          onempty();
+        }
       } else {
         tabs.tabs("refresh");
       }
@@ -459,12 +461,17 @@ $report = function(){
     this.id  = $report.tab_id();
     this.div = $('<div>', {id : this.id}).append('<ul>');
     this.add = function(tabs) {
+      self.parent = tabs;
       tabs.tabs('add', '#'+self.id, data.log_id+' regr');
+    };
+    this.close = function() {
+      var index = $('li a[href="#'+self.id+'"]', self.parent).parent().index(); 
+      self.parent.tabs("remove", index);
     };
 
     this.div.appendTo(data.anchor);
     this.tabs = this.div.tabs();
-    $report.formatTabs(this.tabs);
+    $report.formatTabs(this.tabs, this.close);
 
     this.hier = new $report.openHier(data, this.tabs);
     this.hier.add(this.tabs);
