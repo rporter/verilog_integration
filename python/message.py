@@ -137,10 +137,13 @@ class callback(object) :
   def rm(self, name) :
     try :
       self.callbacks[name].finalize()
-    except AttributeError :
+    except KeyError, AttributeError :
       pass
     self.cb_map.rm_callback(name)
-    del self.callbacks[name]
+    try :
+      del self.callbacks[name]
+    except KeyError, AttributeError :
+      pass
 
 ################################################################################
 
