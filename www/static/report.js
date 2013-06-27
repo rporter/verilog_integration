@@ -59,13 +59,13 @@ $report = function(){
       });     
     };
     function tabIndex(it) {
-      return $(it).parent('li').prevAll('li').length;
+      return $(it).parents('li:first').prevAll('li').length;
     }
     tabs.tabs({
       load : function(tab, ui) { 
         hijax(ui.panel); 
       },
-      tabTemplate: '<li><a href="#{href}">#{label}</a><span class="ui-icon ui-icon-refresh"></span><span class="ui-icon ui-icon-close"></span></li>'
+      tabTemplate: '<li><a href="#{href}">#{label}</a><a href="#" class="icon"><span class="ui-icon ui-icon-close"></span><span class="ui-icon ui-icon-refresh"></span></a></li>'
     });
     // close icon: removing the tab on click
     tabs.tabs().delegate("> ul span.ui-icon-close", "click", function() {
