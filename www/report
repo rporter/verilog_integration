@@ -7,7 +7,14 @@ function urlget {
 
 root=`dirname $0`
 
-urlget $root/bottle.py https://raw.github.com/defnull/bottle/master/bottle.py
+urlget $root/bottle.py                 https://raw.github.com/defnull/bottle/master/bottle.py
+urlget $root/static/jquery.dynatree.js http://dynatree.googlecode.com/svn/trunk/src/jquery.dynatree.js
+urlget $root/static/ui.dynatree.css    http://dynatree.googlecode.com/svn/trunk/src/skin/ui.dynatree.css
+urlget $root/static/icons-rtl.gif      http://dynatree.googlecode.com/svn/trunk/src/skin/icons-rtl.gif  
+urlget $root/static/icons.gif          http://dynatree.googlecode.com/svn/trunk/src/skin/icons.gif      
+urlget $root/static/loading.gif        http://dynatree.googlecode.com/svn/trunk/src/skin/loading.gif    
+urlget $root/static/vline-rtl.gif      http://dynatree.googlecode.com/svn/trunk/src/skin/vline-rtl.gif  
+urlget $root/static/vline.gif          http://dynatree.googlecode.com/svn/trunk/src/skin/vline.gif      
 
 LD_LIBRARY_PATH=$root/../python:$LD_LIBRARY_PATH \
 PYTHONPATH=.:$root/../python:$PYTHONPATH \
