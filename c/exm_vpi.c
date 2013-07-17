@@ -87,6 +87,8 @@ int exm_message(char* level, ...) {
         case 'x' :
         case 'o' :
         case 'd' : tmpl % vpi_value.value.integer; break;
+        case 'e' :
+        case 'f' : tmpl % vpi_value.value.real; break;
         case 'm' : {
           vpiHandle scope = vpi_handle(vpiScope, href);
           tmpl % vpi_get_str(vpiFullName, scope);
