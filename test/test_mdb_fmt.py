@@ -24,6 +24,7 @@ class thistest(test.test) :
     self.rstCallback = rstCallback(self.simctrl.sim_ctrl_rst_op, self.assign)
   def assign(self) :
     duv.direct.test_message = 1
+    self.rstCallback.remove()
   def epilogue(self) :
     message.success('should be success')
   def fatal(self) :
