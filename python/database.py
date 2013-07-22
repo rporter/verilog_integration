@@ -90,6 +90,30 @@ class index :
           return "LIMIT %(finish)d" % self.__dict__
       return ""
 
+  class subquery(dict) :
+    def __init__(self, select, **kwargs) :
+      dict.__init__(self, select=select, **kwargs)
+    def __getattr__(self, attr) :
+      try :
+        return self[attr]
+      except KeyError :
+        return None
+    def __str__(self) :
+      order = 'ASC' if self.order == 'up' else 'DESC';
+      return ('SELECT ' + self.select + 
+              ((' WHERE ' + self.where)              if self.where  else '') +
+              ((' GROUP BY ' + ','.join(self.group)) if self.group  else '') +
+              ((' HAVING ' + self.having)            if self.having else '') +
+              ' ORDER BY log_id ' + order + ' ' + str(self.limit)) % self
+    def update(self, **kwargs) :
+      dict.update(self, **kwargs)
+      return self
+    def where_and(self, expr) :
+      if self.where :
+        self.where += ' AND ' + expr
+      else :
+        self.where = expr
+
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   class summary(list) :
@@ -117,24 +141,31 @@ class index :
     def listing(self, include=False, verbose=True) :
       tests = self if include else self[1:]
       for test in tests : pass
+
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   order = 'log_id, msg_id, level ASC'
 
-  def result(self, where, limit) :
-    return self.summary([self.log(log, msgs) for log, msgs in self.groupby(self.execute(where, limit), lambda x : x.log_id, self.keyfact, self.grpfact)])
+  def result(self, subquery) :
+    return self.summary([self.log(log, msgs) for log, msgs in self.groupby(self.execute(subquery), lambda x : x.log_id, self.keyfact, self.grpfact)])
 
-  def where(self, variant) :
+  def where(self, variant, limit, start, order='down') :
     if variant == 'sngl' :
-      return 'SELECT l0.*, null as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) where l1.log_id is null and l0.root is null'
+      result = self.subquery('l0.*, null as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root)', where='l1.log_id is null and l0.root is null')
     elif variant == 'rgr' :
-      return 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) group by l0.log_id having l1.log_id is not null'
+      result = self.subquery('l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'], having='l1.log_id is not null')
     else :
-      return 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root) group by l0.log_id'
+      result = self.subquery('l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'])
+    result.limit = self.limit(limit)
+    if start :
+      result.where_and('l0.log_id %c %d' % ('>' if order == 'up' else '<', start))
+    result.update(order=order)
+    return result
 
-  def execute(self, where, limit) :
+  def execute(self, subquery) :
     with mdb.db.connection().row_cursor() as db :
-      db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%s ORDER BY log_id DESC %s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER BY %s;' % (where, str(limit), self.order))
+      message.debug('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER BY %s;' % (str(subquery), self.order))
+      db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER BY %s;' % (str(subquery), self.order))
       return db.fetchall()
 
   @staticmethod
@@ -163,6 +194,6 @@ class rgr(index) :
   def result(self, log_id, root=True):
     relationship = 'root' if root else 'parent'
     # call result method of parent class
-    return index.result(self, 'SELECT l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.%(relationship)s) WHERE l0.log_id = %(log_id)s or l0.%(relationship)s = %(log_id)s group by l0.log_id' % locals(), self.limit())
+    return index.result(self, self.subquery('l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.%(relationship)s)', where='l0.log_id = %(log_id)s or l0.%(relationship)s = %(log_id)s', group=['l0.log_id'], limit=self.limit(), log_id=log_id, relationship=relationship))
 
 ################################################################################

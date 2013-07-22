@@ -82,3 +82,30 @@
 
    div.explorer { width : 20% ; float : left  }
    div.children { width : 80% ; float : right }
+
+   div.control {
+     background-color : #ccc;
+     width : 100%;
+     display     : inline-block;
+   }
+   div.control div.left {
+     display     : inline-block;
+     float       : left;
+     width       : 33%; 
+   }
+   div.control div.length {
+     display    : inline-block;
+     float      : left;
+     width      : 34%; 
+   }
+   div.control div.length div {
+     text-align : center;
+   }
+   div.control div.right {
+     display          : inline-block;
+     float            : right;
+   }
+   div.control div.navigation span {
+     height    : 1.1em;
+     display   : inline-block;
+   }

@@ -81,8 +81,8 @@ class index(serve_something, database.index) :
   CONTENTTYPE='application/json'
   encapsulate=False
 
-  def doit(self, variant, start=0, finish=20):
-    json.dump(self.result(self.where(variant), self.limit(finish, start)), self.page)
+  def doit(self, variant, limit=20, start=None, order='down'):
+    json.dump(self.result(self.where(variant, limit, start, order)), self.page)
 
 ################################################################################
 
@@ -104,7 +104,7 @@ class rgr(serve_something, database.rgr) :
 
 ################################################################################
 
-@bottle.get('/static/:filename#.*#')
+@bottle.get('/static/<filename:path>')
 def server_static(filename):
     return bottle.static_file(filename, root=static)
 
@@ -115,8 +115,12 @@ def index_html() :
 
 urls = (
   ('/index/:variant', index,),
-  ('/msgs/:log_id', msgs,),
-  ('/rgr/:log_id', rgr,),
+  ('/index/:variant/<limit:int>', index,),
+  ('/index/:variant/<limit:int>/<start:int>', index,),
+  ('/index/:variant/<limit:int>/<order:re:(up|down)>', index,),
+  ('/index/:variant/<limit:int>/<start:int>/<order:re:(up|down)>', index,),
+  ('/msgs/<log_id:int>', msgs,),
+  ('/rgr/<log_id:int>', rgr,),
 )
 
 for path, cls in urls:

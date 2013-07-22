@@ -85,8 +85,13 @@ $report = function(){
     });
   };
 
-  $report.testJSON = function(data, anchor){
+  $report.testJSON = function(url, data, anchor, order){
     anchor = anchor || $report.tabs();
+    var self = this;
+
+    this.url = url;
+    this.order = order || 'down';
+    this.view = 20;
 
     var get = function(severity, attr) {
       var result = this.msgs.filter(function(a){return a.severity === severity})[0];
@@ -100,12 +105,17 @@ $report = function(){
       return '';
     }
 
-    this.render = function() {
+    this.render = function(length, available) {
       var container = $('<div><table class="display"></table></div>');
+      self.container = container;
+      if (length !== undefined) {
+        self.view = length;
+      }
       $('table', container).dataTable({
         "bJQueryUI": true,
-        "bPaginate": false,
+        "bPaginate": self.url === undefined,
         "bFilter": false,
+        "bInfo": false,
         "aaData" : this.rows(),
         "aoColumns": this.cols(),
         "aoColumnDefs": [
@@ -117,6 +127,7 @@ $report = function(){
           }
         ],
         "aaSorting": [[0, "desc"]],
+        "iDisplayLength": available || length || self.view,
         "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
           $(nRow).bind('click.example', {log_id : aData[0], children : aData[8], anchor : anchor},
             function(event) {
@@ -133,6 +144,29 @@ $report = function(){
           );
         }
       });
+
+      if (self.url !== undefined) {
+        var control = $('<div class="ui-corner-all control"></div>').prependTo(container);
+        var lenctrl = $('<div class="length"><div>Fetch <select>'+
+   	    '<option value="20">20</option>'+
+   	    '<option value="50">50</option>'+
+   	    '<option value="100">100</option>'+
+   	    '</select> records</div></div>').appendTo(control);
+        $('option[value='+self.view+']', lenctrl).attr('selected', 1);
+        var navigation = $('<div class="navigation"></div>');
+        $('<span class="ui-icon ui-icon-seek-first"></span>').attr('title', 'first').appendTo(navigation);
+        $('<span class="ui-icon ui-icon-seek-prev"></span>').attr('title', 'previous').appendTo(navigation);
+        $('<span class="ui-icon ui-icon-seek-next"></span>').attr('title', 'next').appendTo(navigation);
+        $('<span class="ui-icon ui-icon-seek-end"></span>').attr('title', 'last').appendTo(navigation);
+        navigation.clone().addClass('left').prependTo(control);
+        navigation.clone().addClass('right').appendTo(control);
+        control.clone().appendTo(container);
+        $('select', container).bind('change.example', self.select);
+        $('span.ui-icon-seek-first', container).bind('click.example', self.first);
+        $('span.ui-icon-seek-prev',  container).bind('click.example', self.prev);
+        $('span.ui-icon-seek-next',  container).bind('click.example', self.next);
+        $('span.ui-icon-seek-end',   container).bind('click.example', self.end);
+      }
       return container;
     }
 
@@ -160,10 +194,70 @@ $report = function(){
       });
     };
 
+    this.update = function() {
+      var url = self.url + '/' + self.view;
+      if (self.id !== undefined) {
+        url += '/' + self.id;
+      }
+      if (self.order !== undefined) {
+        url += '/' + self.order;
+      }
+      $.ajax({
+        url : url,
+        dataType : 'json',
+        success : function(json) {
+          if (json.length) {
+            self.container.replaceWith((new $report.testJSON(self.url, json, anchor, self.order)).render(self.view, json.length));
+          } else {
+            alert('no more data');
+            self.id = undefined;
+          }
+        },
+        error : function(xhr, status, index) {
+          console.log(xhr, status, index);
+        }
+      });
+    }
+
+    this.select = function() {
+      var lenctrl = $(this).val();
+      if (lenctrl != self.view) {
+        self.id = data[data.length-1].log.log_id+1;
+        self.order = 'down';
+        self.view = lenctrl;
+        self.update();
+      }
+    }
+
+    this.first = function() {
+      self.id = undefined;
+      self.order = 'down';
+      self.update()
+    }
+
+    this.next = function() {
+      self.id = data[0].log.log_id;
+      self.order = 'down';
+      self.update()
+    }
+
+    this.prev = function() {
+      self.id = data[data.length-1].log.log_id;
+      self.order = 'up';
+      self.update()
+    }
+
+    this.end = function() {
+      self.id = undefined;
+      self.order = 'up';
+      self.update()
+    }
+
     // attach methods to individual data		       
     for (log in data) {
       data[log].get = get;
     }
+
   };
 
   $report.openLog = function(data, anchor) {
@@ -406,7 +500,7 @@ $report = function(){
     };
 
     this.table = function(log_id) {
-      self.children.html((new $report.testJSON(self.flatten([self.find(log_id),]), anchor)).render());
+      self.children.html((new $report.testJSON(undefined, self.flatten([self.find(log_id),]), anchor)).render());
     };
 
     this.pane = function() {

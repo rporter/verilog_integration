@@ -7,7 +7,7 @@
     <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.0/jquery-ui.js"></script>
     <link  href="static/ui.dynatree.css" rel="stylesheet" type="text/css"/>
     <script src="static/jquery.dynatree.js" type="text/javascript"></script>
-    <script src="https://raw.github.com/aefxx/jQote2/master/jquery.jqote2.js"></script>
+    <script src="static/jquery.jqote2.js"></script>
     <script src="static/jquery.dataTables.js"></script>
     <script type="text/javascript" src="static/report.js"></script>
     <script type="text/javascript">
@@ -16,7 +16,7 @@
           ajaxOptions : {
             cache      : false,
             dataType   : 'html', // it will be html in the end
-            dataFilter : function(data) {return (new $report.testJSON($.parseJSON(data))).render()},
+            dataFilter : function(data) {return (new $report.testJSON(this.url.split('?')[0], $.parseJSON(data))).render()},
             error : function(xhr, status, index, anchor) {
               console.log(xhr, status, index);
             }
