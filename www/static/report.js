@@ -350,10 +350,11 @@ $report = function(){
       function getBySeverity() {
         function sorted(nodes) {
           function children(nodes) {
-            return nodes.slice(0,11).map(
+            // place ellipsis in middle of list
+            return ((nodes.length > 11)?Array.prototype.concat(nodes.slice(0,6), nodes.slice(-5)):nodes).map(
               function(it, idx){
                 return {
-                  "title"    : (idx>9)?'...':$report.levels.severity(parseInt($(it).attr('level'))),
+                  "title"    : (idx==5 && nodes.length > 11)?'...':$report.levels.severity(parseInt($(it).attr('level'))),
                   "key"      : it.idx
                 };
             });
@@ -361,7 +362,7 @@ $report = function(){
           return Object.keys(nodes).sort().map(
             function(it) {
               return {
-        	      "title"    : '(' + it.slice(1) + ') ' + $report.levels.severity(parseInt(it.slice(1))) + ' <s' + parseInt(it.slice(1))/10 + '><i>' + nodes[it].length + '</i></s>',
+        	"title"    : '(' + it.slice(1) + ') ' + $report.levels.severity(parseInt(it.slice(1))) + ' <s' + parseInt(it.slice(1))/10 + '><i>' + nodes[it].length + '</i></s>',
                 "key"      : nodes[it][0].idx,
                 "children" : children(nodes[it])
              }}
