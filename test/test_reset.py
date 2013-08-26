@@ -28,13 +28,14 @@ class thistest(test.test) :
   
   def epilogue(self) :
     if self.rstCallback.cnt == 2:
-      message.success('Reset callbacks observed = %(cnt)d', cnt=self.rstCallback.cnt)
+      message.note('Reset callbacks observed = %(cnt)d', cnt=self.rstCallback.cnt)
+      self.success()
     else :
       message.error('Reset callbacks observed = %(cnt)d', cnt=self.rstCallback.cnt)
   
   def fatal(self) :
     'Should not be executed'
-    message.fatal('Should not be executed')
+    self.fatal()
 
 ################################################################################
 

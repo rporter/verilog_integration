@@ -11,7 +11,6 @@ message.control.ERROR.threshold = 100
 
 # use verilog callback on each clock
 class cbClk(verilog.callback) :
-  types = [verilog.vpiBinStr, verilog.vpiOctStr, verilog.vpiHexStr]
 
   class assign(object) :
     types = {
@@ -26,8 +25,12 @@ class cbClk(verilog.callback) :
 
     def get(self) :
       if not hasattr(self, 'bits') : return
+      # cross these choices
       sig0 = self.scope.sig0.get_value(self.choice())
       sig1 = self.scope.sig1.get_value(self.choice())
+      self.check(sig0, sig1)
+
+    def check(self, sig0, sig1) :
       if long(sig0) != long(sig1) :
         message.error("sig0(%x, %s) != sig1(%x, %s) when value(%x)" % (long(sig0), repr(sig0), long(sig1), repr(sig1), self.bits))
       if long(sig0) != self.val :
@@ -62,12 +65,11 @@ class cbClk(verilog.callback) :
 
   def __init__(self, obj, simctrl, array) :
     verilog.callback.__init__(self, name='clock callback', obj=obj, reason=verilog.callback.cbValueChange, func=self.execute)
-    self.blks = [self.assign(*l) for l in array.iteritems()]
+    self.blks = [self.fcty(*l) for l in array.iteritems()]
     self.simctrl = simctrl
     self.count = 0
 
   def execute(self) :
-    if int(self.obj) : return # ignore rising edge
     for blk in self.blks :
       if self.count & 1 :
         blk.get()
@@ -78,19 +80,26 @@ class cbClk(verilog.callback) :
       # stop
       self.simctrl.direct.sim_ctrl_finish_r = 1
 
+  def cb_filter(self) :
+    # ignore rising edge
+    return not int(self.obj)
+
+  def fcty(self, *args) :
+    'object factory'
+    return self.assign(*args)
+
 ################################################################################
 
-class thistest(test.test) :
+class test_vpi(test.test) :
   name='test vpi'
+  MAX_INSTS=255
   def prologue(self) :
     # initialize random seed with deterministic value
-    random.seed(1)
+    seed = verilog.plusargs().get('seed', 1)
+    random.seed(seed)
     
-    def root() :
-      return 'example'
-    
-    simctrl = verilog.scope(root() + '.simctrl_0_u')
-    arr = dict([(i, verilog.scope(root() + '.duv_0_u.arr[%d].arr' % i)) for i in range(1,255)])
+    simctrl = verilog.scope('example.simctrl_0_u')
+    arr = dict([(i, verilog.scope('example.duv_0_u.arr[%d].arr' % i)) for i in range(1,self.MAX_INSTS)])
     
     # up timeout beyond test time
     simctrl.direct.sim_ctrl_timeout_i = 200
@@ -101,11 +110,16 @@ class thistest(test.test) :
       scope.direct.verbose = 0 # display values
     
     # register call back
-    cbClk0 = cbClk(simctrl.sim_ctrl_clk_op.set_type(verilog.vpiInt), simctrl, arr)
+    cbClk0 = self.cb_fcty(simctrl.sim_ctrl_clk_op.set_type(verilog.vpiInt), simctrl, arr)
 
   def epilogue(self) :
-    message.success('End of Simulation')
+    self.success()
+
+  def cb_fcty(self, *args) :
+    'object factory'
+    return cbClk(*args)
 
 ################################################################################
 
-testing = thistest()
+if __name__ == '__main__' :
+  testing = test_vpi()

@@ -3,8 +3,8 @@
 `include "example.h"
 
 module sim_ctrl (
-  output sim_ctrl_clk_op `EXM_VLTOR_PUBLIC_RD,
-  output sim_ctrl_rst_op `EXM_VLTOR_PUBLIC_RD
+  output reg sim_ctrl_clk_op `EXM_VLTOR_PUBLIC_RW,
+  output     sim_ctrl_rst_op `EXM_VLTOR_PUBLIC_RW
 ); // sim_ctrl
 
 `ifdef EXM_USE_DPI
@@ -25,25 +25,21 @@ module sim_ctrl (
    * 
    */
   
-  reg sim_ctrl_clk_r;
+   task sim_ctrl_sig_t;
   
-  task sim_ctrl_sig_t;
-  
-     sim_ctrl_clk_r
+     sim_ctrl_clk_op
   `ifdef verilator
       =
   `else
       <=
   `endif
-       ~sim_ctrl_clk_r;
+       ~sim_ctrl_clk_op;
   
   endtask : sim_ctrl_sig_t
 
-  assign sim_ctrl_clk_op = sim_ctrl_clk_r;
-  
   initial
     begin
-       sim_ctrl_clk_r = `false;
+       sim_ctrl_clk_op = `false;
 `ifdef verilator
        // driven externally via sim_ctrl_sig_t task
        sim_ctrl_scope_t; // register this scope

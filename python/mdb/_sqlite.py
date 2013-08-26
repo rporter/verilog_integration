@@ -29,7 +29,6 @@ class connection(object) :
       return self.db
 
     def __exit__(self, type, value, traceback): 
-      if traceback : print traceback
       self.connection.commit()
       self.db.close()      
 
@@ -57,7 +56,8 @@ class connection(object) :
     cls.default_db = os.path.join(args.get('root',''), args['db'])
 
 class mixin(object) :
-  def cursor(self) :
+  @classmethod
+  def cursor(cls) :
     return connection().cursor()
 
   def flush(self) :

@@ -14,7 +14,7 @@ class thistest(test.test) :
     message.note('a note')
   def epilogue(self) :
     'Should not be executed'
-    message.success('Should not be executed')
+    self.success()
 
 ################################################################################
 

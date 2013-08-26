@@ -16,7 +16,7 @@ class thistest(test.test) :
     os.kill(os.getpid(), signal.SIGSEGV)
     
   def epilogue(self) :
-    message.success('should not be seen')
+    self.success()
 
 ################################################################################
 

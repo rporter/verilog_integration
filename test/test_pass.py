@@ -14,10 +14,10 @@ class thistest(test.test) :
     message.warning('a warning %(c)d', c=666)
     message.note('a note')
   def epilogue(self) :
-    message.success('should be success')
+    self.success()
   def fatal(self) :
     'Should not be executed'
-    message.fatal('Should not be executed')
+    self.fatal()
 
 ################################################################################
 

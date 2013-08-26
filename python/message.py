@@ -65,10 +65,14 @@ class ident(message) :
   'thin wrapper around ident class which is declared in swig exm_msg.i'
   def __init__(self, ident, subident, level, msg) :
     self.msg_id = exm_msg.ident(ident, subident, level, msg)
+    self.text   = msg
   def __call__(self, **args) :
     # default to scope above
     file, line = inspect.stack()[1][1:3]
-    self.msg_id(args.setdefault('file', file), args.setdefault('line', line))
+    try :
+      self.msg_id(self.text % args, args.setdefault('file', file), args.setdefault('line', line))
+    except :
+      self.msg_id(args.setdefault('file', file), args.setdefault('line', line))
 
 class by_id(message) :
   def __init__(self, ident, subident, **args) :
@@ -127,7 +131,9 @@ class callback(object) :
     for name, cb in self.callbacks.items() :
       int_debug('deleting callback ' + name)
       self.rm(name)
+    int_debug('all callbacks deleted')
   def add(self, name, pri=0, msg_fn=None, fin_fn=None) :
+    int_debug('adding callback ' + name)
     try :
       self.cb_map.add_callback(name, pri, msg_fn)
     except TypeError as error :
@@ -138,12 +144,12 @@ class callback(object) :
     try :
       self.callbacks[name].finalize()
     except KeyError, AttributeError :
-      pass
+      message.debug('callback finalize %(name)s raised exception %(exc)s', name=name, exc=sys.exc_info[0])
     self.cb_map.rm_callback(name)
     try :
       del self.callbacks[name]
-    except KeyError, AttributeError :
-      pass
+    except KeyError :
+      message.internal('callback %(name)s not in callback list', name=name)
 
 ################################################################################
 

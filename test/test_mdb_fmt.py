@@ -26,10 +26,10 @@ class thistest(test.test) :
     duv.direct.test_message = 1
     self.rstCallback.remove()
   def epilogue(self) :
-    message.success('should be success')
+    self.success()
   def fatal(self) :
     'Should not be executed'
-    message.fatal('Should not be executed')
+    self.fatal()
 
 ################################################################################
 

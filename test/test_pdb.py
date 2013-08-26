@@ -13,8 +13,7 @@ class thistest(test.test) :
     message.note('a note')
     self.pdb()
   def epilogue(self) :
-    message.success('should be success')
-    #self.pdb()
+    self.success()
 
 ################################################################################
 

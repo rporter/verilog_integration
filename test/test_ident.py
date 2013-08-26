@@ -18,7 +18,7 @@ class thistest(test.test) :
     message.note('a note')
     pytn.test()
   def epilogue(self) :
-    self.SUCCESS()
+    self.success()
 
 ################################################################################
 

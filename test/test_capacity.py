@@ -18,7 +18,7 @@ class thistest(test.test) :
     for idx, inst in enumerate(instances) :
       message.information('%(idx)d is %(val)d', idx=idx, val=int(inst))
   def epilogue(self) :
-    message.success('should be success')
+    self.success()
   def fatal(self) :
     'Should not be executed'
     message.fatal('Should not be executed')

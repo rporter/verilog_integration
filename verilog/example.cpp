@@ -50,12 +50,12 @@ int main(int argc, char **argv, char **env) {
       // Toggle clock
       svSetScope(sim_ctrl_0_u);
       sim_ctrl_sig_t();
-
-    }
-
+      //main_time = example->example__DOT__simctrl_0_u__DOT__sim_ctrl_cycles_i;
+      main_time++;
 #if VM_TRACE
-    if (tfp) tfp->dump (main_time);	// Create waveform trace for this timestamp
+      if (tfp) tfp->dump (main_time);	// Create waveform trace for this timestamp
 #endif
+    }
 
     example->final();
     VerilatedVpi::callCbs(cbEndOfSimulation);

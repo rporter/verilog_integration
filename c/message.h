@@ -10,7 +10,7 @@ namespace example {
 ////////////////////////////////////////////////////////////////////////////////
 
 enum levels {
-  INT_DEBUG,
+  INT_DEBUG = 0,
   DEBUG,
   INFORMATION,
   NOTE,
@@ -42,12 +42,13 @@ protected :
   map_t* map;
 
   iter_t find(std::string name) {
-    for (iter_t _cb = map->begin(); _cb != map->end(); _cb++) {
+    map_t* _map = get_map();
+    for (iter_t _cb = _map->begin(); _cb != _map->end(); _cb++) {
       if (_cb->first.name == name) {
         return _cb;
       }
     }
-    return map->end();
+    return _map->end();
   }
 public :
   callbacks() : map(NULL) {};
@@ -58,6 +59,14 @@ public :
     }
     return map;
   }
+  void dprint() {
+    // debug listing
+    map_t* _map = get_map();
+    for (iter_t _cb = _map->begin(); _cb != _map->end(); _cb++) {
+      printf("'%s' ", _cb->first.name.c_str());
+    }
+    printf("\n");
+  };
   bool insert(std::string name, int priority, wrap_t fn) {
     cb_id id = {name, priority};
     return get_map()->insert(pair_t(id, fn)).second;
@@ -139,6 +148,8 @@ struct control {
   bool echo;
   int  threshold;
   int  count;
+  int  increment();
+  int  toomany();
 };
 
 struct status_result {
@@ -150,7 +161,6 @@ typedef void cb_emit_fn(const cb_id&, unsigned int, timespec&, char*, const tag*
 typedef void cb_terminate_fn(const cb_id&);
 
 class message {
- public :
  protected :
   static message* self;
   callbacks<cb_emit_fn> cb_emit;
@@ -159,6 +169,8 @@ class message {
 
   int terminating_cnt;
   control attrs[MAX_LEVEL];
+
+  unsigned int filter(unsigned int level);
 
  public :
   message();
@@ -183,6 +195,7 @@ class message {
   void emitf(unsigned int level, char* file, unsigned int line, char* text, va_list args);
   void by_id(char* ident, unsigned int subident, char* file, unsigned int line, ...);
   void by_msg(const msg_tags::const_iterator& msg, char* file, unsigned int line, ...);
+  void by_msg(const msg_tags::const_iterator& msg, char* formatted, char* file, unsigned int line, ...);
 
   int  errors();
   struct status_result status();

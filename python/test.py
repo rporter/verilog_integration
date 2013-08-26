@@ -1,5 +1,6 @@
 # Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
+import coverage
 import mdb
 import message
 import sys
@@ -14,14 +15,15 @@ class test(object) :
   activity=None
   block=None
   SUCCESS = message.ident('PYTN', 0, message.SUCCESS, 'test successful')
-  FATAL   = message.ident('PYTN', 1, message.FATAL,   'something nasty happened')
+  FATAL   = message.ident('PYTN', 1, message.FATAL,   'test did not terminate correctly')
   START   = message.ident('PYTN', 2, message.NOTE,    'simulation starts using %(platform)s[%(version)s]' % {'platform':verilog.vpiInfo().product, 'version':verilog.vpiInfo().version})
   def __init__(self, name=None, activity=None, block=None, db=None) :
     self.epilogue_cb = epilogue(self.end_of_simulation)
     self.name = name or self.name
+    self.is_success = False
     activity = activity or self.activity
     block = block or self.block
-    message.terminate_cbs.add(self.name, 20, self.nop, self.nop)
+    message.terminate_cbs.add(self.name, 20, self.callback, self.check_success)
     try :
       mdb.db.connection.set_default_db(db=self.get_db())
       self.mdb = mdb.mdb(self.name, activity=activity, block=block)
@@ -36,6 +38,9 @@ class test(object) :
       exc = sys.exc_info()
       message.error('prologue failed because ' + str(exc[0]))
       self.traceback(exc[2])
+
+    if coverage.hierarchy.populated() :
+      coverage.insert.write(coverage.hierarchy, self.mdb.log_id, coverage.upload.REFERENCE)
 
   def get_db(self) :
     return verilog.plusargs().db or self.default_db
@@ -53,9 +58,19 @@ class test(object) :
     message.terminate_cbs.rm(self.name)
     # tidy up
     mdb.finalize_all()
+    # coverage
+    if coverage.hierarchy.populated() :
+      coverage.insert.write(coverage.hierarchy, self.mdb.log_id, coverage.upload.RESULT)
+    # remove callbacks
+    verilog.callback.remove_all()
 
-  def nop(self) :
-    pass
+  def callback(self) :
+    message.int_debug('test default callback for ' + self.mdb.abv.activity + ' ' + self.mdb.abv.block )
+
+  def prologue(self) :
+    message.warning('no prologue defined')
+  def epilogue(self) :
+    message.warning('no epilogue defined')
 
   @classmethod
   def pdb(self) :
@@ -72,8 +87,13 @@ class test(object) :
     'Default fatal epilogue'
     self.FATAL()
 
+  def check_success(self) :
+    if not self.is_success :
+      self.fatal()
+
   def success(self) :
     'Generic success hook'
+    self.is_success = True
     self.SUCCESS()
 
   def simulation_fatal(self) :

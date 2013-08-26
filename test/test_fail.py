@@ -11,7 +11,7 @@ class thistest(test.test) :
     message.error('a int_debug %(c)d', c=69)
     message.note('a note')
   def epilogue(self) :
-    message.success('no')
+    self.success()
 
 ################################################################################
 

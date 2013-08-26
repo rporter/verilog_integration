@@ -12,6 +12,10 @@
       <test>message</test>
       <test>mdb</test>
     </group>
+    <group name='coverage'>
+      <test>coverage</test>
+    </group>
+    <test>capacity</test>
     <test>example</test>
     <test>segv</test>
     <test>vpi</test>
@@ -31,6 +35,10 @@
       <test>message</test>
       <test>mdb</test>
     </group>
+    <group name='coverage'>
+      <test>coverage</test>
+    </group>
+    <test>capacity</test>
     <test>example</test>
     <test>segv</test>
     <test>mem_init</test>

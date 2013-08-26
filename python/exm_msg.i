@@ -20,6 +20,12 @@
     void operator()(char* file, unsigned int line) {
       example::message::instance()->by_msg(msg, file, line);
     }
+    void operator()(char* formatted, char* file, unsigned int line) {
+      example::message::instance()->by_msg(msg, formatted, file, line);
+    }
+    char* get_text() {
+      return (char*)(*msg).second.text;
+    }
   };
 
   template <typename func_t>
@@ -37,7 +43,6 @@
     bool insert(std::string name, int priority, wrap_t fn);
     wrap_t assign(std::string name, int priority, func_t fn);
     wrap_t assign(std::string name, int priority, wrap_t fn);
-    int rm_from_map(std::string name);
   };
 
   template <typename func_t>
@@ -47,7 +52,8 @@
     PyObject *name;
     PyObject *func;
     char *c_str_name;
-    PythonCallback (PyObject *name, PyObject *func) : name(name), func(func) {
+    bool execute;
+    PythonCallback (PyObject *name, PyObject *func) : name(name), func(func), execute(true) {
       Py_INCREF(name);
       Py_INCREF(func);
       c_str_name = PyString_AsString(name);
@@ -59,11 +65,18 @@
       hash->erase(c_str_name);
     };
 
+    void disable() {
+      execute = false;
+    }
+
     void operator()(const example::cb_id& id) {
       PyObject *result, *arglist;
-    
+
+      if (!execute) return;
+
       if (PyCallable_Check(func) < 1) {
         INTERNAL("function call associated with %s no longer callable", c_str_name);
+        disable();
         return;
       }
 
@@ -73,6 +86,7 @@
 
       if (result == NULL) {
 	WARNING("function call associated with %s returned NULL", c_str_name);
+        disable();
       }
   
       Py_XDECREF(result);
@@ -80,11 +94,13 @@
     }
 
     void operator()(const example::cb_id& id, unsigned int level, timespec& when, char* severity, const example::tag* tag, char *file, unsigned int line, char* text) {
-
       PyObject *result, *arglist;
+
+      if (!execute) return;
     
       if (PyCallable_Check(func) < 1) {
         INTERNAL("function call associated with %s no longer callable", c_str_name);
+        disable();
         return;
       }
 
@@ -94,8 +110,8 @@
 
       result = PyObject_CallFunction(func, (char*)"(O, O, i, s, O, s, i, s)", instance, pywhen, level, severity, pytag, file, line, text);     // Call Python
       if (result == NULL) {
-        rm(c_str_name);
         WARNING("function call associated with %s returned NULL", c_str_name);
+        disable();
       }
   
       Py_XDECREF(result);
@@ -109,8 +125,12 @@
     }
 
     static void rm(char* ref) {
-      delete (*hash)[ref];
+      PythonCallback* p = (*hash)[ref];
+      if (p) {
+        delete p;
+      }
     }
+
   };
 
   class StringError {};
@@ -142,6 +162,7 @@ public:
   ident(const char* ident, const unsigned int subident, const unsigned int level, const char* text);
   ~ident();
   void operator()(char* file, unsigned int line);
+  void operator()(char* formatted, char* file, unsigned int line);
 };
 
 namespace example {

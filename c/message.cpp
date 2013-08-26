@@ -6,8 +6,7 @@ namespace example {
 
 static void cb_account(const cb_id& id, unsigned int level, timespec& when, char* severity, const tag* tag, char *file, unsigned int line, char* text) {
   control* attr = message::get_ctrl(level);
-  ++attr->count;
-  if ((attr->threshold > 0) && (attr->count == attr->threshold)) { // only do it once!
+  if (attr->increment()) {
     if (!message::terminating()) {
       FATAL("Too many %s", severity);
     }
@@ -29,7 +28,7 @@ static void cb_emit_default(const cb_id& id, unsigned int level, timespec& when,
 static void cb_terminate_summary(const cb_id& id) {
   for (int i=MAX_LEVEL;--i>=INT_DEBUG;) {
     control* attr = message::get_ctrl(i);
-    INFORMATION("%12s : %d", message::name(i), attr[i].count);
+    INFORMATION("%12s : %d", message::name(i), attr->count);
   }
 }
 
@@ -119,6 +118,17 @@ const msg& msg_tags::get(const tag& id) {
     throw noMessageError();
   }
   return it->second;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+int control::increment() {
+  count++;
+  return toomany();
+}
+
+int control::toomany() {
+  return threshold > 0 && count == threshold;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -217,6 +227,15 @@ msg_tags& message::get_tags() {
   return self->tags;
 }
 
+unsigned int message::filter(unsigned int level) {
+  if (level == SUCCESS && self->errors()) {
+    WARNING("due to previous errors following message SUCCESS masked");
+    return WARNING;
+  }
+  return level;
+}
+
+
 void message::emitf(unsigned int level, char* file, unsigned int line, char* text, va_list args) {
   char buff[8192];
   if (args) {
@@ -226,12 +245,13 @@ void message::emitf(unsigned int level, char* file, unsigned int line, char* tex
 }
 
 void message::emit(unsigned int level, char* file, unsigned int line, char* text) {
-  char *severity = message::name(level);
   struct timespec when;
   clock_gettime(CLOCK_REALTIME, &when);
   callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
+  unsigned int _level = filter(level);
+  char *severity = message::name(_level);
   for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
-    _cb->second(_cb->first, level, when, severity, NULL, file, line, text);
+    _cb->second(_cb->first, _level, when, severity, NULL, file, line, text);
   }
 }
 
@@ -243,9 +263,11 @@ void message::by_id(char* ident, unsigned int subident, char* file, unsigned int
     const msg& msg_id = get_tags().get(tag_id);
     struct timespec when;
     clock_gettime(CLOCK_REALTIME, &when);
+    unsigned int level = filter(msg_id.level);
+    char *severity = message::name(level);
     callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
     for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
-      _cb->second(_cb->first, msg_id.level, when, (char*)msg_id.severity(), &tag_id, file, line, (char*)msg_id.text);
+      _cb->second(_cb->first, level, when, severity, &tag_id, file, line, (char*)msg_id.text);
     }
   } catch (noMessageError &e) {
     ERROR("No matching message ident found %s", tag_id.id());
@@ -260,9 +282,27 @@ void message::by_msg(const msg_tags::const_iterator& msg, char* file, unsigned i
 
   struct timespec when;
   clock_gettime(CLOCK_REALTIME, &when);
+  unsigned int level = filter((*msg).second.level);
+  char *severity = message::name(level);
   callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
   for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
-    _cb->second(_cb->first, (*msg).second.level, when, (char*)(*msg).second.severity(), &((*msg).first), file, line, (char*)(*msg).second.text);
+    _cb->second(_cb->first, level, when, severity, &((*msg).first), file, line, (char*)(*msg).second.text);
+  }
+
+  va_end(args);
+}
+
+void message::by_msg(const msg_tags::const_iterator& msg, char* formatted, char* file, unsigned int line, ...) {
+  va_list args;
+  va_start(args, line);
+
+  struct timespec when;
+  clock_gettime(CLOCK_REALTIME, &when);
+  unsigned int level = filter((*msg).second.level);
+  char *severity = message::name(level);
+  callbacks<cb_emit_fn>::map_t* cbs = cb_emit.get_map();
+  for (callbacks<cb_emit_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
+    _cb->second(_cb->first, level, when, severity, &((*msg).first), file, line, formatted);
   }
 
   va_end(args);
@@ -294,23 +334,11 @@ SEVERITY(int_debug  , INT_DEBUG);
 SEVERITY(debug      , DEBUG);
 SEVERITY(information, INFORMATION);
 SEVERITY(note       , NOTE);
-  //SEVERITY(success    , SUCCESS);
+SEVERITY(success    , SUCCESS);
 SEVERITY(warning    , WARNING);
 SEVERITY(error      , ERROR);
 SEVERITY(internal   , INTERNAL);
 SEVERITY(fatal      , FATAL);
-
-void message::success(char *file, unsigned int line, char* text, ...) {
-  va_list args;
-  va_start(args, text);
-  unsigned int level = SUCCESS;
-  if (self->errors()) {
-    WARNING("due to previous errors following message SUCCESS masked");
-    level = WARNING;
-  }
-  emitf(level, file, line, text, args);
-  va_end(args);
-}
 
 #undef SEVERITY
 

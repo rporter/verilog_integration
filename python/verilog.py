@@ -68,6 +68,12 @@ class vpiVar(object) :
     return long(self.decode())
   def __str__(self) :
     return str(self.decode())
+  def __getitem__(self, idx) :
+    return (int(self) >> idx)&1
+  def __setitem__(self, idx, val) : pass
+  def __getslice__(self, hi, lo) : pass
+  def __setslice__(self, hi, lo, val) : pass
+
   def get(self, signal) :
     vpi.vpi_get_value(signal.handle, self.vpi_value)
     self.vpi_chk_error = vpiChkError()
@@ -106,6 +112,7 @@ class vpiString(vpiVar) :
     return self
   def encode(self, value) :
     self.vpi_value.value.str = self.cast(value)
+    self.copy = self.vpi_value.value.str
   def decode(self) :
     return self.copy
 
@@ -127,6 +134,7 @@ class vpiNumStr(vpiString) :
     self.vpi_value.value.str = self.cast(value).rstrip('L')
     if platform.is_icarus() :
       self.vpi_value.str = self.vpi_value.str.lstrip('0b')
+    self.copy = self.vpi_value.value.str
   def decode(self) :
     if platform.is_icarus() :
       return self.copy.replace('X','0').replace('x','0')
@@ -216,19 +224,27 @@ class viter_beg(viterate) :
 class vpiObject(object) :
   def __init__(self, handle) :
     self.handle = handle
+    self.vpi_chk_error = None
   def __del__(self) :
     vpi.vpi_free_object(self.handle)
 
+  def __str__(self) :
+    return self.get_str(vpi.vpiName)
+
+  def get_str(self, prop) :
+    result = vpi.vpi_get_str(prop, self.handle)
+    try :
+      self.vpi_chk_error = vpiChkError()
+    except ReadOnlyException :
+      pass
+    return result
+
   @lazyProperty
   def name(self) :
-    result = vpi.vpi_get_str(vpi.vpiName, self.handle)
-    self.vpi_chk_error = vpiChkError()
-    return result
+    return self.get_str(vpi.vpiName)
   @lazyProperty
   def fullname(self) :
-    result = vpi.vpi_get_str(vpi.vpiFullName, self.handle)
-    self.vpi_chk_error = vpiChkError()
-    return result
+    return self.get_str(vpi.vpiFullName)
 
   @lazyProperty
   def scalar(self) :
@@ -257,7 +273,6 @@ class vpiObject(object) :
     handle = vpi.vpi_handle(vpi.vpiRightRange, self.handle)
     self.vpi_chk_error = vpiChkError(True)
     return int(signal(handle))
-
 
 ################################################################################
 
@@ -573,15 +588,16 @@ class callback(object) :
     return signal.decode(self.callback.value)
 
   def remove(self) :
+    message.note('callback "%(name)s" called %(cnt)d times, filtered %(filtered)d, exceptions raised %(excepted)d', cnt=self.cnt, filtered=self.filtered, excepted=self.excepted, name=self.name)
     vpi.vpi_remove_cb(self.cb)
     self.vpi_chk_error = vpiChkError()
     vpi.vpi_free_object(self.cb)
     self.callbacks.remove(self)
-    message.note('callback "%(name)s" called %(cnt)d times, filtered %(filtered)d, exceptions raised %(excepted)d', cnt=self.cnt, filtered=self.filtered, excepted=self.excepted, name=self.name)
 
-  @staticmethod
-  def remove_all() :
-    for c in callback.callbacks : c.remove()
+  @classmethod
+  def remove_all(cls) :
+    while cls.callbacks :
+      cls.callbacks[0].remove()
 
   @classmethod
   def cb_enum(cls, val) :

@@ -1,9 +1,9 @@
 .PHONY : clean deepclean
 
-mdb.db : create.sqlite
-	test -e $@ || sqlite3 $@ < $<
+mdb.db : create.sqlite create.fcvg.sqlite
+	test -e $@ || (cat $^ | sqlite3 $@)
 
 clean :
-
-deepclean :
 	rm *.db
+
+deepclean : clean

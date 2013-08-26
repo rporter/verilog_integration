@@ -14,13 +14,13 @@ LIBEXM=../c/libexm_vpi
 all : iverilog icarus verilator verilate
 
 iverilog icarus : iverilog-build $(LIBEXM).vpl
-	$(IRUN) -m $(LIBEXM) example.iverilog $(SIM_ARGS)
+	PYTHONPATH=$$PYTHONPATH:. $(IRUN) -m $(LIBEXM) example.iverilog $(SIM_ARGS)
 
 iverilog-build : build
 	$(IBUILD) -g2005-sv -D IVERILOG -I$(VERILOG) $(VERILOG)/example.v -o example.iverilog
 
 verilator verilate : verilog
-	$(VERILOG)/example/examplex $(SIM_ARGS)
+	PYTHONPATH=$$PYTHONPATH:. $(VERILOG)/example/examplex $(SIM_ARGS)
 
 ../c/% :
 	$(MAKE) -C ../c $(notdir $@)
