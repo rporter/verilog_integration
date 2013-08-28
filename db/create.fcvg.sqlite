@@ -1,44 +1,44 @@
 CREATE TABLE point (
-  point_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, -- unique point id
-  log_id   INTEGER NOT NULL,                           -- log id of declaration
-  name     TEXT,                                       -- name of this point
-  desc     TEXT,                                       -- description of this point
--- redundant because of log_id
---  root     INTEGER,                                    -- root point or NULL if root
---                                                       --  means we don't need recursive select or function
-  parent   INTEGER,                                    -- parent point or NULL if root
-  offset   INTEGER,                                    -- 1st bucket index
-  size     INTEGER,                                    -- number of buckets for convenience
-  md5_all  INTEGER,                                    -- for congruency checking
-  md5_goal INTEGER,                                    -- for congruency checking of goal data 
-  md5_axes INTEGER,                                    -- for congruency checking of axis & enum data 
+  point_id   INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, -- unique point id
+  log_id     INTEGER NOT NULL,                           -- log id of declaration
+  point_name TEXT,                                       -- name of this point
+  desc       TEXT,                                       -- description of this point
+  root       INTEGER,                                    -- root point or NULL if root
+                                                         --  means we don't need recursive select or function
+  parent     INTEGER,                                    -- parent point or NULL if root
+  offset     INTEGER,                                    -- 1st bucket index
+  size       INTEGER,                                    -- number of buckets for convenience
+  md5_all    INTEGER,                                    -- for congruency checking
+  md5_goal   INTEGER,                                    -- for congruency checking of goal data 
+  md5_axes   INTEGER,                                    -- for congruency checking of axis & enum data 
   FOREIGN KEY (log_id) REFERENCES log (log_id),
---  FOREIGN KEY (root)   REFERENCES point (point_id),
+  FOREIGN KEY (root)   REFERENCES point (point_id),
   FOREIGN KEY (parent) REFERENCES point (point_id),
   FOREIGN KEY (offset) REFERENCES goal  (bucket_id)
 );
 
-CREATE TABLE fpoint (
-  point_id  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, -- unique point id
-  log_id    INTEGER NOT NULL,                           -- log id of declaration
-  name      TEXT,                                       -- name of this point
-  desc      TEXT,                                       -- description of this point
-  md5       INTEGER,                                    -- for congruency checking
-  hierarchy BLOB                                        -- json
-  FOREIGN KEY (log_id) REFERENCES log (log_id)
-);
+-- CREATE TABLE fpoint (
+--   point_id  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, -- unique point id
+--   log_id    INTEGER NOT NULL,                           -- log id of declaration
+--   name      TEXT,                                       -- name of this point
+--   desc      TEXT,                                       -- description of this point
+--   md5       INTEGER,                                    -- for congruency checking
+--   hierarchy BLOB                                        -- json
+--   FOREIGN KEY (log_id) REFERENCES log (log_id)
+-- );
 
 CREATE TABLE axis (
-  axis_id  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, -- unique axis identifier
-  point_id INTEGER,                                    -- parent point
-  name     TEXT,                                       -- name of this axis
+  axis_id   INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, -- unique axis identifier
+  point_id  INTEGER,                                    -- parent point
+  axis_name TEXT,                                       -- name of this axis
   FOREIGN KEY (point_id) REFERENCES point (point_id)
 );
 
 CREATE TABLE enum (
   enum_id  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, -- unique enumeration identifier
   axis_id  INTEGER,                                    -- parent axis
-  name     TEXT,                                       -- enumeration
+  enum     TEXT,                                       -- enumeration
+  value    INTEGER,                                    -- value
   FOREIGN KEY (axis_id) REFERENCES axis (axis_id)
 );
 
@@ -50,6 +50,7 @@ CREATE TABLE goal (
 );
 
 CREATE INDEX goal_idx ON goal (log_id, bucket_id);
+CREATE INDEX goal_log_idx ON goal (log_id);
 
 CREATE TABLE hits (
   log_id    INTEGER NOT NULL,
@@ -60,3 +61,4 @@ CREATE TABLE hits (
 );
 
 CREATE INDEX hits_idx ON hits (log_id, bucket_id);
+CREATE INDEX hits_log_idx ON hits (log_id);

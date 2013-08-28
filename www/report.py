@@ -104,6 +104,24 @@ class rgr(serve_something, database.rgr) :
 
 ################################################################################
 
+class cvg(serve_something, database.cvg) :
+  CONTENTTYPE='application/json'
+  encapsulate=False
+
+  def doit(self, **kwargs):
+    self.result(**kwargs).points().json(self.page)
+
+################################################################################
+
+class cvr(serve_something, database.cvr) :
+  CONTENTTYPE='application/json'
+  encapsulate=False
+
+  def doit(self, log_id):
+    json(self.result(log_id), self.page)
+
+################################################################################
+
 @bottle.get('/static/<filename:path>')
 def server_static(filename):
     return bottle.static_file(filename, root=static)
@@ -121,6 +139,10 @@ urls = (
   ('/index/:variant/<limit:int>/<start:int>/<order:re:(up|down)>', index,),
   ('/msgs/<log_id:int>', msgs,),
   ('/rgr/<log_id:int>', rgr,),
+  ('/cvg/<log_id:int>', cvg,),
+  ('/cvg/<log_id:int>/<cumulative:re(cumulative)>', cvg,),
+  ('/cvr/<log_id:int>', cvr,),
+  ('/cvr/<log_id:int>/<goal_id:int>', cvr,),
 )
 
 for path, cls in urls:

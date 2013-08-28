@@ -7,15 +7,15 @@ import message
 
 class messages :
   CVG_0   = message.ident('CVG',   0, message.INFORMATION, 'coverage')
-  CVG_1   = message.ident('CVG',   1, message.INFORMATION, 'cover point %(name)s')
-  CVG_2   = message.ident('CVG',   2, message.INFORMATION, 'axis %(name)s')
-  CVG_10  = message.ident('CVG',  10, message.INFORMATION, 'dumping cover point %(name)s')
-  CVG_20  = message.ident('CVG',  20, message.INFORMATION, 'cover point %(name)s is at %(cvg)s%%')
-  CVG_21  = message.ident('CVG',  21, message.INFORMATION, 'cover point %(name)s is at 100%%')
+  CVG_1   = message.ident('CVG',   1, message.INFORMATION, 'cover point "%(name)s"')
+  CVG_2   = message.ident('CVG',   2, message.INFORMATION, 'axis "%(name)s"')
+  CVG_10  = message.ident('CVG',  10, message.INFORMATION, 'dumping cover point "%(name)s"')
+  CVG_20  = message.ident('CVG',  20, message.INFORMATION, 'cover point "%(name)s" is at %(cvg)s%%')
+  CVG_21  = message.ident('CVG',  21, message.INFORMATION, 'cover point "%(name)s" is at 100%%')
   CVG_22  = message.ident('CVG',  22, message.INFORMATION, 'coverage : %(hits)d out of %(goal)d = %(cvg)s%%')
-  CVG_40  = message.ident('CVG',  40, message.INFORMATION, 'creating coverage root node %(name)s')
-  CVG_41  = message.ident('CVG',  41, message.INFORMATION, 'coverage tree node %(name)s, id %(id)d of type %(type)s')
-  CVG_42  = message.ident('CVG',  42, message.INFORMATION, 'coverage tree leaf node %(name)s, id %(id)d of type %(type)s')
+  CVG_40  = message.ident('CVG',  40, message.INFORMATION, 'creating coverage root node "%(name)s"')
+  CVG_41  = message.ident('CVG',  41, message.INFORMATION, 'coverage tree node "%(name)s", id %(id)d of type %(type)s')
+  CVG_42  = message.ident('CVG',  42, message.INFORMATION, 'coverage tree leaf node "%(name)s", id %(id)d of type %(type)s')
   CVG_100 = message.ident('CVG', 100, message.INFORMATION, '%(agent)s coverage import start')
   CVG_101 = message.ident('CVG', 101, message.INFORMATION, '%(agent)s coverage import end after %(time)0.2fs')
 
@@ -106,7 +106,7 @@ class bucket :
     
     # is there a requirement to iterate again and set goal to 0 for dont_care & illegal
 
-  def default(self, illegal=False, dont_care=False, goal=None, hits=None) :
+  def default(self, illegal=False, dont_care=False, goal=0, hits=0, **others) :
     self.goal      = goal
     self.illegal   = illegal
     self.dont_care = dont_care
@@ -217,6 +217,9 @@ class axis :
   def json(self, chan) :
     chan.write('{name : "%s", values : %s},' % (self.name, str([enum for enum in self.get_enums()])))
 
+  def sql(self, inst) :
+    return inst.axis(self)
+
 ################################################################################
 
 class hierarchy :
@@ -231,7 +234,7 @@ class hierarchy :
   next_id   = 0
   all_nodes = dict()
 
-  def __init__(self, name, description=None, parent=None, root=False, type=None) :
+  def __init__(self, name, description=None, parent=None, root=False, type=None, id=None) :
     if parent is None :
       if root :
         # this is the new root node
@@ -259,7 +262,7 @@ class hierarchy :
       self.parent = None
 
     # assign unique id
-    self.id = hierarchy.get_id()
+    self.id = id or hierarchy.get_id()
     # store hashed by this id
     self.all_nodes[self.id] = self
     if hierarchy.root == self :
@@ -310,6 +313,9 @@ class hierarchy :
       child.json(chan)
     chan.write(']},\n')
 
+  def sql(self, inst) :
+    return inst.hierarchy(self)
+
   @classmethod
   def populated(cls) :
     'is there anything here?'
@@ -350,7 +356,7 @@ class coverpoint(hierarchy) :
 
   offset = 0
 
-  def __init__(self, model=None, name=None, description=None, parent=None, axes={}, defaults=None, cumulative=False) :
+  def __init__(self, model=None, name=None, description=None, parent=None, id=None, axes={}, defaults=None, cumulative=False) :
     self.name        = name or self.__doc__.strip()
     self.description = description or self.__doc__.strip()
     self.model       = model
@@ -374,7 +380,7 @@ class coverpoint(hierarchy) :
       msg = messages.CVG_2(name=name)
       for enum, val in axe.values.iteritems() :
         pass # msg._attribute(str(enum), str(val))
-    hierarchy.__init__(self, name=self.name, parent=parent)
+    hierarchy.__init__(self, name=self.name, parent=parent, id=id)
 
   def add_axis(self, name, **kwargs) :
     'add axis'
@@ -474,6 +480,9 @@ class coverpoint(hierarchy) :
       bucket.json(chan)
     chan.write(']},\n')
 
+  def sql(self, inst) :
+    return inst.coverpoint(self)
+
   def bucket_id(self, **axes) :
     'Call with dictionary of axis=int(value)'
     return reduce(lambda a, b : a+b, [self.multipliers[key]*value for key, value in axes.iteritems()])
@@ -483,7 +492,7 @@ class coverpoint(hierarchy) :
 
   def define(self, bucket) :
     'default define'
-    bucket.default(**self.defaults())
+    bucket.default(**next(self.defaults))
 
 ################################################################################
 
@@ -606,6 +615,9 @@ class upload :
   def write(cls, hierarchy, log_id, reference=False) :
     _ref   = 'reference' if reference else 'data'
     messages.CVG_100(agent=cls.__name__, reference=reference)
+    if reference:
+      hierarchy.get_root().debug()
+      hierarchy.get_root().sql(cls.sql(log_id=log_id))
     elapsed = time.time()
     target  = (log_id, )
     with cls(reference) as out :
@@ -619,7 +631,40 @@ class insert(upload) :
   """
   Use sqlite INSERT
   """
-  
+
+  class sql :
+    def __init__(self, parent=None, log_id=None) :
+      self.parent = parent
+      self.log_id = log_id
+    def axis(self, axis) :
+      with mdb.mdb.cursor() as db :
+        db.execute('INSERT INTO axis (point_id, axis_name) VALUES (?,?)', (self.parent_id(), axis.name))
+        db.execute('SELECT last_insert_rowid() AS rowid;')
+        self.sql_row_id = db.fetchone()[0]
+        for enum, value in axis.values.iteritems() :
+          db.execute('INSERT INTO enum (axis_id, enum, value) VALUES (?,?,?)', (self.sql_row_id, enum, value))
+
+    def coverpoint(self, coverpoint) :
+      self.add_point(coverpoint)
+      for name, axis in coverpoint.axes() :
+        axis.sql(insert.sql(self))
+    def hierarchy(self, hierarchy) :
+      self.add_point(hierarchy)
+      for child in hierarchy.children :
+        child.sql(insert.sql(self))
+    def add_point(self, node) :
+      with mdb.mdb.cursor() as db :
+        db.execute('INSERT INTO point (log_id, point_name, root, parent) VALUES (?,?,?,?)', (self.root().log_id, node.name, self.root_id(), self.parent_id()))
+        db.execute('SELECT last_insert_rowid() AS rowid;')
+        self.sql_row_id = db.fetchone()[0]
+
+    def root(self) :
+      return self.parent.root() if self.parent else self
+    def root_id(self) :
+      return self.parent and self.root().sql_row_id
+    def parent_id(self) :
+      return self.parent and self.parent.sql_row_id
+
   def __init__(self, reference) :
     self.reference = reference
     self.data      = list()

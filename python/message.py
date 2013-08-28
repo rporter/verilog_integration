@@ -70,7 +70,7 @@ class ident(message) :
     # default to scope above
     file, line = inspect.stack()[1][1:3]
     try :
-      self.msg_id(self.text % args, args.setdefault('file', file), args.setdefault('line', line))
+      self.msg_id(str(self.text % args), args.setdefault('file', file), args.setdefault('line', line))
     except :
       self.msg_id(args.setdefault('file', file), args.setdefault('line', line))
 

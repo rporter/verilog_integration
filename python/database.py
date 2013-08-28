@@ -1,5 +1,6 @@
 # Copyright (c) 2013 Rich Porter - see LICENSE for further details
 
+import coverage
 import mdb
 import message
 import pwd
@@ -13,7 +14,7 @@ class index :
     def __init__(self, iterable, keyfunc=None, keyfact=None, grpfact=None):
       self.it = iter(iterable)
       self.tgtkey = self.currkey = self.currvalue = object()
-      self.keyfunc, self.keyfact, self.grpfact = keyfunc, keyfact, grpfact
+      self.keyfunc, self.keyfact, self.grpfact = keyfunc, keyfact or self.default_keyfact, grpfact or self.default_grpfact
     def __iter__(self):
       return self
     def __next__(self):
@@ -29,6 +30,13 @@ class index :
         yield self.grpfact(self)
         self.currvalue = next(self.it)    # Exit on StopIteration
         self.currkey = self.keyfunc(self.currvalue)
+
+    @staticmethod
+    def default_keyfact(self) :
+      return [self.currvalue, self._grouper(self.tgtkey)]
+    @staticmethod
+    def default_grpfact(self) :
+      return self.currvalue
 
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -90,9 +98,11 @@ class index :
           return "LIMIT %(finish)d" % self.__dict__
       return ""
 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
   class subquery(dict) :
-    def __init__(self, select, **kwargs) :
-      dict.__init__(self, select=select, **kwargs)
+    def __init__(self, select, frm, **kwargs) :
+      dict.__init__(self, select=select, frm=frm, **kwargs)
     def __getattr__(self, attr) :
       try :
         return self[attr]
@@ -100,7 +110,7 @@ class index :
         return None
     def __str__(self) :
       order = 'ASC' if self.order == 'up' else 'DESC';
-      return ('SELECT ' + self.select + 
+      return ('SELECT ' + self.select + ' FROM ' + self.frm +
               ((' WHERE ' + self.where)              if self.where  else '') +
               ((' GROUP BY ' + ','.join(self.group)) if self.group  else '') +
               ((' HAVING ' + self.having)            if self.having else '') +
@@ -149,16 +159,19 @@ class index :
   def result(self, subquery) :
     return self.summary([self.log(log, msgs) for log, msgs in self.groupby(self.execute(subquery), lambda x : x.log_id, self.keyfact, self.grpfact)])
 
-  def where(self, variant, limit, start, order='down') :
+  def where(self, variant, limit, start, order='down', coverage=True) :
     if variant == 'sngl' :
-      result = self.subquery('l0.*, null as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root)', where='l1.log_id is null and l0.root is null')
+      result = self.subquery('l0.*, null as children', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'], where='l1.log_id is null and l0.root is null')
     elif variant == 'rgr' :
-      result = self.subquery('l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'], having='l1.log_id is not null')
+      result = self.subquery('l0.*, count(l1.log_id) as children', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'], having='l1.log_id is not null')
     else :
-      result = self.subquery('l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'])
+      result = self.subquery('l0.*, count(l1.log_id) as children', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'])
     result.limit = self.limit(limit)
     if start :
       result.where_and('l0.log_id %c %d' % ('>' if order == 'up' else '<', start))
+    if coverage :
+      result.select += ', IFNULL(goal.log_id, 0) as master, IFNULL(hits.log_id, 0) as coverage'
+      result.frm    += ' left outer join goal using (log_id) left outer join hits using (log_id)'
     result.update(order=order)
     return result
 
@@ -194,6 +207,56 @@ class rgr(index) :
   def result(self, log_id, root=True):
     relationship = 'root' if root else 'parent'
     # call result method of parent class
-    return index.result(self, self.subquery('l0.*, count(l1.log_id) as children FROM log as l0 left join log as l1 on (l0.log_id = l1.%(relationship)s)', where='l0.log_id = %(log_id)s or l0.%(relationship)s = %(log_id)s', group=['l0.log_id'], limit=self.limit(), log_id=log_id, relationship=relationship))
+    return index.result(self, self.subquery('l0.*, count(l1.log_id) as children', frm='log as l0 left join log as l1 on (l0.log_id = l1.%(relationship)s)', where='l0.log_id = %(log_id)s or l0.%(relationship)s = %(log_id)s', group=['l0.log_id'], limit=self.limit(), log_id=log_id, relationship=relationship))
+
+################################################################################
+
+class cvg : 
+  class hierarchy :
+    def __init__(self, db, defaults) :
+      coverage.hierarchy.reset()
+      for parent, children in index.groupby(db, lambda row : row.point_id) :
+        if parent.axis_id :
+          coverage.coverpoint(name=parent.point_name, description=parent.desc, id=parent.point_id, parent=parent.parent, axes=self.get_axes(children), defaults=defaults)
+        else :
+          coverage.hierarchy(parent.point_name, parent.desc, id=parent.point_id, root=parent.root == None, parent=parent.parent)
+    def get_axes(self, nodes) :
+      return dict([(axis.axis_name, coverage.axis(axis.axis_name, **dict([(e.enum, e.enum_id) for e in enum]))) for axis, enum in index.groupby(nodes, lambda node : node.axis_id)])
+        
+  class single :
+    def __init__(self, log_id, goal_id=None) :
+      self.log_id = log_id
+      self.goal_id = goal_id or log_id
+    def points(self) :
+      with mdb.db.connection().row_cursor() as db :
+        db.execute('SELECT * FROM point LEFT OUTER JOIN axis USING (point_id) LEFT OUTER JOIN enum USING (axis_id) WHERE log_id=%(log_id)s ORDER BY point_id ASC, axis_id ASC, enum_id ASC;' % self.__dict__)
+        cvg.hierarchy(db.fetchall(), self.coverage())
+        return coverage.hierarchy.get_root()
+    def coverage(self) :
+      with mdb.db.connection().row_cursor() as db :
+        db.execute('SELECT goal.bucket_id, goal.goal, IFNULL(hits.hits, 0) AS hits, goal < 0 as illegal, goal = 0 as dont_care FROM goal LEFT OUTER JOIN hits ON (goal.bucket_id = hits.bucket_id AND hits.log_id=%(log_id)s) WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;' % self.__dict__)
+        for result in db.fetchall() :
+          yield result
+        while (1) : 
+          message.warning('missing bucket')
+          yield {}
+
+  class cumulative(single) :
+    def coverage(self) :
+      with mdb.db.connection().row_cursor() as db :
+        db.execute('SELECT goal.goal, IFNULL(cumulative.hits, 0) AS hits FROM goal LEFT OUTER NATURAL JOIN (SELECT bucket_id, SUM(hits.hits) AS hits FROM hits JOIN (SELECT log_id FROM log WHERE root=%(log_id)s AND parent != NULL) AS runs ON (log_id) GROUP BY bucket_id) AS cumulative WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;' % self.__dict__)
+        return db.fetchall()
+
+  def result(self, log_id, goal_id=None, cumulative=False) :
+    return (self.cumulative if cumulative else self.single)(log_id, goal_id)
+
+################################################################################
+
+class cvr :
+  def result(self, log_id, goal_id=None) :
+    with mdb.db.connection().row_cursor() as db :
+      message.debug('retrieving %(log_id)s coverage information', log_id=log_id)
+      db.execute('SELECT IFNULL((SELECT log_id FROM goal WHERE log_id = %(log_id)s LIMIT 1), 0) AS master, IFNULL((SELECT log_id FROM hits WHERE log_id = %(log_id)s LIMIT 1), 0) AS coverage;' % locals())
+      return db.fetchone()
 
 ################################################################################

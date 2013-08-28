@@ -129,7 +129,8 @@ $report = function(){
         "aaSorting": [[0, "desc"]],
         "iDisplayLength": available || length || self.view,
         "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
-          $(nRow).bind('click.example', {log_id : aData[0], children : aData[8], anchor : anchor},
+          $('td:nth(8)', nRow).addClass('cvg').addClass('cvg-'+aData[8]);
+          $(nRow).bind('click.example', {log_id : aData[0], children : aData[9], anchor : anchor},
             function(event) {
               var log;
               if (event.data.children) {
@@ -180,17 +181,24 @@ $report = function(){
 	{ "sTitle": "errors" },
 	{ "sTitle": "warnings" },
 	{ "sTitle": "message" },
+	{ "sTitle": "coverage" },
 	{ "sTitle": "children" },
 	{ "sTitle": "status" },
       ];
     };
 
     this.rows = function() {
+      function coverage(log) {
+        if (log.master && log.coverage) return 'both';
+        if (log.master)                 return 'master';
+        if (log.coverage)               return 'cvg';
+        return 'none';
+      }
       function popup(attr) {
           return '<abbr title="'+attr.msg.replace('"', '&quot;')+'">'+attr.count+'</abbr>';
       }
       return data.map(function(log){
-        return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, log.log.children, log.status.status];
+        return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage(log.log), log.log.children, log.status.status];
       });
     };
 
