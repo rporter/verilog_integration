@@ -159,7 +159,8 @@ class index :
   def result(self, subquery) :
     return self.summary([self.log(log, msgs) for log, msgs in self.groupby(self.execute(subquery), lambda x : x.log_id, self.keyfact, self.grpfact)])
 
-  def where(self, variant, limit, start, order='down', coverage=True) :
+  def where(self, variant, limit, start, order='down', coverage=False) :
+    'Note that asking for coverage here slows the query significantly'
     if variant == 'sngl' :
       result = self.subquery('l0.*, null as children', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'], where='l1.log_id is null and l0.root is null')
     elif variant == 'rgr' :
@@ -170,8 +171,8 @@ class index :
     if start :
       result.where_and('l0.log_id %c %d' % ('>' if order == 'up' else '<', start))
     if coverage :
-      result.select += ', IFNULL(goal.log_id, 0) as master, IFNULL(hits.log_id, 0) as coverage'
-      result.frm    += ' left outer join goal using (log_id) left outer join hits using (log_id)'
+      result.select += ', goal.log_id as goal, hits.log_id as coverage, master.goal_id AS master'
+      result.frm    += ' left outer join goal using (log_id) left outer join hits using (log_id) left outer join master using (log_id)'
     result.update(order=order)
     return result
 
@@ -256,7 +257,7 @@ class cvr :
   def result(self, log_id, goal_id=None) :
     with mdb.db.connection().row_cursor() as db :
       message.debug('retrieving %(log_id)s coverage information', log_id=log_id)
-      db.execute('SELECT IFNULL((SELECT log_id FROM goal WHERE log_id = %(log_id)s LIMIT 1), 0) AS master, IFNULL((SELECT log_id FROM hits WHERE log_id = %(log_id)s LIMIT 1), 0) AS coverage;' % locals())
+      db.execute('SELECT IFNULL((SELECT log_id FROM goal WHERE log_id = %(log_id)s LIMIT 1), 0) AS goal, IFNULL((SELECT log_id FROM hits WHERE log_id = %(log_id)s LIMIT 1), 0) AS coverage, (SELECT goal_id FROM master WHERE log_id = %(log_id)s LIMIT 1) AS master;' % locals())
       return db.fetchone()
 
 ################################################################################

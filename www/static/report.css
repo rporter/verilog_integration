@@ -12,9 +12,11 @@
    td.RUNNING  { background-color : #88f }
 
    td.cvg-cvg    { background-color: #9cf }
+   td.cvg-goal   { background-color: #ff9 }
+   td.cvg-master { background-color: #fcc }
    td.cvg-both   { background-color: #fcf }
-   td.cvg-master { background-color: #ff9 }
    td.cvg-none   { background-color: #ccc }
+   td.cvg-error  { background-color: #f99 }
 
    span.PASS   { display : inline-block; background-color : #8f8 }
    span.FAIL   { display : inline-block; background-color : #f88 }

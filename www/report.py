@@ -118,7 +118,7 @@ class cvr(serve_something, database.cvr) :
   encapsulate=False
 
   def doit(self, log_id):
-    json(self.result(log_id), self.page)
+    json.dump(self.result(log_id), self.page)
 
 ################################################################################
 

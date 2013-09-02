@@ -52,6 +52,17 @@ CREATE TABLE goal (
 CREATE INDEX goal_idx ON goal (log_id, bucket_id);
 CREATE INDEX goal_log_idx ON goal (log_id);
 
+-- this table holds goal references for runs without goal data
+-- when they reference another master/goal
+CREATE TABLE master (
+  log_id    INTEGER NOT NULL,     -- log id of run
+  goal_id   INTEGER NOT NULL,      -- log id of goal data
+  -- root_id   INTEGER NOT NULL,      -- point_id of root node
+  -- FOREIGN KEY (root_id)    REFERENCES point (point_id),
+  FOREIGN KEY (log_id)    REFERENCES log (log_id),
+  FOREIGN KEY (goal_id)   REFERENCES log (log_id)
+);
+
 CREATE TABLE hits (
   log_id    INTEGER NOT NULL,
   bucket_id INTEGER NOT NULL,

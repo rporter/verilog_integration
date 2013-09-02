@@ -92,6 +92,7 @@ $report = function(){
     this.url = url;
     this.order = order || 'down';
     this.view = 20;
+    this.view_coverage = false;
 
     var get = function(severity, attr) {
       var result = this.msgs.filter(function(a){return a.severity === severity})[0];
@@ -105,11 +106,21 @@ $report = function(){
       return '';
     }
 
-    this.render = function(length, available) {
+    var coverage_cls = function (log) {
+      if (!log.hasOwnProperty('coverage')) return 'unknown';
+      if (log.goal && log.coverage) return 'both';
+      if (log.goal)                 return 'goal';
+      if (log.coverage)             return 'cvg';
+      if (log.master)               return 'master'; // expected coverage
+      return 'none';
+    }
+
+    this.render = function(props, available) {
       var container = $('<div><table class="display"></table></div>');
       self.container = container;
-      if (length !== undefined) {
-        self.view = length;
+      if (props !== undefined) {
+        self.view = props.view;
+        self.view_coverage = props.view_coverage;
       }
       $('table', container).dataTable({
         "bJQueryUI": true,
@@ -127,9 +138,26 @@ $report = function(){
           }
         ],
         "aaSorting": [[0, "desc"]],
-        "iDisplayLength": available || length || self.view,
+        "iDisplayLength": available || self.view,
         "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
-          $('td:nth(8)', nRow).addClass('cvg').addClass('cvg-'+aData[8]);
+          var cvg = $('td:nth(8)', nRow).addClass('cvg').addClass('cvg-'+aData[8]);
+          $(cvg).bind('show.example', function(event) {
+            $.ajax({
+              url : '/cvr/'+aData[0],
+              dataType : 'json',
+              success : function(json) {
+                var result = coverage_cls(json);
+                $(cvg).text(result).addClass('cvg-'+result);
+                $(cvg).unbind('show.example'); // event.name // no need to do again
+              },
+              error : function(xhr, status, index) {
+                var result = json.length?coverage_cls(json):'error';
+                $(cvg).text('error').addClass('cvg-error');
+                $(cvg).unbind('show.example'); // event.name // no need to do again
+                console.log(xhr, status, index);
+              }
+            });
+          });
           $(nRow).bind('click.example', {log_id : aData[0], children : aData[9], anchor : anchor},
             function(event) {
               var log;
@@ -146,6 +174,12 @@ $report = function(){
         }
       });
 
+      self.coverage = $('th:nth-child(9), td.cvg', container);
+      if (self.view_coverage) {
+        self.coverage.trigger('show.example');
+      } else {
+        self.coverage.hide();
+      }
       if (self.url !== undefined) {
         var control = $('<div class="ui-corner-all control"></div>').prependTo(container);
         var lenctrl = $('<div class="length"><div>Fetch <select>'+
@@ -154,6 +188,14 @@ $report = function(){
    	    '<option value="100">100</option>'+
    	    '</select> records</div></div>').appendTo(control);
         $('option[value='+self.view+']', lenctrl).attr('selected', 1);
+        $('<input type="checkbox"/>').change(function() {
+          self.view_coverage = $(this).is(':checked');
+          if (self.view_coverage) {
+            self.coverage.show().trigger('show.example');
+          } else {
+            self.coverage.hide();
+          }
+        }).appendTo(lenctrl).attr('checked', self.view_coverage).wrap('<div>Show Coverage</div>');
         var navigation = $('<div class="navigation"></div>');
         $('<span class="ui-icon ui-icon-seek-first"></span>').attr('title', 'first').appendTo(navigation);
         $('<span class="ui-icon ui-icon-seek-prev"></span>').attr('title', 'previous').appendTo(navigation);
@@ -188,17 +230,11 @@ $report = function(){
     };
 
     this.rows = function() {
-      function coverage(log) {
-        if (log.master && log.coverage) return 'both';
-        if (log.master)                 return 'master';
-        if (log.coverage)               return 'cvg';
-        return 'none';
-      }
       function popup(attr) {
           return '<abbr title="'+attr.msg.replace('"', '&quot;')+'">'+attr.count+'</abbr>';
       }
       return data.map(function(log){
-        return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage(log.log), log.log.children, log.status.status];
+        return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), log.log.children, log.status.status];
       });
     };
 
@@ -215,7 +251,7 @@ $report = function(){
         dataType : 'json',
         success : function(json) {
           if (json.length) {
-            self.container.replaceWith((new $report.testJSON(self.url, json, anchor, self.order)).render(self.view, json.length));
+            self.container.replaceWith((new $report.testJSON(self.url, json, anchor, self.order)).render({view:self.view, view_coverage:self.view_coverage}, json.length));
           } else {
             alert('no more data');
             self.id = undefined;
