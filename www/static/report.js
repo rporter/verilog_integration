@@ -31,10 +31,24 @@ $report = function(){
       return report || (report = $('#report'));
     };
   }();
+  $report.data = function(){
+    var data;
+    return function(){
+      if (data === undefined) {
+        $report.report().data('options', {});
+        data = $report.report().data('options');
+      }
+      if (!arguments) return data;
+      var key = arguments[0];
+      if (data.hasOwnProperty(key)) return data[key];
+      if (arguments.length > 1) return data[key] = arguments[1];
+      return data[key] = Object();
+    };
+  }();
   $report.tabs = function(){
     var tabs;
     return function(){
-	return (tabs || (tabs = $report.report().tabs)).apply($report.report(), arguments);
+      return (tabs || (tabs = $report.report().tabs)).apply($report.report(), arguments);
     };
   }();
   $report.tab_id = function() {
@@ -85,14 +99,13 @@ $report = function(){
     });
   };
 
-  $report.testJSON = function(url, data, anchor, order){
+  $report.testJSON = function(url, data, anchor, order) {
     anchor = anchor || $report.tabs();
     var self = this;
 
     this.url = url;
     this.order = order || 'down';
-    this.view = 20;
-    this.view_coverage = false;
+    this.options = $report.data(url, {view:20, view_coverage:false});
 
     var get = function(severity, attr) {
       var result = this.msgs.filter(function(a){return a.severity === severity})[0];
@@ -115,13 +128,9 @@ $report = function(){
       return 'none';
     }
 
-    this.render = function(props, available) {
+    this.render = function(available) {
       var container = $('<div><table class="display"></table></div>');
       self.container = container;
-      if (props !== undefined) {
-        self.view = props.view;
-        self.view_coverage = props.view_coverage;
-      }
       $('table', container).dataTable({
         "bJQueryUI": true,
         "bPaginate": self.url === undefined,
@@ -138,7 +147,7 @@ $report = function(){
           }
         ],
         "aaSorting": [[0, "desc"]],
-        "iDisplayLength": available || self.view,
+        "iDisplayLength": available || self.options.view,
         "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
           var cvg = $('td:nth(8)', nRow).addClass('cvg').addClass('cvg-'+aData[8]);
           $(cvg).bind('show.example', function(event) {
@@ -175,7 +184,7 @@ $report = function(){
       });
 
       self.coverage = $('th:nth-child(9), td.cvg', container);
-      if (self.view_coverage) {
+      if (self.options.view_coverage) {
         self.coverage.trigger('show.example');
       } else {
         self.coverage.hide();
@@ -187,15 +196,15 @@ $report = function(){
    	    '<option value="50">50</option>'+
    	    '<option value="100">100</option>'+
    	    '</select> records</div></div>').appendTo(control);
-        $('option[value='+self.view+']', lenctrl).attr('selected', 1);
+        $('option[value='+self.options.view+']', lenctrl).attr('selected', 1);
         $('<input type="checkbox"/>').change(function() {
-          self.view_coverage = $(this).is(':checked');
-          if (self.view_coverage) {
+          self.options.view_coverage = $(this).is(':checked');
+          if (self.options.view_coverage) {
             self.coverage.show().trigger('show.example');
           } else {
             self.coverage.hide();
           }
-        }).appendTo(lenctrl).attr('checked', self.view_coverage).wrap('<div>Show Coverage</div>');
+        }).appendTo(lenctrl).attr('checked', self.options.view_coverage).wrap('<div>Show Coverage</div>');
         var navigation = $('<div class="navigation"></div>');
         $('<span class="ui-icon ui-icon-seek-first"></span>').attr('title', 'first').appendTo(navigation);
         $('<span class="ui-icon ui-icon-seek-prev"></span>').attr('title', 'previous').appendTo(navigation);
@@ -239,7 +248,7 @@ $report = function(){
     };
 
     this.update = function() {
-      var url = self.url + '/' + self.view;
+      var url = self.url + '/' + self.options.view;
       if (self.id !== undefined) {
         url += '/' + self.id;
       }
@@ -251,7 +260,7 @@ $report = function(){
         dataType : 'json',
         success : function(json) {
           if (json.length) {
-            self.container.replaceWith((new $report.testJSON(self.url, json, anchor, self.order)).render({view:self.view, view_coverage:self.view_coverage}, json.length));
+            self.container.replaceWith((new $report.testJSON(self.url, json, anchor, self.order)).render(json.length));
           } else {
             alert('no more data');
             self.id = undefined;
@@ -265,10 +274,10 @@ $report = function(){
 
     this.select = function() {
       var lenctrl = $(this).val();
-      if (lenctrl != self.view) {
+      if (lenctrl != self.options.view) {
         self.id = data[data.length-1].log.log_id+1;
         self.order = 'down';
-        self.view = lenctrl;
+        self.options.view = lenctrl;
         self.update();
       }
     }
