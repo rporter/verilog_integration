@@ -103,10 +103,9 @@ $report = function(){
     anchor = anchor || $report.tabs();
     var self = this;
 
-    this.url = url;
+    this.url = url.replace(/\/\d.*$/,'');
     this.order = order || 'down';
-    this.options = $report.data(url, {view:20, view_coverage:false});
-
+    this.options = $report.data(this.url, {view:20, view_coverage:false});
     var get = function(severity, attr) {
       var result = this.msgs.filter(function(a){return a.severity === severity})[0];
       if (attr === undefined) return result;
@@ -248,7 +247,7 @@ $report = function(){
       });
     };
 
-    this.update = function() {
+    this.genurl = function() {
       var url = self.url + '/' + self.options.view;
       if (self.id !== undefined) {
         url += '/' + self.id;
@@ -256,12 +255,17 @@ $report = function(){
       if (self.order !== undefined) {
         url += '/' + self.order;
       }
+      return url;
+    }
+    this.update = function() {
       $.ajax({
-        url : url,
+        url : self.genurl(),
         dataType : 'json',
         success : function(json) {
           if (json.length) {
             self.container.replaceWith((new $report.testJSON(self.url, json, anchor, self.order)).render(json.length));
+            // horriblish hack
+            $report.tabs('url', $report.tabs('option', 'active') , self.genurl());
           } else {
             alert('no more data');
             self.id = undefined;
@@ -276,7 +280,8 @@ $report = function(){
     this.select = function() {
       var lenctrl = $(this).val();
       if (lenctrl != self.options.view) {
-        self.id = data[data.length-1].log.log_id+1;
+        // if we freeze the view start, then we won't get new entries when reselecting the tab
+        // self.id = data[data.length-1].log.log_id+1;
         self.order = 'down';
         self.options.view = lenctrl;
         self.update();
