@@ -103,7 +103,7 @@ $report = function(){
     anchor = anchor || $report.tabs();
     var self = this;
 
-    this.url = url.replace(/\/\d.*$/,'');
+    this.url = url && url.replace(/\/\d.*$/,'');
     this.order = order || 'down';
     this.options = $report.data(this.url, {view:20, view_coverage:false});
     var get = function(severity, attr) {
