@@ -158,6 +158,7 @@ $report = function(){
                 var result = coverage_cls(json);
                 $(cvg).text(result).addClass('cvg-'+result);
                 $(cvg).unbind('show.example'); // event.name // no need to do again
+                $(nRow).data('coverage', json);
               },
               error : function(xhr, status, index) {
                 var result = json.length?coverage_cls(json):'error';
