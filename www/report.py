@@ -109,7 +109,7 @@ class cvg(serve_something, database.cvg) :
   encapsulate=False
 
   def doit(self, **kwargs):
-    self.result(**kwargs).points().json(self.page)
+    json.dump(self.result(**kwargs).points().json(), self.page)
 
 ################################################################################
 

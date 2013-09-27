@@ -11,7 +11,7 @@ message.control.ERROR.threshold = 100
 
 # use verilog callback on each clock
 class cbClk(verilog.callback) :
-
+  ITERATIONS=200
   class assign(object) :
     types = {
       True  : [verilog.vpiBinStr, verilog.vpiOctStr, verilog.vpiHexStr],
@@ -46,8 +46,8 @@ class cbClk(verilog.callback) :
       if bits is None : bits = self.bits
       choice = self.choice()
       if choice == verilog.vpiDecStr :
-        # can't put too many bits in else MAXINT is used
-        bits &= self.mask
+        # can't put too many bits in else > MAXINT is used
+        bits &= (2L << self.size)-1L # self.mask
       return choice(bits)
 
     def choice(self) :
@@ -76,7 +76,7 @@ class cbClk(verilog.callback) :
       else :
         blk.put()
     self.count += 1
-    if self.count == 200 :
+    if self.count == self.ITERATIONS :
       # stop
       self.simctrl.direct.sim_ctrl_finish_r = 1
 
@@ -93,6 +93,7 @@ class cbClk(verilog.callback) :
 class test_vpi(test.test) :
   name='test vpi'
   MAX_INSTS=255
+  TIMEOUT=200
   def prologue(self) :
     # initialize random seed with deterministic value
     seed = verilog.plusargs().get('seed', 1)
@@ -102,7 +103,7 @@ class test_vpi(test.test) :
     arr = dict([(i, verilog.scope('example.duv_0_u.arr[%d].arr' % i)) for i in range(1,self.MAX_INSTS)])
     
     # up timeout beyond test time
-    simctrl.direct.sim_ctrl_timeout_i = 200
+    simctrl.direct.sim_ctrl_timeout_i = self.TIMEOUT
     # reduce time step
     simctrl.direct.sim_ctrl_cycles_freq_i = 1
     

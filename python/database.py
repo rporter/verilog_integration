@@ -1,5 +1,7 @@
 # Copyright (c) 2013 Rich Porter - see LICENSE for further details
 
+import collections
+
 import coverage
 import mdb
 import message
@@ -222,7 +224,7 @@ class cvg :
         else :
           coverage.hierarchy(parent.point_name, parent.desc, id=parent.point_id, root=parent.root == None, parent=parent.parent)
     def get_axes(self, nodes) :
-      return dict([(axis.axis_name, coverage.axis(axis.axis_name, **dict([(e.enum, e.enum_id) for e in enum]))) for axis, enum in index.groupby(nodes, lambda node : node.axis_id)])
+      return collections.OrderedDict([(axis.axis_name, coverage.axis(axis.axis_name, **dict([(e.enum, e.enum_id) for e in enum]))) for axis, enum in index.groupby(nodes, lambda node : node.axis_id)])
         
   class single :
     def __init__(self, log_id, goal_id=None) :

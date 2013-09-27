@@ -116,3 +116,26 @@
      height    : 1.1em;
      display   : inline-block;
    }
+
+   div.cvg-tree-pane        { float : left ; width : 30%; height : 100%; overflow-y : scroll; }
+   div.cvg-point-pane       { float : right; width : 70%; height : 100%; overflow-y : scroll; background : #eee }
+   div.cvg-point-pane table { table-layout: fixed; }
+   div.cvg-point-pane th.bkt{ width : 6em; }
+   div.cvg-point-pane th.selected { background : #66d }
+   table.bucket td          { width : 4em; }
+   div.cvg-point-pane a.popup span {width : 8em; }
+   div.cvg-pane ul.popup    { position: absolute; font-size : 0.5em }
+   div.cvg-pane ul.popup span.ui-icon { visibility:hidden; float : left; vertical-align : middle }
+   div.cvg-pane ul.popup span.check   { visibility:visible }
+
+
+   div.rgr div.left         { float : left ; width : 30%; height : 100%; overflow-y : scroll; }
+   div.rgr div.right        { float : right; width : 70%; height : 100%; overflow-y : scroll; background : #eee }
+
+   .hit         { background-color : #cfc }
+   .error       { background-color : #faa }
+   .unhit       { background-color : #fcc }
+   .some        { background-color : #ffc }
+   .dont_care   { background-color : #dff }
+   .illegal     { background-color : #eee }
+   .illegal_hit { background-color : #faa }

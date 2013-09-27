@@ -35,16 +35,18 @@ $coverage = function(){};
 
     function permsFromBucket(axes, bucket) {
       if (axes.length == 0) return ""; // terminal case
-      if (axes[0].visible === false) {
-        return permsFromBucket(axes.slice(1), bucket);
+      var last = axes.slice(-1)[0];
+      if (last.visible === false) {
+        return permsFromBucket(axes.slice(0, -1), bucket);
       }
-      return permsFromBucket(axes.slice(1), Math.floor(bucket/axes[0].values.length))+"<td>"+axes[0].values[bucket % axes[0].values.length]+"</td>";
+      return permsFromBucket(axes.slice(0, -1), Math.floor(bucket/last.values.length))+"<td>"+last.values[bucket % last.values.length]+"</td>";
     }
 
     function axisIdxs(bucket, axesSlice) {
       axesSlice = axesSlice || axes;
       if (axesSlice.length == 0) return []; // terminal case
-      return axisIdxs(Math.floor(bucket/axesSlice[0].values.length), axesSlice.slice(1)).concat([[bucket % axes[0].values.length, axesSlice[0].values.length]]);
+      var last = axesSlice.slice(-1)[0];
+      return axisIdxs(Math.floor(bucket/last.values.length), axesSlice.slice(0,-1)).concat([[bucket % last.values.length, last.values.length]]);
     }
 
     function bucketIdx(axisIdxs) {
@@ -301,7 +303,7 @@ $coverage = function(){};
         body.append('<tr class="' + classFromBucket(bkt) + '"><td title="' + title + '">' + bucket + '</td>' + permsFromBucket(axes, bucket) + '<td>' + bkt[0] + '</td><td class="hits" bkt="' + bucket + '">' + bkt[1] + '</td></tr>');
       }
       table = $('table', where).tablesorter();
-      if (coverpoint.cumulative) {
+      if (coverpoint.cumulative === true) {
         $('td.hits', body).bind('mouseenter.coverage', function() {
           showBucket($(this));
  	});
@@ -357,6 +359,7 @@ $coverage = function(){};
       }
       return false;
     }
+      console.log(cvg_tree_pane, generateCoverpointHierarchy(data));
 
     this.tree = cvg_tree_pane.dynatree({
       children : [generateCoverpointHierarchy(data),],

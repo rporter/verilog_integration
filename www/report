@@ -17,6 +17,8 @@ urlget $root/static/vline-rtl.gif        http://dynatree.googlecode.com/svn/trun
 urlget $root/static/vline.gif            http://dynatree.googlecode.com/svn/trunk/src/skin/vline.gif      
 urlget $root/static/jquery.dataTables.js http://www.datatables.net/download/build/jquery.dataTables.js
 urlget $root/static/jquery.jqote2.js     https://raw.github.com/aefxx/jQote2/master/jquery.jqote2.js
+urlget $root/static/jquery.tablesorter.js \
+                                         https://raw.github.com/Mottie/tablesorter/master/js/jquery.tablesorter.js
 
 LD_LIBRARY_PATH=$root/../python:$LD_LIBRARY_PATH \
 PYTHONPATH=.:$root/../python:$PYTHONPATH \

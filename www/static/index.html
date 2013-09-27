@@ -9,6 +9,7 @@
     <script src="static/jquery.dynatree.js" type="text/javascript"></script>
     <script src="static/jquery.jqote2.js"></script>
     <script src="static/jquery.dataTables.js"></script>
+    <script src="static/jquery.tablesorter.js"></script>
     <script type="text/javascript" src="static/report.js"></script>
     <script type="text/javascript" src="static/coverage.js"></script>
     <script type="text/javascript">
@@ -54,6 +55,32 @@
             <li id="abs" ><a href="#"><span class="uncheck ui-icon ui-icon-check"></span>Absolute</a></li>
           </ul>
         </li>
+      </ul>
+    </script>
+    <script type="text/html" id="cvg-point-menu">
+      <ul class="popup">
+        <li id="select"><a href="#"><span class="ui-icon ui-icon-check"></span>Select</a></li>
+        <li id="unselect"><a href="#"><span class="ui-icon ui-icon-check"></span>Unselect</a></li>
+        <li id="hide"><a href="#"><span class="ui-icon"></span>Hide</a></li>
+        <li id="hide-only"><a href="#"><span class="ui-icon"></span>Hide Only</a></li>
+        <li id="hide-others"><a href="#"><span class="ui-icon"></span>Hide Others</a></li>
+        <li>&nbsp;</li>
+        <li id="select-all"><a href="#"><span class="ui-icon"></span>Select All</a></li>
+        <li id="select-others"><a href="#"><span class="ui-icon"></span>Select Others</a></li>
+        <li id="unselect-all"><a href="#"><span class="ui-icon"></span>Unselect All</a></li>
+        <li id="invert"><a href="#"><span class="ui-icon"></span>Invert Selection</a></li>
+        <li>&nbsp;</li>
+        <li id="hide-selected"><a href="#"><span class="ui-icon"></span>Hide Selected</a></li>
+        <li id="unhide-all"><a href="#"><span class="ui-icon"></span>Unhide All</a></li>
+        <li>&nbsp;</li>
+        <li id="sort-up"><a href="#"><span class="ui-icon"></span>Sort Ascending</a></li>
+        <li id="sort-down"><a href="#"><span class="ui-icon"></span>Sort Descending</a></li>
+        <li>&nbsp;</li>
+        <li id="hide-dontcare"><a href="#"><span class="ui-icon ui-icon-check"></span>Hide Don't Cares</a></li>
+        <li id="hide-illegal"><a href="#"><span class="ui-icon ui-icon-check"></span>Hide Illegals</a></li>
+        <li id="hide-both"><a href="#"><span class="ui-icon ui-icon-check"></span>Hide Both</a></li>
+        <li>&nbsp;</li>
+        <li id="new-tab"><a href="#"><span class="ui-icon"></span>Hide in New Tab</a></li>
       </ul>
    </script>
  </head>

@@ -17,9 +17,9 @@ class test_cvg :
     'bits toggle'
     def __init__(self, signal, name=None, parent=None) :
       self.size   = signal.size
-      self.bit    = coverage.axis('bit', values=range(0, 1+self.size))
-      self.sense  = coverage.axis('sense', true=1, false=0)
-      self.fmt    = coverage.axis('fmt', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
+      self.bit    = self.add_axis('bit', values=range(0, 1+self.size))
+      self.sense  = self.add_axis('sense', true=1, false=0)
+      self.fmt    = self.add_axis('fmt', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
       coverage.coverpoint.__init__(self, signal, name, parent=parent)
 
     def define(self, bucket) :
@@ -30,8 +30,8 @@ class test_cvg :
   class coverpoint_format(coverage.coverpoint) :
     'read x write format'
     def __init__(self, signal, name=None, parent=None) :
-      self.fmt    = coverage.axis('fmt0', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
-      self.fmt    = coverage.axis('fmt1', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
+      self.fmt0   = coverage.axis('fmt0', parent=self, vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
+      self.fmt1   = coverage.axis('fmt1', parent=self, vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
       coverage.coverpoint.__init__(self, signal, name, parent=parent)
 
     def define(self, bucket) :
@@ -42,10 +42,12 @@ class test_cvg :
 ################################################################################
 
 class cbClk(test_vpi.cbClk) :
+  ITERATIONS=1000
   class assign(test_vpi.cbClk.assign) :
     def __init__(self, size, scope) :
       test_vpi.cbClk.assign.__init__(self, size, scope)
-      self.cvr_pt0 = test_cvg.coverpoint_sig(self.scope.sig0, name=scope.sig0.fullname)
+      self.container = coverage.hierarchy(scope.fullname)
+      self.cvr_pt0 = test_cvg.coverpoint_sig(self.scope.sig0, name='sig0', parent=self.container)
       self.cursor0 = self.cvr_pt0.cursor()
 
     def put(self) :
@@ -62,6 +64,7 @@ class cbClk(test_vpi.cbClk) :
 class test_vpi_coverage(test_vpi.test_vpi) :
   name='test vpi coverage'
   MAX_INSTS=20
+  TIMEOUT=1000
   def cb_fcty(self, *args) :
     'object factory'
     return cbClk(*args)

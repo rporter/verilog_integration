@@ -5,6 +5,15 @@ $report = function(){
 
 (function($report) {
 
+  var coverage_cls = function (log) {
+    if (!log.hasOwnProperty('coverage')) return 'unknown';
+    if (log.goal && log.coverage) return 'both';
+    if (log.goal)                 return 'goal';
+    if (log.coverage)             return 'cvg';
+    if (log.master)               return 'master'; // expected coverage
+    return 'none';
+  }
+
   $report.levels = {
     INT_DEBUG   : 0,
     DEBUG       : 1,
@@ -118,15 +127,6 @@ $report = function(){
       return '';
     }
 
-    var coverage_cls = function (log) {
-      if (!log.hasOwnProperty('coverage')) return 'unknown';
-      if (log.goal && log.coverage) return 'both';
-      if (log.goal)                 return 'goal';
-      if (log.coverage)             return 'cvg';
-      if (log.master)               return 'master'; // expected coverage
-      return 'none';
-    }
-
     this.render = function(available) {
       var container = $('<div><table class="display"></table></div>');
       self.container = container;
@@ -149,24 +149,7 @@ $report = function(){
         "iDisplayLength": available || self.options.view,
         "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
           var cvg = $('td:nth(8)', nRow).addClass('cvg').addClass('cvg-'+aData[8]);
-          $(cvg).bind('show.example', function(event) {
-            $.ajax({
-              url : '/cvr/'+aData[0],
-              dataType : 'json',
-              success : function(json) {
-                var result = coverage_cls(json);
-                $(cvg).text(result).addClass('cvg-'+result);
-                $(cvg).unbind('show.example'); // event.name // no need to do again
-                $(nRow).data('coverage', json);
-              },
-              error : function(xhr, status, index) {
-                var result = json.length?coverage_cls(json):'error';
-                $(cvg).text('error').addClass('cvg-error');
-                $(cvg).unbind('show.example'); // event.name // no need to do again
-                console.log(xhr, status, index);
-              }
-            });
-          });
+          $(cvg).bind('show.example', $report.testJSON.get_cvg(cvg, nRow, aData[0]));
           $(nRow).bind('click.example', {log_id : aData[0], children : aData[9], anchor : anchor},
             function(event) {
               var log;
@@ -175,7 +158,7 @@ $report = function(){
                 log = new $report.openRegr(event.data);
               } else {
                 // place report log in new tab
-                log = new $report.openLog(event.data);
+                log = new $report.openLog(event.data, undefined, nRow);
               }
               log.add(anchor);
             }
@@ -319,22 +302,64 @@ $report = function(){
 
   };
 
-  $report.openLog = function(data, anchor) {
+  $report.testJSON.get_cvg = function(cvg, nRow, log_id, onsuccess) {
+    return function(event) {
+      $.ajax({
+        url : '/cvr/'+log_id,
+        dataType : 'json',
+        success : function(json) {
+          var result = coverage_cls(json);
+          $(cvg).text(result).addClass('cvg-'+result);
+          $(cvg).unbind(event.type+'.'+event.namespace); // no need to do again
+          $(nRow).data('coverage', json);
+          if (onsuccess !== undefined) onsuccess(json);
+        },
+        error : function(xhr, status, index) {
+          var result = json.length?coverage_cls(json):'error';
+          $(cvg).text('error').addClass('cvg-error');
+          $(cvg).unbind(event.type+'.'+event.namespace); // no need to do again
+          console.log(xhr, status, index);
+        }
+      });
+    };
+  };
+
+  $report.openLog = function(data, anchor, node) {
     var self = this;
     this.id  = $report.tab_id();
-    this.div = $('<div/>', {class: "tab", id:self.id});
+    this.div  = $('<div/>', {class: "tab", id:self.id});
+    this.log  = $('<div/>', {class: "tab", id:"log"}).appendTo(this.div);
+    this.coverage = $(node).data('coverage');
     anchor = anchor || data.anchor;
+
+    this.wrap = function() {
+      // if we determine this has coverage we'll need to push log stuff into another tab
+      this.div.prepend('<ul><li><a href="#log">Log</a></li><li><a href="#cvg">Coverage</a></li></ul>');
+      this.cvg = $('<div/>', {class: "tab cvg-pane", id:"cvg"}).appendTo(this.div);
+      this.tabs = this.div.tabs();
+      $.ajax({
+        url : 'cvg/' + data.log_id,
+        dataType : 'json',
+        success : function(data) {
+          $coverage.coverage(self.cvg, data.log_id, data);
+        },
+        error : function(xhr, status, index) {
+          console.log(xhr, status, index);
+        }
+      });
+
+    }
 
     this.widget = function() {
       function has_ident(json) {
         return json[0].ident !== null || (json.length > 1 && has_ident(json.splice(1)));
       }
-      var nodes  = $('code', self.div);
-      var widget = $('<div class="widget"/>').appendTo(self.div);
+      var nodes  = $('code', self.log);
+      var widget = $('<div class="widget"/>').appendTo(self.log);
       var align  = function() {
-        widget.animate({top:$(self.div).scrollTop()},{duration:100,queue:false});
+        widget.animate({top:$(self.log).scrollTop()},{duration:100,queue:false});
       };
-      $(this.div).scroll(align);
+      $(this.log).scroll(align);
       // show/hide timestamp
       var show = $('<p class="show">Show<span class="ui-icon ui-icon-carat-1-s"></span></p>').appendTo(widget);
       var menu = $($('#menu').text()).appendTo(show).menu();
@@ -346,7 +371,7 @@ $report = function(){
         if ($('#hide span.ui-icon-check', time).hasClass('uncheck')) {
           $('span.ui-icon-check', time).addClass('uncheck');
           $('#hide span.ui-icon-check', time).removeClass('uncheck');
-          $('time', self.div).hide();
+          $('time', self.log).hide();
 	}
         menu.hide();
       });
@@ -354,8 +379,8 @@ $report = function(){
         if ($('#rel span.ui-icon-check', time).hasClass('uncheck')) {
           $('span.ui-icon-check', time).addClass('uncheck');
           $('#rel span.ui-icon-check', time).removeClass('uncheck');
-          $('time.abs', self.div).hide();
-          $('time.rel', self.div).show();
+          $('time.abs', self.log).hide();
+          $('time.rel', self.log).show();
  	}
         menu.hide();
       });
@@ -363,15 +388,15 @@ $report = function(){
         if ($('#abs span.ui-icon-check', time).hasClass('uncheck')) {
           $('span.ui-icon-check', time).addClass('uncheck');
           $('#abs span.ui-icon-check', time).removeClass('uncheck');
-          $('time.rel', self.div).hide();
-          $('time.abs', self.div).show();
+          $('time.rel', self.log).hide();
+          $('time.abs', self.log).show();
  	}
         menu.hide();
       });
 
       var ident = $('#ident', menu).bind('click.example', function () {
         $('#ident span.ui-icon-check', menu).toggleClass('uncheck');
-        $('ident', self.div).toggle();
+        $('ident', self.log).toggle();
         menu.hide();
       });
       if (has_ident(self.json)) {
@@ -391,11 +416,11 @@ $report = function(){
         max: $report.levels._SIZE-1,
         values: [ 0, $report.levels._SIZE-1 ]
       }).bind('slide.example', function(event, ui) {
-        self.div.hide();
+        self.log.hide();
         lower.text($report.levels.severity(ui.values[0]));
         upper.text($report.levels.severity(ui.values[1]));
         nodes.each(function(index){if(($(this).attr('level') >= ui.values[0]) && ($(this).attr('level') <= ui.values[1])){$(this).show()}else{$(this).hide()}})
-        self.div.show();
+        self.log.show();
       });
       slider.find(".ui-slider-handle:first")
         .append(lower)
@@ -442,7 +467,7 @@ $report = function(){
             {title : "Messages", isFolder : true, children : getBySeverity(nodes)},
         ],
         onActivate: function(node) {
-            self.div.animate({scrollTop : $(nodes[node.data.key]).offset().top - self.div.offset().top + self.div.scrollTop() - self.div.height()/2});
+            self.log.animate({scrollTop : $(nodes[node.data.key]).offset().top - self.log.offset().top + self.log.scrollTop() - self.log.height()/2});
         },
         onRender : function(dtnode, nodeSpan) {
           $('a', dtnode.li).hover(
@@ -459,12 +484,26 @@ $report = function(){
     }
 
     this.div.appendTo(anchor);
+    if (node !== undefined) {
+      function wrapif(cvg) {
+        cvg = cvg || self.coverage;
+        if (coverage_cls(cvg) !== 'none') {
+          self.wrap();
+        }
+      }
+      if (self.coverage === undefined) {
+        // fetch coverage
+        $report.testJSON.get_cvg($('td.cvg', node), node, data.log_id, wrapif)({type:'show', namespace:'example'});
+      } else {
+        wrapif();
+      }
+    }
     $.ajax({
       url : 'msgs/'+data.log_id,
       dataType : 'json',
       success : function(data) {
         self.json = data.map(function(msg){msg.seconds = msg.date - data[0].date; return msg});
-        self.div.jqoteapp('#template', self.json);
+        self.log.jqoteapp('#template', self.json);
         self.widget();
       },
       error : function(xhr, status, index) {
