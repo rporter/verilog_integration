@@ -67,7 +67,8 @@ class coverage :
     return 'unhit'
 
   def json(self) :
-    return '{goal : %d, hits : %d, status : "%s", coverage : %s, description : "%s"}' % (self.goal, self.hits, self.status(), self.coverage(), self.description())
+    'Dump as dict for json-ification'
+    return dict(goal=self.goal, hits=self.hits, status=self.status(), coverage=self.coverage(), description=self.description())
 
 ################################################################################
 
@@ -141,8 +142,9 @@ class bucket :
     else :
       return (idx, self.hits)
 
-  def json(self, chan) :
-    chan.write('[%d,%d],' % (self.adj_goal(), self.hits))
+  def json(self) :
+    'Dump as list for json-ification'
+    return (self.adj_goal(), self.hits)
 
 ################################################################################
 
@@ -164,8 +166,10 @@ class axis :
 
   """
 
-  def __init__(self, name=None, values=None, start=0, **enums) :
+  def __init__(self, name=None, parent=None, values=None, start=0, **enums) :
     self.name = name or "None Given"
+    if parent :
+      parent.add_axis(self)
     if values is not None :
       if isinstance(values, dict) :
         self.values = values
@@ -214,8 +218,9 @@ class axis :
   def __get__(self, instance, owner) :
     return self.value
 
-  def json(self, chan) :
-    chan.write('{name : "%s", values : %s},' % (self.name, str([enum for enum in self.get_enums()])))
+  def json(self) :
+    'Dump as dict for json-ification'
+    return dict(name=self.name, values=map(str, self.get_enums()))
 
   def sql(self, inst) :
     return inst.axis(self)
@@ -305,13 +310,9 @@ class hierarchy :
       chan.write('</ul>')
     chan.write('</li>')
 
-  def json(self, chan=sys.stdout) :
-    'Dump as json'
-    chan.write('{hierarchy : "%(name)s", description : "%(description)s", id : %(id)d,' % self.__dict__)
-    chan.write('coverage : ' + self.coverage().json() +', children : [')
-    for child in self.children :
-      child.json(chan)
-    chan.write(']},\n')
+  def json(self) :
+    'Dump as dict for json-ification'
+    return dict(hierarchy=self.name, description=self.description, id=self.id, coverage=self.coverage().json(), children=[child.json() for child in self.children])
 
   def sql(self, inst) :
     return inst.hierarchy(self)
@@ -362,6 +363,9 @@ class coverpoint(hierarchy) :
     self.model       = model
     # if given merge axes
     self.__dict__.update(axes)
+    # if an OrderedDict is used then order preserved
+    if axes :
+      self._axes = axes.items()
     # this is a generator that yields the bucket defaults as a dictionary
     self.defaults    = defaults
     self.cumulative  = str(cumulative).lower() # jsonify
@@ -386,10 +390,11 @@ class coverpoint(hierarchy) :
     'add axis'
     if hasattr(self, name) :
       raise coverageError('axis name ' + name + ' already exists')
-    setattr(self, name, axis(**kwargs))
+    setattr(self, name, axis(name=name, **kwargs))
     if not hasattr(self, '_axes') :
       self._axes = list()
     self._axes.append((name, getattr(self, name)))
+    return getattr(self, name)
 
   def axes(self) :
     'determine axes'
@@ -469,16 +474,9 @@ class coverpoint(hierarchy) :
         messages.CVG_20(name=self.name, cvg=self.coverage().format(), hits=self.hits, goal=self.goal, offset=self.offset, buckets=self.num_of_buckets())
     return self.coverage()
 
-  def json(self, chan=sys.stdout) :
-    'Dump as json'
-    chan.write('{coverpoint : "%(name)s", description : "%(description)s", id : %(id)d, cumulative : %(cumulative)s, ' % self.__dict__)
-    chan.write('coverage : ' + self.coverage().json() + ', offset : ' + str(self.offset) + ', axes : [')
-    for axis in self.get_axes() :
-      axis.json(chan)
-    chan.write('], buckets : [')
-    for bucket in self.buckets :
-      bucket.json(chan)
-    chan.write(']},\n')
+  def json(self) :
+    'Dump as dict for json-ification'
+    return dict(coverpoint=self.name, description=self.description, id=self.id, cumulative=self.cumulative, coverage=self.coverage().json(), offset=self.offset, axes=[axis.json() for axis in self.get_axes()], buckets=[bucket.json() for bucket in self.buckets])
 
   def sql(self, inst) :
     return inst.coverpoint(self)
