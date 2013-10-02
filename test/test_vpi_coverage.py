@@ -30,14 +30,25 @@ class test_cvg :
   class coverpoint_format(coverage.coverpoint) :
     'read x write format'
     def __init__(self, signal, name=None, parent=None) :
-      self.fmt0   = coverage.axis('fmt0', parent=self, vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
-      self.fmt1   = coverage.axis('fmt1', parent=self, vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
+      self.fmt0 = self.add_axis('fmt0', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
+      self.fmt1 = self.add_axis('fmt1', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
       coverage.coverpoint.__init__(self, signal, name, parent=parent)
 
     def define(self, bucket) :
       'set goal'
       # no dont cares or illegals
       bucket.default(goal=10)
+
+  class coverpoint_iterations(coverage.coverpoint) :
+    ''
+    def __init__(self, signal, name=None, parent=None) :
+      self.count = self.add_axis('count', count=0)
+      coverage.coverpoint.__init__(self, signal, name, parent=parent)
+
+    def define(self, bucket) :
+      'set goal'
+      # no dont cares or illegals
+      bucket.default(goal=100)
 
 ################################################################################
 
@@ -49,13 +60,17 @@ class cbClk(test_vpi.cbClk) :
       self.container = coverage.hierarchy(scope.fullname)
       self.cvr_pt0 = test_cvg.coverpoint_sig(self.scope.sig0, name='sig0', parent=self.container)
       self.cursor0 = self.cvr_pt0.cursor()
+      self.cvr_pt1 = test_cvg.coverpoint_format(self.scope.sig0, name='sig0 x sig1', parent=self.container)
+      self.cursor1 = self.cvr_pt1.cursor()
 
     def put(self) :
       sig0 = self.value(self.rand())
+      sig1 = self.value()
       self.scope.direct.sig0 = sig0
-      self.scope.direct.sig1 = self.value()
+      self.scope.direct.sig1 = sig1
       for i in range(0, 1+self.cvr_pt0.size) :
         self.cursor0(bit=i, sense='true' if sig0[i] else 'false', fmt=sig0.__class__.__name__).incr()
+      self.cursor1(fmt0=sig0.__class__.__name__, fmt1=sig1.__class__.__name__).incr()
 
   def fcty(self, *args) :
     'object factory'
