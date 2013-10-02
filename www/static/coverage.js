@@ -4,7 +4,7 @@ $coverage = function(){};
 
 (function($coverage) {
 
-  $coverage.coverageTable = function coverageTable(log_id, where, coverpoint, options) {
+  $coverage.coverageTable = function coverageTable(log_id, where, name, coverpoint, options) {
     var self    = this;
     var buckets = coverpoint.buckets;
     var axes    = $.extend(true, [], coverpoint.axes);
@@ -286,7 +286,7 @@ $coverage = function(){};
     }
 
     this.build = function build() {
-      where.html('<table><thead><tr><th class="bkt">bucket</th>' + axes.reduce(function(p, c, idx){return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))}, '') + '<th>goal</th><th>hits</th></thead><tbody id="cvg-point-body"></tbody></table>');
+      where.html('<h3>' + name + '</h3><table><thead><tr><th class="bkt">bucket</th>' + axes.reduce(function(p, c, idx){return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))}, '') + '<th>goal</th><th>hits</th></thead><tbody id="cvg-point-body"></tbody></table>');
 
       addMenu();
       var body = $("#cvg-point-body", where);
@@ -326,8 +326,9 @@ $coverage = function(){};
     var cvg_point_pane = $('<div class="cvg-point-pane"></div>').appendTo(pane);
     var cvg_tree_pane  = $('<div class="cvg-tree-pane"></div>' ).appendTo(pane);
 
-    function generateCoverpointHierarchy(coverpoint, expand) {
-      var node = {key : coverpoint.id, expand : expand || false, unselectable: true};
+    function generateCoverpointHierarchy(coverpoint) {
+      coverpoint = coverpoint || data;
+      var node = {key : coverpoint.id, expand : false, unselectable: true};
       var title;
       if (coverpoint.hierarchy) {
           title = coverpoint.hierarchy;
@@ -347,25 +348,40 @@ $coverage = function(){};
       return node;
     }
 
-    function findCoverpointJSON(coverpoint, id) {
+    function findCoverpointJSON(id, coverpoint) {
+      coverpoint = coverpoint || data;
       if (coverpoint.id == id) {
         return coverpoint;
       }
       for (child in coverpoint.children) {
-        found = findCoverpointJSON(coverpoint.children[child], id);
+        var found = findCoverpointJSON(id, coverpoint.children[child]);
         if (found) {
           return found;
         }
       }
       return false;
     }
-      console.log(cvg_tree_pane, generateCoverpointHierarchy(data));
+
+    function getCoverpointName(id, coverpoint) {
+      coverpoint = coverpoint || data;
+      if (coverpoint.id == id) {
+        return '<a class="hierarchy" title="'+coverpoint.description+'">'+coverpoint.coverpoint+'</a>';
+      }
+      for (child in coverpoint.children) {
+        var found = getCoverpointName(id, coverpoint.children[child]);
+        if (found) {
+          return '<a class="hierarchy" title="'+coverpoint.description+'">'+coverpoint.hierarchy+'</a> >> ' + found;
+        }
+      }
+      return false;
+    }
 
     this.tree = cvg_tree_pane.dynatree({
-      children : [generateCoverpointHierarchy(data),],
+      children : [generateCoverpointHierarchy(),],
       onClick: function(node, event) {
-        if (node.getEventTargetType(event) == "title") {
-          $coverage.coverageTable(log_id, cvg_point_pane, findCoverpointJSON(data, node.data.key));
+        var json = findCoverpointJSON(node.data.key);
+        if (json !== false && json.hasOwnProperty('coverpoint')) {
+          $coverage.coverageTable(log_id, cvg_point_pane, getCoverpointName(node.data.key), json);
           return false;
         }
       }

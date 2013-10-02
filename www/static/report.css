@@ -127,7 +127,8 @@
    div.cvg-pane ul.popup    { position: absolute; font-size : 0.5em }
    div.cvg-pane ul.popup span.ui-icon { visibility:hidden; float : left; vertical-align : middle }
    div.cvg-pane ul.popup span.check   { visibility:visible }
-
+   div.cvg-pane h3          { text-align : center }
+   div.cvg-pane a.hierarchy { font-family : monospace }
 
    div.rgr div.left         { float : left ; width : 30%; height : 100%; overflow-y : scroll; }
    div.rgr div.right        { float : right; width : 70%; height : 100%; overflow-y : scroll; background : #eee }
