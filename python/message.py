@@ -13,7 +13,7 @@ class SeverityError(Exception) : pass
 
 ################################################################################
 
-class message(object) :
+class message :
   instance = exm_msg.message.instance()
   level    = None
 
@@ -46,6 +46,9 @@ class message(object) :
   def summary(cls, display=True) :
     if display is False :
       terminate_cbs.rm('summary')
+  @classmethod
+  def terminating(cls) :
+    return cls.instance.terminating()
 
 ################################################################################
 
@@ -126,7 +129,11 @@ class callback(object) :
   def __init__(self, cb_map) :
     self.cb_map = cb_map
     self.callbacks = dict()
-    atexit.register(self.finalize)
+    # this runs when the python interpreter exits, before the message lib finishes
+    atexit.register(self.atexit)
+  def atexit(self) :
+    if message.terminating() : return
+    self.finalize()
   def finalize(self) :
     for name, cb in self.callbacks.items() :
       int_debug('deleting callback ' + name)
@@ -142,7 +149,7 @@ class callback(object) :
       self.callbacks[name] = callback.python(message=msg_fn, finalize=fin_fn)
   def rm(self, name) :
     try :
-      self.callbacks[name].finalize()
+      if self.callbacks[name].finalize is not None : self.callbacks[name].finalize()
     except KeyError, AttributeError :
       message.debug('callback finalize %(name)s raised exception %(exc)s', name=name, exc=sys.exc_info[0])
     self.cb_map.rm_callback(name)

@@ -168,6 +168,7 @@ class message {
   msg_tags tags;
 
   int terminating_cnt;
+  bool terminated;
   control attrs[MAX_LEVEL];
 
   unsigned int filter(unsigned int level);
@@ -177,8 +178,8 @@ class message {
   ~message();
 
   static message* instance();
-  static void destroy();
-  static void terminate();
+  static void do_terminate();
+  static int  terminate();
   static int  terminating();
 
   static char* name(int level);

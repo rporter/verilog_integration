@@ -31,7 +31,7 @@ class vpiInfo(object) :
       vpi.vpi_get_vlog_info(self._instance)
     return self._instance
 
-class platform(object) :
+class platform :
   iverilog  = 'Icarus Verilog'
   verilator = 'Verilator'
   @classmethod
@@ -43,7 +43,7 @@ class platform(object) :
 
 ################################################################################
 
-class vpiChkError(object) :
+class vpiChkError :
   def __init__(self, echo=False) :
     self.error_info = vpi.s_vpi_error_info()
     if vpi.vpi_chk_error(self.error_info) and echo :
@@ -51,7 +51,7 @@ class vpiChkError(object) :
 
 ################################################################################
 
-class vpiVar(object) :
+class vpiVar :
   vpi_type = None
   def __init__(self, value=None) :
     self.vpi_value        = vpi.s_vpi_value()
@@ -112,7 +112,7 @@ class vpiString(vpiVar) :
     return self
   def encode(self, value) :
     self.vpi_value.value.str = self.cast(value)
-    self.copy = self.vpi_value.value.str
+    self.copy = str(self.vpi_value.value.str)
   def decode(self) :
     return self.copy
 
@@ -132,9 +132,9 @@ class vpiNumStr(vpiString) :
     return self
   def encode(self, value) :
     self.vpi_value.value.str = self.cast(value).rstrip('L')
-    if platform.is_icarus() :
-      self.vpi_value.value.str = self.vpi_value.value.str.lstrip('0b')
-    self.copy = self.vpi_value.value.str
+    if platform.is_icarus() and self.vpi_value.value.str.startswith('0b') :
+      self.vpi_value.value.str = self.vpi_value.value.str[2:]
+    self.copy = str(self.vpi_value.value.str)
   def decode(self) :
     if platform.is_icarus() :
       return self.copy.replace('X','0').replace('x','0')
@@ -185,7 +185,7 @@ class vpiSuppress(vpiVar) :
 
 ################################################################################
 
-class viterate(object) :
+class viterate :
   vpi_default = None
   def __init__(self, handle, _type=None) :
     self.vpi_i = vpi.vpi_iterate(_type or self.vpi_default, handle)
@@ -491,7 +491,7 @@ class scope(vpiObject) :
 
 ################################################################################
 
-class callback(object) :
+class callback :
   callbacks = list()
 
   cbValueChange            = vpi.cbValueChange            
@@ -589,9 +589,12 @@ class callback(object) :
 
   def remove(self) :
     message.note('callback "%(name)s" called %(cnt)d times, filtered %(filtered)d, exceptions raised %(excepted)d', cnt=self.cnt, filtered=self.filtered, excepted=self.excepted, name=self.name)
-    vpi.vpi_remove_cb(self.cb)
-    self.vpi_chk_error = vpiChkError()
-    vpi.vpi_free_object(self.cb)
+    # e.g. Icarus can return null pointer for unsupported reasons,
+    # so test non NULL/None object prior to remove/free
+    if self.cb :
+      vpi.vpi_remove_cb(self.cb)
+      self.vpi_chk_error = vpiChkError()
+      vpi.vpi_free_object(self.cb)
     self.callbacks.remove(self)
 
   @classmethod

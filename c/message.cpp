@@ -7,10 +7,10 @@ namespace example {
 static void cb_account(const cb_id& id, unsigned int level, timespec& when, char* severity, const tag* tag, char *file, unsigned int line, char* text) {
   control* attr = message::get_ctrl(level);
   if (attr->increment()) {
-    if (!message::terminating()) {
+    if (!message::terminate()) {
       FATAL("Too many %s", severity);
     }
-    message::terminate();
+    message::do_terminate();
   }
 }
 
@@ -133,7 +133,7 @@ int control::toomany() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-message::message() : terminating_cnt(0) {
+  message::message() : terminating_cnt(0), terminated(false) {
   cb_emit.insert("account", 99, cb_account);
   cb_emit.insert("default", 0, cb_emit_default);
   cb_terminate.insert("summary", 98, cb_terminate_summary);
@@ -152,30 +152,32 @@ message::message() : terminating_cnt(0) {
 }
 
 message::~message() {
-  terminate();
+  do_terminate();
 }
 
 message* message::instance() {
   if (NULL == self) {
     self = new message();
-    atexit(message::destroy);
+    atexit(message::do_terminate);
   }
   return self;
 }
 
-void message::destroy() {
-  delete self;
-}
-
-void message::terminate() {
+void message::do_terminate() {
+  if (instance()->terminated) return;
+  instance()->terminated = true; // don't do this again
   callbacks<cb_terminate_fn>::map_t* cbs = self->cb_terminate.get_map();
   for (callbacks<cb_terminate_fn>::map_t::iterator _cb = cbs->begin(); _cb != cbs->end(); _cb++) {
     _cb->second(_cb->first);
   }
 }
 
-int message::terminating() {
+int message::terminate() {
   return message::self->terminating_cnt++;
+}
+
+int message::terminating() {
+  return message::self->terminating_cnt;
 }
 
 char* message::name(int level) {

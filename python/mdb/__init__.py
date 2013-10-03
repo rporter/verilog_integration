@@ -57,8 +57,8 @@ class _mdb(object) :
     # create log entry for this run
     self.log_id = self.log(os.getuid(), socket.gethostname(), self.abv, self.root, self.parent, description)
     # install callbacks
-    message.emit_cbs.add('mdb emit', 1, self.add, self.finalize)
-    message.terminate_cbs.add('mdb terminate', 1, self.finalize, self.finalize)
+    message.emit_cbs.add('mdb emit', 1, self.add, None)
+    message.terminate_cbs.add('mdb terminate', 20, self.finalize, self.finalize)
     # flush queue every half second
     self.timer = self.repeatingTimer(0.5, self.flush)
     self.timer.start()
@@ -69,7 +69,7 @@ class _mdb(object) :
   def filter(self, cb_id, level, filename) :
     return False
 
-  def finalize(self, inst=None) :
+  def finalize(self, *args) :
     'set test status & clean up'
     if self.timer.running() :
       message.debug('... bye')

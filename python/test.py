@@ -10,7 +10,7 @@ class epilogue(verilog.callback) :
   def __init__(self, func) :
     verilog.callback.__init__(self, name='epilogue callback', reason=verilog.callback.cbEndOfSimulation, func=func)
 
-class test(object) :
+class test :
   default_db = '../db/mdb.db'
   activity=None
   block=None
@@ -20,10 +20,10 @@ class test(object) :
   def __init__(self, name=None, activity=None, block=None, db=None) :
     self.epilogue_cb = epilogue(self.end_of_simulation)
     self.name = name or self.name
-    self.is_success = False
+    self.is_success = None
     activity = activity or self.activity
     block = block or self.block
-    message.terminate_cbs.add(self.name, 20, self.callback, self.check_success)
+    message.terminate_cbs.add(self.name, 10, self.terminate, self.check_success)
     try :
       mdb.db.connection.set_default_db(db=self.get_db())
       self.mdb = mdb.mdb(self.name, activity=activity, block=block)
@@ -45,17 +45,23 @@ class test(object) :
   def get_db(self) :
     return verilog.plusargs().db or self.default_db
 
-  def end_of_simulation(self) :
+  def terminate(self, *args) :
+    self.end_of_simulation(False)
+
+  def end_of_simulation(self, run_epilogue=True) :
     'Wrapper for epilogue'
     message.debug('End of Simulation')
-    try :
-      self.epilogue()
-    except :
-      exc = sys.exc_info()
-      message.error('epilogue failed because ' + str(exc[0]))
-      self.traceback(exc[2])
-    # remove fatal callback
-    message.terminate_cbs.rm(self.name)
+    if run_epilogue :
+      try :
+        self.epilogue()
+      except :
+        exc = sys.exc_info()
+        message.error('epilogue failed because ' + str(exc[0]))
+        self.traceback(exc[2])
+      # remove fatal callback
+      message.terminate_cbs.rm(self.name)
+    else :
+      message.note('Not running epilogue due to early terminate')
     # tidy up
     mdb.finalize_all()
     # coverage
@@ -65,7 +71,11 @@ class test(object) :
     verilog.callback.remove_all()
 
   def callback(self) :
-    message.int_debug('test default callback for ' + self.mdb.abv.activity + ' ' + self.mdb.abv.block )
+    try :
+      message.int_debug('test default callback for ' + self.mdb.abv.activity + ' ' + self.mdb.abv.block )
+    except :
+      # if we haven't set abv yet and above excepts
+      message.int_debug('test default callback')
 
   def prologue(self) :
     message.warning('no prologue defined')
@@ -88,11 +98,13 @@ class test(object) :
     self.FATAL()
 
   def check_success(self) :
-    if not self.is_success :
+    if self.is_success != True :
       self.fatal()
 
   def success(self) :
     'Generic success hook'
+    if self.is_success is not None :
+      message.warning('success() called after test issue (status : %(status)s)', status=str(self.is_success))
     self.is_success = True
     self.SUCCESS()
 

@@ -47,7 +47,8 @@ class cbClk(verilog.callback) :
       choice = self.choice()
       if choice == verilog.vpiDecStr :
         # can't put too many bits in else > MAXINT is used
-        bits &= (2L << self.size)-1L # self.mask
+        #bits &= (2L << self.size)-1L # why do we coverage hole if this is not used?
+        bits &= self.mask
       return choice(bits)
 
     def choice(self) :

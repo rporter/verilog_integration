@@ -247,7 +247,7 @@ class cvg :
   class cumulative(single) :
     def coverage(self) :
       with mdb.db.connection().row_cursor() as db :
-        db.execute('SELECT goal.goal, IFNULL(cumulative.hits, 0) AS hits FROM goal LEFT OUTER NATURAL JOIN (SELECT bucket_id, SUM(hits.hits) AS hits FROM hits JOIN (SELECT log_id FROM log WHERE root=%(log_id)s AND parent != NULL) AS runs ON (log_id) GROUP BY bucket_id) AS cumulative WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;' % self.__dict__)
+        db.execute('SELECT goal.goal, IFNULL(cumulative.hits, 0) AS hits FROM goal LEFT OUTER NATURAL JOIN (SELECT bucket_id, SUM(hits.hits) AS hits, COUNT(hits.hits) as tests FROM hits JOIN (SELECT log_id FROM log WHERE root=%(log_id)s AND parent != NULL) AS runs ON (log_id) GROUP BY bucket_id) AS cumulative WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;' % self.__dict__)
         return db.fetchall()
 
   def result(self, log_id, goal_id=None, cumulative=False) :
