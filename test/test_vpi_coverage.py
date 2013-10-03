@@ -17,7 +17,7 @@ class test_cvg :
     'bits toggle'
     def __init__(self, signal, name=None, parent=None) :
       self.size   = signal.size
-      self.bit    = self.add_axis('bit', values=range(0, 1+self.size))
+      self.bit    = self.add_axis('bit', values=range(0, self.size))
       self.sense  = self.add_axis('sense', true=1, false=0)
       self.fmt    = self.add_axis('fmt', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
       coverage.coverpoint.__init__(self, signal, name, parent=parent)
@@ -68,7 +68,7 @@ class cbClk(test_vpi.cbClk) :
       sig1 = self.value()
       self.scope.direct.sig0 = sig0
       self.scope.direct.sig1 = sig1
-      for i in range(0, 1+self.cvr_pt0.size) :
+      for i in self.cvr_pt0.bit.get_values() :
         self.cursor0(bit=i, sense='true' if sig0[i] else 'false', fmt=sig0.__class__.__name__).incr()
       self.cursor1(fmt0=sig0.__class__.__name__, fmt1=sig1.__class__.__name__).incr()
 
