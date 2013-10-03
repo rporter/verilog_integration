@@ -32,11 +32,11 @@ class cbClk(verilog.callback) :
 
     def check(self, sig0, sig1) :
       if long(sig0) != long(sig1) :
-        message.error("sig0(%x, %s) != sig1(%x, %s) when value(%x)" % (long(sig0), repr(sig0), long(sig1), repr(sig1), self.bits))
+        message.error("sig0(%x, %s) != sig1(%x, %s) when value(%d'h%x)" % (long(sig0), repr(sig0), long(sig1), repr(sig1), self.size, self.bits))
       if long(sig0) != self.val :
-        message.error("sig0(%x, %s) != value(%x) when value(%x)" % (long(sig0), repr(sig0), self.bits, self.bits))
+        message.error("sig0(%x, %s) != value(%x) when value(%d'h%x)" % (long(sig0), repr(sig0), self.bits, self.size, self.bits))
       if long(sig1) != self.val :
-        message.error("sig1(%x, %s) != value(%x) when value(%x)" % (long(sig1), repr(sig1), self.bits, self.bits))
+        message.error("sig1(%x, %s) != value(%x) when value(%d'h%x)" % (long(sig1), repr(sig1), self.bits, self.size, self.bits))
 
     def put(self) :
       self.scope.direct.sig0 = self.value(self.rand())

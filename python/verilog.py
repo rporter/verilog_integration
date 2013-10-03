@@ -132,7 +132,7 @@ class vpiNumStr(vpiString) :
     return self
   def encode(self, value) :
     self.vpi_value.value.str = self.cast(value).rstrip('L')
-    if platform.is_icarus() and self.vpi_value.value.str.startswith('0b') :
+    if platform.is_icarus() and (self.vpi_value.value.str.startswith('0b') or self.vpi_value.value.str.startswith('0x')):
       self.vpi_value.value.str = self.vpi_value.value.str[2:]
     self.copy = str(self.vpi_value.value.str)
   def decode(self) :
