@@ -28,7 +28,7 @@ class test_cvg :
       bucket.default(goal=10)
 
   class coverpoint_format(coverage.coverpoint) :
-    'read x write format'
+    'format x format'
     def __init__(self, signal, name=None, parent=None) :
       self.fmt0 = self.add_axis('fmt0', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
       self.fmt1 = self.add_axis('fmt1', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
@@ -62,6 +62,8 @@ class cbClk(test_vpi.cbClk) :
       self.cursor0 = self.cvr_pt0.cursor()
       self.cvr_pt1 = test_cvg.coverpoint_format(self.scope.sig0, name='sig0 x sig1', parent=self.container)
       self.cursor1 = self.cvr_pt1.cursor()
+      self.cvr_pt2 = test_cvg.coverpoint_format(self.scope.sig0, name='sig0 : write fmt x read format', parent=self.container)
+      self.cursor2 = self.cvr_pt2.cursor()
 
     def put(self) :
       sig0 = self.value(self.rand())
@@ -71,6 +73,17 @@ class cbClk(test_vpi.cbClk) :
       for i in self.cvr_pt0.bit.get_values() :
         self.cursor0(bit=i, sense='true' if sig0[i] else 'false', fmt=sig0.__class__.__name__).incr()
       self.cursor1(fmt0=sig0.__class__.__name__, fmt1=sig1.__class__.__name__).incr()
+      # use cursor to remember state for get()
+      self.cursor2(fmt0=sig0.__class__.__name__)
+
+    def get(self) :
+      if not hasattr(self, 'bits') : return
+      # cross these choices
+      sig0 = self.scope.sig0.get_value(self.choice())
+      sig1 = self.scope.sig1.get_value(self.choice())
+      # fmt0 state remembered from put() funtion, and increment
+      self.cursor2(fmt1=sig0.__class__.__name__).incr()
+      self.check(sig0, sig1)
 
   def fcty(self, *args) :
     'object factory'
