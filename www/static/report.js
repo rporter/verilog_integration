@@ -88,6 +88,7 @@ $report = function(){
       load : function(tab, ui) { 
         hijax(ui.panel); 
       },
+      panelTemplate: '<div class="tab"></div>',
       tabTemplate: '<li><a href="#{href}">#{label}</a><a href="#" class="icon"><span class="ui-icon ui-icon-close"></span><span class="ui-icon ui-icon-refresh"></span></a></li>'
     });
     // close icon: removing the tab on click
@@ -328,14 +329,17 @@ $report = function(){
     var self = this;
     this.id  = $report.tab_id();
     this.div  = $('<div/>', {class: "tab", id:self.id});
-    this.log  = $('<div/>', {class: "tab", id:"log"}).appendTo(this.div);
+    this.log  = $('<div/>', {		   id:"log"}).appendTo(this.div);
     this.coverage = $(node).data('coverage');
     anchor = anchor || data.anchor;
 
     this.wrap = function() {
       // if we determine this has coverage we'll need to push log stuff into another tab
+      // firstly remove scrolling behaviour of parent tab
+      this.div.removeClass('tab');
+      this.log.addClass('tab');
       this.div.prepend('<ul><li><a href="#log">Log</a></li><li><a href="#cvg">Coverage</a></li></ul>');
-      this.cvg = $('<div/>', {class: "tab cvg-pane", id:"cvg"}).appendTo(this.div);
+      this.cvg = $('<div/>', {class: "cvg-pane", id:"cvg"}).appendTo(this.div);
       this.tabs = this.div.tabs();
       $.ajax({
         url : 'cvg/' + data.log_id,

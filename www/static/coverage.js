@@ -286,7 +286,7 @@ $coverage = function(){};
     }
 
     this.build = function build() {
-      where.html('<h3>' + name + '</h3><table><thead><tr><th class="bkt">bucket</th>' + axes.reduce(function(p, c, idx){return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))}, '') + '<th>goal</th><th>hits</th></thead><tbody id="cvg-point-body"></tbody></table>');
+      where.html('<h3>' + name + '</h3><div class="t"><table><thead><tr><th class="bkt">bucket</th>' + axes.reduce(function(p, c, idx){return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))}, '') + '<th>goal</th><th>hits</th></thead><tbody id="cvg-point-body"></tbody></table></div>');
 
       addMenu();
       var body = $("#cvg-point-body", where);

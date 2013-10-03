@@ -1,4 +1,6 @@
 /* Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details */
+   body { overflow-y : hidden }
+
    p  { white-space : pre; }
 
    table       { width : 100%; border-collapse : collapse ; border: 2px solid black ; font-family : sans-serif ; font-size : 12px }
@@ -25,7 +27,7 @@
    result fail  { background-color : #f88 }
    result other { background-color : #88f }
 
-   div.tab     { height: 600px; overflow: auto; position : relative }
+   div.tab     { height : 80%; overflow-y: scroll; position : relative }
    a.icon      { padding : 0 ! important }
    code        { display: block; white-space : pre }
    code.INT_DEBUG   { color : #888 }
@@ -117,18 +119,22 @@
      display   : inline-block;
    }
 
-   div.cvg-tree-pane        { float : left ; width : 30%; height : 100%; overflow-y : scroll; }
-   div.cvg-point-pane       { float : right; width : 70%; height : 100%; overflow-y : scroll; background : #eee }
-   div.cvg-point-pane table { table-layout: fixed; }
+   div.cvg div              { display : inline }
+   div.cvg-pane		    { height : 80% }
+   div.cvg-pane ul.popup    { position: absolute; font-size : 0.5em }
+   div.cvg-pane ul.popup span.ui-icon { visibility:hidden; float : left; vertical-align : middle }
+   div.cvg-pane ul.popup span.check   { visibility:visible }
+   div.cvg-pane h3          { text-align : center ; margin : 0; height : 5%}
+   div.cvg-pane a.hierarchy { font-family : monospace }
+   div.cvg-tree-pane        { float : left ; width : 30% }
+   div.cvg-tree-pane  div   { overflow-y : scroll  }
+   div.cvg-point-pane       { float : right; width : 70%; background : #eee }
+   div.cvg-point-pane div.t  { height : 95% ; overflow-y : scroll}
+   div.cvg-point-pane table { table-layout: fixed }
    div.cvg-point-pane th.bkt{ width : 6em; }
    div.cvg-point-pane th.selected { background : #66d }
    table.bucket td          { width : 4em; }
    div.cvg-point-pane a.popup span {width : 8em; }
-   div.cvg-pane ul.popup    { position: absolute; font-size : 0.5em }
-   div.cvg-pane ul.popup span.ui-icon { visibility:hidden; float : left; vertical-align : middle }
-   div.cvg-pane ul.popup span.check   { visibility:visible }
-   div.cvg-pane h3          { text-align : center }
-   div.cvg-pane a.hierarchy { font-family : monospace }
 
    div.rgr div.left         { float : left ; width : 30%; height : 100%; overflow-y : scroll; }
    div.rgr div.right        { float : right; width : 70%; height : 100%; overflow-y : scroll; background : #eee }
