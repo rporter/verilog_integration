@@ -181,14 +181,7 @@ $report = function(){
    	    '<option value="100">100</option>'+
    	    '</select> records</div></div>').appendTo(control);
         $('option[value='+self.options.view+']', lenctrl).attr('selected', 1);
-        $('<input type="checkbox"/>').change(function() {
-          self.options.view_coverage = $(this).is(':checked');
-          if (self.options.view_coverage) {
-            self.coverage.show().trigger('show.example');
-          } else {
-            self.coverage.hide();
-          }
-        }).appendTo(lenctrl).attr('checked', self.options.view_coverage).wrap('<div>Show Coverage</div>');
+        $('<input type="checkbox"/>').appendTo(lenctrl).attr('checked', self.options.view_coverage).wrap('<div>Show Coverage</div>');
         var navigation = $('<div class="navigation"></div>');
         $('<span class="ui-icon ui-icon-seek-first"></span>').attr('title', 'first').appendTo(navigation);
         $('<span class="ui-icon ui-icon-seek-prev"></span>').attr('title', 'previous').appendTo(navigation);
@@ -202,6 +195,15 @@ $report = function(){
         $('span.ui-icon-seek-prev',  container).bind('click.example', self.prev);
         $('span.ui-icon-seek-next',  container).bind('click.example', self.next);
         $('span.ui-icon-seek-end',   container).bind('click.example', self.end);
+        $('input', container).change(function() {
+          self.options.view_coverage = $(this).is(':checked');
+          $('input', container).attr('checked', self.options.view_coverage);
+          if (self.options.view_coverage) {
+            self.coverage.show().trigger('show.example');
+          } else {
+            self.coverage.hide();
+          }
+        });
       }
       return container;
     }
