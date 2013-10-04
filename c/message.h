@@ -5,6 +5,8 @@
 #include <map>
 #include <boost/function.hpp>
 
+#ifndef _MESSAGE_H
+#define _MESSAGE_H
 namespace example {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -229,4 +231,6 @@ class message {
 #define INTERNAL(MSG, ...)    example::message::instance()->internal   ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define FATAL(MSG, ...)       example::message::instance()->fatal      ((char*)__FILE__, __LINE__, (char*)MSG, ## __VA_ARGS__)
 #define MSG_BY_IDENT(IDENT, SUBIDENT, ...) example::message::instance()->by_id(IDENT, SUBIDENT, (char*)__FILE__, __LINE__, ## __VA_ARGS__)
+
+#endif
 
