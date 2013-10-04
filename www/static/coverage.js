@@ -331,13 +331,13 @@ $coverage = function(){};
       var node = {key : coverpoint.id, expand : false, unselectable: true};
       var title;
       if (coverpoint.hierarchy) {
-          title = coverpoint.hierarchy;
-  	if (coverpoint.children.some(function(it){return it.hierarchy;})) {
-              node.isFolder = true;
+        title = coverpoint.hierarchy;
+    	if (coverpoint.children.some(function(it){return it.hierarchy;})) {
+          node.isFolder = true;
    	}
-          if (coverpoint.children) {
-      	    node.children = coverpoint.children.map(function(child){return generateCoverpointHierarchy(child);});
-          }
+        if (coverpoint.children) {
+      	  node.children = coverpoint.children.map(function(child){return generateCoverpointHierarchy(child);});
+        }
       } else {
           title = coverpoint.coverpoint;
       }
@@ -380,11 +380,14 @@ $coverage = function(){};
       children : [generateCoverpointHierarchy(),],
       onClick: function(node, event) {
         var json = findCoverpointJSON(node.data.key);
+        console.log(json);
         if (json !== false && json.hasOwnProperty('coverpoint')) {
           $coverage.coverageTable(log_id, cvg_point_pane, getCoverpointName(node.data.key), json);
-          return false;
+        } else {
+          node.expand(!node.bExpanded);
         }
-      }
+        return false;
+     }
     });
   };
 
