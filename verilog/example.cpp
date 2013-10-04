@@ -10,8 +10,9 @@
 #endif
 
 #include "exm_python.h"
+#include "message.h"
 
-VM_PREFIX *example;             // Instantiation of module
+VM_PREFIX *example_top;         // Instantiation of module
 svScope sim_ctrl_0_u;           // sim controller for clock injection
 
 vluint64_t main_time = 0;       // Current simulation time (64-bit unsigned)
@@ -26,38 +27,52 @@ int sim_ctrl_scope_t() {
 }
 
 int main(int argc, char **argv, char **env) {
-    if (0 && argc && argv && env) {}    // Prevent unused variable warnings
-    example = new VM_PREFIX("");        // Create instance of module
+    if (0 && argc && argv && env) {}      // Prevent unused variable warnings
+    example_top = new VM_PREFIX("");      // Create instance of module
 
     Verilated::commandArgs(argc, argv);
     Verilated::debug(0);
     Verilated::fatalOnVpiError(0);
 
-#if VM_TRACE                    // If verilator was invoked with --trace
-    Verilated::traceEverOn(true);       // Verilator must compute traced signals
-    VL_PRINTF("Enabling waves...\n");
-    VerilatedVcdC* tfp = new VerilatedVcdC;
-    example->trace (tfp, 99);       // Trace 99 levels of hierarchy
-    tfp->open ("vlt_dump.vcd"); // Open the dump file
+#if VM_TRACE                              // If verilator was invoked with --trace
+    VerilatedVcdC* tfp = NULL;
 #endif
+    string filename((char*)Verilated::commandArgsPlusMatch("waves"));
+    if (filename.size()) {
+#if VM_TRACE                              // If verilator was invoked with --trace
+      do {
+        if (filename.size() > 6) {
+          filename = filename.substr(7);
+        } else {
+          filename = "waves.vcd";
+	}
+      } while (filename.size() == 0);
+      INFORMATION("Enabling waves, dumping to file %s", filename.c_str());
+      Verilated::traceEverOn(true);       // Verilator must compute traced signals
+      tfp = new VerilatedVcdC;
+      example_top->trace(tfp, 99);        // Trace 99 levels of hierarchy
+      tfp->open(filename.c_str());                // Open the dump file
+#else
+      WARNING("Verilator executable not built with waveform tracing enabled");
+#endif
+    }
 
     VerilatedVpi::callCbs(cbStartOfSimulation);
 
     while (!Verilated::gotFinish()) {
-      example->eval();	            // Evaluate model
-      VerilatedVpi::callValueCbs(); // Evaluate any callbacks
+      example_top->eval();	            // Evaluate model
+      VerilatedVpi::callValueCbs();         // Evaluate any callbacks
 
       // Toggle clock
       svSetScope(sim_ctrl_0_u);
       sim_ctrl_sig_t();
-      //main_time = example->example__DOT__simctrl_0_u__DOT__sim_ctrl_cycles_i;
       main_time++;
 #if VM_TRACE
-      if (tfp) tfp->dump (main_time);	// Create waveform trace for this timestamp
+      if (tfp) tfp->dump(main_time); 	   // Create waveform trace for this timestamp
 #endif
     }
 
-    example->final();
+    example_top->final();
     VerilatedVpi::callCbs(cbEndOfSimulation);
 
 #if VM_TRACE

@@ -4,8 +4,10 @@ include ../test/make.inc
 
 OBJ_DIR=example
 
-# --trace 
 VL_FLAGS=+1800-2005ext+.v --cc example.v --top-module example -DEXM_USE_DPI --exe -no-l2name --Mdir $(OBJ_DIR)
+ifneq ($(VM_TRACE),)
+  VL_FLAGS+=--trace 
+endif
 
 .PHONY : all verilate compile clean
 
