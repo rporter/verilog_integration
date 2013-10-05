@@ -108,6 +108,21 @@ module sim_ctrl (
       `EXM_PYTHON(sim_ctrl_python_filename_r);
     end
 
+`ifndef verilator
+  initial if ($test$plusargs("waves") > 0) 
+    begin : sim_ctrl_vcd_l
+      integer sim_ctrl_vcd_depth_r = 0;
+      reg [`std_char_sz_c*128-1:0] sim_ctrl_vcd_filename_r;
+      if ($value$plusargs("waves+%s", sim_ctrl_vcd_filename_r) == 0 || sim_ctrl_vcd_filename_r[7:0] == 8'd0)
+	begin
+          sim_ctrl_vcd_filename_r = "waves.vcd";
+	end
+      `EXM_INFORMATION("Enabling waves depth %d, dumping to file %s", sim_ctrl_vcd_depth_r, sim_ctrl_vcd_filename_r);
+       $dumpfile(sim_ctrl_vcd_filename_r);
+       $dumpvars(sim_ctrl_vcd_depth_r);
+    end
+`endif
+   
 endmodule : sim_ctrl
 
 module arr (
