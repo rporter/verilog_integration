@@ -19,7 +19,7 @@ vluint64_t main_time = 0;       // Current simulation time (64-bit unsigned)
 
 double sc_time_stamp () {       // Called by $time in Verilog
   // fetch cycles from sim
-    return main_time;           // Note does conversion to real, to match SystemC
+  return main_time;             // Note does conversion to real, to match SystemC
 }
 
 int sim_ctrl_scope_t() {
@@ -35,30 +35,17 @@ int main(int argc, char **argv, char **env) {
     Verilated::fatalOnVpiError(0);
 
 #if VM_TRACE                              // If verilator was invoked with --trace
+    int depth;                            // trace depth
+    const char *filename;
     VerilatedVcdC* tfp = NULL;
 #endif
-    string filename((char*)Verilated::commandArgsPlusMatch("waves"));
-    if (filename.size()) {
+    if (exm_waves(&filename, &depth)) {
 #if VM_TRACE                              // If verilator was invoked with --trace
-      int depth = 99;                     // default trace depth
-      do {
-        if (filename.size() > 6) {
-          filename = filename.substr(7);
-        } else {
-          filename = "waves.vcd";
-	}
-      } while (filename.size() == 0);
-      // look for depth in format +waves+filename+depth
-      size_t pos = filename.find_first_of("+,");
-      if (pos != string::npos) {
-	depth = atoi(filename.substr(pos+1).c_str());
-	filename.erase(pos);
-      }
-      INFORMATION("Enabling waves depth %d, dumping to file %s", depth, filename.c_str());
+      INFORMATION("Enabling waves depth %d, dumping to file %s", depth, filename);
       Verilated::traceEverOn(true);       // Verilator must compute traced signals
       tfp = new VerilatedVcdC;
       example_top->trace(tfp, depth);     // Trace depth levels of hierarchy
-      tfp->open(filename.c_str());        // Open the dump file
+      tfp->open(filename);                // Open the dump file
 #else
       WARNING("Verilator executable not built with waveform tracing enabled");
 #endif

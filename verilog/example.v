@@ -12,7 +12,6 @@ module sim_ctrl (
 `ifdef verilator
   export "DPI-C"         task sim_ctrl_sig_t;
 `endif
-  import "DPI-C" context task `EXM_PYTHON (input string filename);
 `endif
 
   /*
@@ -97,31 +96,26 @@ module sim_ctrl (
   /*
    * invoke python shell
    */
-  initial if ($test$plusargs("python") > 0) 
-    begin : sim_ctrl_python_l
-      reg [`std_char_sz_c*128-1:0] sim_ctrl_python_filename_r;
-      if ($value$plusargs("python+%s", sim_ctrl_python_filename_r) == 0)
-	begin
-          sim_ctrl_python_filename_r = "stdin";
-	end
-      `EXM_INFORMATION("python input set to %s", sim_ctrl_python_filename_r);
-      `EXM_PYTHON(sim_ctrl_python_filename_r);
-    end
+  initial `EXM_PYTHON();
 
-`ifndef verilator
-  initial if ($test$plusargs("waves") > 0) 
+  /*
+   * waveform trace for non verilator
+   */
+  initial
     begin : sim_ctrl_vcd_l
       integer sim_ctrl_vcd_depth_r = 0;
       reg [`std_char_sz_c*128-1:0] sim_ctrl_vcd_filename_r;
-      if ($value$plusargs("waves+%s", sim_ctrl_vcd_filename_r) == 0 || sim_ctrl_vcd_filename_r[7:0] == 8'd0)
+      reg 			   sim_ctrl_vcd_r;
+      sim_ctrl_vcd_r = `EXM_WAVES(sim_ctrl_vcd_filename_r, sim_ctrl_vcd_depth_r);
+      if (sim_ctrl_vcd_r)
 	begin
-          sim_ctrl_vcd_filename_r = "waves.vcd";
-	end
-      `EXM_INFORMATION("Enabling waves depth %d, dumping to file %s", sim_ctrl_vcd_depth_r, sim_ctrl_vcd_filename_r);
-       $dumpfile(sim_ctrl_vcd_filename_r);
-       $dumpvars(sim_ctrl_vcd_depth_r);
-    end
+`ifndef verilator
+          `EXM_INFORMATION("Enabling waves depth %d, dumping to file %s", sim_ctrl_vcd_depth_r, sim_ctrl_vcd_filename_r);
+          $dumpfile(sim_ctrl_vcd_filename_r);
+          $dumpvars(sim_ctrl_vcd_depth_r);
 `endif
+        end
+    end
    
 endmodule : sim_ctrl
 

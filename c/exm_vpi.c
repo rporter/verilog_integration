@@ -4,10 +4,15 @@
 #include <boost/regex.hpp>
 
 #include "vpi_user.h"
-#include "exm_python.h"
 #include "message.h"
+#include "exm_python.h"
+#include "exm_waves.h"
 
 int exm_python_vpi(char* arg) {
+  return exm_python();
+}
+
+int exm_python_vpi_file(char* arg) {
   vpiHandle href;
   vpiHandle arglist;
   s_vpi_value vpi_value;
@@ -17,7 +22,43 @@ int exm_python_vpi(char* arg) {
   vpi_value.format = vpiStringVal;
   vpi_get_value(vpi_scan(arglist), &vpi_value);
 
-  return exm_python(vpi_value.value.str);
+  return exm_python_file(vpi_value.value.str);
+}
+
+static unsigned int filename_buff_size = 1024;
+int exm_waves_vpi_sizetf(char* arg) {
+  // filename_buff_size << 3
+  // get size of register
+}
+
+int exm_waves_vpi(char* arg) {
+  vpiHandle href;
+  vpiHandle arglist;
+  s_vpi_value vpi_value;
+
+  int retval, depth;
+  const char *filename;
+  retval = exm_waves(&filename, &depth);
+
+  href = vpi_handle(vpiSysTfCall, 0);
+  arglist = vpi_iterate(vpiArgument, href);
+
+  vpi_value.format = vpiIntVal;
+  vpi_value.value.integer = retval;
+  vpi_put_value(href, &vpi_value, NULL, vpiNoDelay);
+
+  // assign other values if valid
+  if (retval) {
+    vpi_value.format = vpiStringVal;
+    vpi_value.value.str = (PLI_BYTE8*)filename;
+    vpi_put_value(vpi_scan(arglist), &vpi_value, NULL, vpiNoDelay);
+
+    vpi_value.format = vpiIntVal;
+    vpi_value.value.integer = depth;
+    vpi_put_value(vpi_scan(arglist), &vpi_value, NULL, vpiNoDelay);
+  }
+
+  return 0;
 }
 
 int exm_message(char* level, ...) {
@@ -133,6 +174,8 @@ static PLI_BYTE8 levels[] = {
 
 static s_vpi_systf_data vpi_systf_data[] = {
   {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_python",      (PLI_INT32(*)(PLI_BYTE8*))exm_python_vpi, 0, 0, 0},
+  {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_python_file", (PLI_INT32(*)(PLI_BYTE8*))exm_python_vpi_file, 0, 0, 0},
+  {vpiSysFunc, vpiIntFunc, (PLI_BYTE8*)"$exm_waves",       (PLI_INT32(*)(PLI_BYTE8*))exm_waves_vpi, 0, 0, 0},
   {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_int_debug",   (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::INT_DEBUG},
   {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_debug",       (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::DEBUG},
   {vpiSysTask, vpiSysTask, (PLI_BYTE8*)"$exm_information", (PLI_INT32(*)(PLI_BYTE8*))exm_message, 0, 0, levels + example::INFORMATION},

@@ -10,7 +10,7 @@ LDFLAGS+=-lrt -lboost_regex
 
 all : libexm_vpi.so libmessage.so
 
-libexm_vpi.so : exm_python.o exm_vpi.o exm_dpi.o message.o exm_msg.o
+libexm_vpi.so : exm_python.o exm_waves.o exm_vpi.o exm_dpi.o message.o exm_msg.o
 	$(CXX) -export-dynamic -shared $^ -o $@ $(PY_LDFLAGS) $(LDFLAGS)
 
 libexm_vpi.vpl : libexm_vpi.so
@@ -21,6 +21,9 @@ libmessage.so : message.o
 
 exm_python.o : exm_python.c exm_python.h
 	$(CXX) $(CFLAGS) $(PY_CFLAGS) $(VL_CFLAGS) -DPYTHONDIR=\"$(ROOT)/python\" -c $< -o $@
+
+exm_waves.o : exm_waves.c exm_waves.h
+	$(CXX) $(CFLAGS) $(VL_CFLAGS) -c $< -o $@
 
 exm_%pi.o : exm_%pi.c exm_dpi.h
 	$(CXX) $(CFLAGS) $(VL_CFLAGS) -c $< -o $@
