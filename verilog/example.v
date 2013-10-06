@@ -110,9 +110,9 @@ module sim_ctrl (
       if (sim_ctrl_vcd_r)
 	begin
 `ifndef verilator
-          `EXM_INFORMATION("Enabling waves depth %d, dumping to file %s", sim_ctrl_vcd_depth_r, sim_ctrl_vcd_filename_r);
           $dumpfile(sim_ctrl_vcd_filename_r);
           $dumpvars(sim_ctrl_vcd_depth_r);
+          `EXM_INFORMATION("Enabling waves depth %d, dumping to file %s", sim_ctrl_vcd_depth_r, sim_ctrl_vcd_filename_r);
 `endif
         end
     end
