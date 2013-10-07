@@ -124,7 +124,8 @@
    div.cvg-pane ul.popup    { position: absolute; font-size : 0.5em }
    div.cvg-pane ul.popup span.ui-icon { visibility:hidden; float : left; vertical-align : middle }
    div.cvg-pane ul.popup span.check   { visibility:visible }
-   div.cvg-pane h3          { text-align : center ; margin : 0; height : 5%}
+   div.cvg-pane ul.popup li.grey a    { color : #ccc }
+   div.cvg-pane h3          { text-align : center ; margin : 1em; height : 5%}
    div.cvg-pane a.hierarchy { font-family : monospace }
    div.cvg-tree-pane        { float : left ; width : 30% }
    div.cvg-tree-pane  div   { overflow-y : scroll  }
@@ -133,6 +134,12 @@
    div.cvg-point-pane table { table-layout: fixed }
    div.cvg-point-pane th.bkt{ width : 6em; }
    div.cvg-point-pane th.selected { background : #66d }
+   div.cvg-point-pane th.rotated  { 
+              transform: rotate(-90.0deg);
+         -moz-transform: rotate(-90.0deg);  /* FF3.5+ */
+           -o-transform: rotate(-90.0deg);  /* Opera 10.5 */
+      -webkit-transform: rotate(-90.0deg);  /* Saf3.1+, Chrome */
+   }
    table.bucket td          { width : 4em; }
    div.cvg-point-pane a.popup span {width : 8em; }
 

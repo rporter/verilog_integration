@@ -1,5 +1,24 @@
 // Copyright (c) 2013 Rich Porter - see LICENSE for further details
 
+// J Resig says this is okay (add methods to built in prototypes, that is)
+
+// Function to get the Max value in Array
+Array.max = function( array ){
+    return Math.max.apply( Math, array );
+};
+
+// Function to get the Min value in Array
+Array.min = function( array ){
+   return Math.min.apply( Math, array );
+};
+
+Array.has = function( array, fn ) {
+   for ( i=0 ; i<array.length ; i++) {
+      if (fn(array[i]) === true) return true;
+   }
+   return false;
+};
+
 $coverage = function(){};
 
 (function($coverage) {
@@ -10,13 +29,19 @@ $coverage = function(){};
     var axes    = $.extend(true, [], coverpoint.axes);
     var offset  = coverpoint.offset;
     var table;
-    options = options || {hide_illegal : false, hide_dont_care : false};
+    options = options || {hide_illegal : false, hide_dont_care : false, matrix : false};
 
-    function has(a, f) {
-      for (i=0;i<a.length;i++) {
-        if (f(a[i]) === true) return true;
-      }
-      return false;
+
+    function visible_axes() {
+      return axes.reduce(function(sum, it, idx){
+        if (it.visible !== false) {
+          sum.push(it);
+        }
+        return sum;
+      }, Array());
+    }
+    function two_axes() {
+      return visible_axes().length == 2;
     }
 
     function classFromBucket(bucket) {
@@ -95,7 +120,7 @@ $coverage = function(){};
     }
 
     function checkBuckets() {
-      if (!has(axes, function(it){return it.visible !== false})) {
+      if (!Array.has(axes, function(it){return it.visible !== false})) {
         alert('Nothing visible!');
         return false;
       }
@@ -165,6 +190,14 @@ $coverage = function(){};
       }
       if (options.hide_illegal) {
         $('#hide-illegal span.ui-icon', cvg_point_menu).addClass('check');
+      }
+      if (two_axes()) {
+        if (options.hide_illegal) {
+          $('#matrix span.ui-icon', cvg_point_menu).addClass('check');
+        }
+      } else {
+        options.matrix = false;
+        $('#matrix').addClass('grey');
       }
 
       var elapsed, source;
@@ -283,10 +316,15 @@ $coverage = function(){};
         }
       })
       // ----------------------------------------
+      $('#matrix', cvg_point_menu).mouseup(function() {
+        if (!two_axes()) return true;
+        options.matrix = $('span.ui-icon', this).toggleClass('check').hasClass('check');
+        self.build();
+      })
     }
 
-    this.build = function build() {
-      where.html('<h3>' + name + '</h3><div class="t"><table><thead><tr><th class="bkt">bucket</th>' + axes.reduce(function(p, c, idx){return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))}, '') + '<th>goal</th><th>hits</th></thead><tbody id="cvg-point-body"></tbody></table></div>');
+    function table() {
+      where.append('<div class="t"><table><thead><tr><th class="bkt">bucket</th>' + axes.reduce(function(p, c, idx){return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))}, '') + '<th>goal</th><th>hits</th></thead><tbody id="cvg-point-body"></tbody></table></div>');
 
       addMenu();
       var body = $("#cvg-point-body", where);
@@ -302,7 +340,7 @@ $coverage = function(){};
         }
         body.append('<tr class="' + classFromBucket(bkt) + '"><td title="' + title + '">' + bucket + '</td>' + permsFromBucket(axes, bucket) + '<td>' + bkt[0] + '</td><td class="hits" bkt="' + bucket + '">' + bkt[1] + '</td></tr>');
       }
-      table = $('table', where).tablesorter();
+      $('table', where).tablesorter();
       if (coverpoint.cumulative === true) {
         $('td.hits', body).bind('mouseenter.coverage', function() {
           showBucket($(this));
@@ -313,6 +351,30 @@ $coverage = function(){};
       }
       if (options.hide_illegal) {
         $('tr.illegal', where).hide();
+      }
+    }
+
+    function matrix() {
+      var _axes = visible_axes();
+      var cnt = 0;
+      where.append('<div class="t"><table style="width : auto; margin-left : auto; margin-right : auto"><tr><th class="title" colspan="2" rowspan="2"/><th class="title" colspan="'+_axes[0].values.length+'">'+_axes[0].name+'</th></tr><tr>' + _axes[0].values.reduce(function(p, c, idx){return p+'<th>'+c+'</th>'}, '') + '</tr>' + _axes[1].values.reduce(function(p, c, idx){return p+'<tr><th>'+c+'</th>'+_axes[0].values.reduce(function(p, c, idx){var bkt=buckets[cnt]; cnt+=1;return p+'<td class="hits '+classFromBucket(bkt)+'">'+bkt[1]+'</td>'}, '')+'</tr>'}, '') + '</table></div>');
+      $('tr:nth(2)', where).prepend($('<th/>', {class : 'title rotated', rowspan : _axes[1].values.length, text : _axes[1].name}))
+      var cells = $('th,td', where).not('.title');
+      var width = Array.max(cells.map(function(idx,it){return $(it).width()}));
+      cells.css('height', width).css('width', width);
+      if (coverpoint.cumulative === true) {
+        $('td.hits', where).bind('mouseenter.coverage', function() {
+          showBucket($(this));
+ 	});
+      }
+    }
+
+    this.build = function() {
+      where.html($('<h3/>', {html: name}));
+      if (options.matrix) {
+        matrix(where);
+      } else {
+        table(where);
       }
     }
 
@@ -380,7 +442,6 @@ $coverage = function(){};
       children : [generateCoverpointHierarchy(),],
       onClick: function(node, event) {
         var json = findCoverpointJSON(node.data.key);
-        console.log(json);
         if (json !== false && json.hasOwnProperty('coverpoint')) {
           $coverage.coverageTable(log_id, cvg_point_pane, getCoverpointName(node.data.key), json);
         } else {
