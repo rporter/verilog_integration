@@ -357,7 +357,11 @@ $coverage = function(){};
       var _axes = visible_axes();
       var cnt = 0;
       where.append('<div class="t"><table style="width : auto; margin-left : auto; margin-right : auto"><tr><th class="title" colspan="2" rowspan="2"/><th class="title" colspan="'+_axes[1].values.length+'">'+_axes[1].name+'</th></tr><tr>' + _axes[1].values.reduce(function(p, c, idx){return p+'<th>'+c+'</th>'}, '') + '</tr>' + _axes[0].values.reduce(function(p, c, idx){return p+'<tr><th>'+c+'</th>'+_axes[1].values.reduce(function(p, c, idx){var bkt=buckets[cnt]; cnt+=1;return p+'<td class="hits '+classFromBucket(bkt)+'">'+bkt[1]+'</td>'}, '')+'</tr>'}, '') + '</table></div>');
+      // easiest way to place title in 1st data row
       $('tr:nth(2)', where).prepend($('<th/>', {class : 'title rotated', rowspan : _axes[0].values.length, text : _axes[0].name}))
+      // navigate back
+      $('div.t', where).append($('<h5><a>Back to table view</a></h5>').click(function(){options.matrix=false; self.build()}));
+
       var cells = $('th,td', where).not('.title');
       var width = Array.max(cells.map(function(idx,it){return $(it).width()}));
       cells.css('height', width).css('width', width);

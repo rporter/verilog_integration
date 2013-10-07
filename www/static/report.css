@@ -125,7 +125,10 @@
    div.cvg-pane ul.popup span.ui-icon { visibility:hidden; float : left; vertical-align : middle }
    div.cvg-pane ul.popup span.check   { visibility:visible }
    div.cvg-pane ul.popup li.grey a    { color : #ccc }
-   div.cvg-pane h3          { text-align : center ; margin : 1em; height : 5%}
+   div.cvg-pane h3          { text-align : center ; margin : 1em; height : 5% }
+   div.cvg-pane h5          { text-align : center ; margin-bottom : 0 }
+   div.cvg-pane h5 a        { font-size : 1em }
+   div.cvg-pane h5 a:hover  { color : #00f }
    div.cvg-pane a.hierarchy { font-family : monospace }
    div.cvg-tree-pane        { float : left ; width : 30% }
    div.cvg-tree-pane  div   { overflow-y : scroll  }
