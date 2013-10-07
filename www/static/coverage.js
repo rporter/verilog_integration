@@ -31,7 +31,6 @@ $coverage = function(){};
     var table;
     options = options || {hide_illegal : false, hide_dont_care : false, matrix : false};
 
-
     function visible_axes() {
       return axes.reduce(function(sum, it, idx){
         if (it.visible !== false) {
@@ -111,7 +110,7 @@ $coverage = function(){};
     }
 
     function updateVisible() {
-      $('th.axis.selected').each(function(idx, node){
+      $('th.axis.selected', where).each(function(idx, node){
         axes[parseInt($(node).attr('idx'))].visible = false;
       });
     }
@@ -133,7 +132,7 @@ $coverage = function(){};
       }
       // reduce buckets
       buckets = [];
-      for (bucket=0; bucket<coverpoint.buckets.length; bucket++) {
+      for (var bucket=0; bucket<coverpoint.buckets.length; bucket++) {
         var idx = bucketIdx(axisIdxs(bucket));
         if (buckets[idx] === undefined) {
           buckets[idx] = coverpoint.buckets[bucket].concat([[bucket,]]);
@@ -192,12 +191,12 @@ $coverage = function(){};
         $('#hide-illegal span.ui-icon', cvg_point_menu).addClass('check');
       }
       if (two_axes()) {
-        if (options.hide_illegal) {
+        if (options.matrix) {
           $('#matrix span.ui-icon', cvg_point_menu).addClass('check');
         }
       } else {
         options.matrix = false;
-        $('#matrix').addClass('grey');
+        $('#matrix', cvg_point_menu).addClass('grey');
       }
 
       var elapsed, source;
@@ -328,7 +327,7 @@ $coverage = function(){};
 
       addMenu();
       var body = $("#cvg-point-body", where);
-      for (bucket=0; bucket<buckets.length; bucket++) {
+      for (var bucket=0; bucket<buckets.length; bucket++) {
         var bkt = buckets[bucket];
         var title = offset + bucket;
         if (bkt.length > 2) {
@@ -357,8 +356,8 @@ $coverage = function(){};
     function matrix() {
       var _axes = visible_axes();
       var cnt = 0;
-      where.append('<div class="t"><table style="width : auto; margin-left : auto; margin-right : auto"><tr><th class="title" colspan="2" rowspan="2"/><th class="title" colspan="'+_axes[0].values.length+'">'+_axes[0].name+'</th></tr><tr>' + _axes[0].values.reduce(function(p, c, idx){return p+'<th>'+c+'</th>'}, '') + '</tr>' + _axes[1].values.reduce(function(p, c, idx){return p+'<tr><th>'+c+'</th>'+_axes[0].values.reduce(function(p, c, idx){var bkt=buckets[cnt]; cnt+=1;return p+'<td class="hits '+classFromBucket(bkt)+'">'+bkt[1]+'</td>'}, '')+'</tr>'}, '') + '</table></div>');
-      $('tr:nth(2)', where).prepend($('<th/>', {class : 'title rotated', rowspan : _axes[1].values.length, text : _axes[1].name}))
+      where.append('<div class="t"><table style="width : auto; margin-left : auto; margin-right : auto"><tr><th class="title" colspan="2" rowspan="2"/><th class="title" colspan="'+_axes[1].values.length+'">'+_axes[1].name+'</th></tr><tr>' + _axes[1].values.reduce(function(p, c, idx){return p+'<th>'+c+'</th>'}, '') + '</tr>' + _axes[0].values.reduce(function(p, c, idx){return p+'<tr><th>'+c+'</th>'+_axes[1].values.reduce(function(p, c, idx){var bkt=buckets[cnt]; cnt+=1;return p+'<td class="hits '+classFromBucket(bkt)+'">'+bkt[1]+'</td>'}, '')+'</tr>'}, '') + '</table></div>');
+      $('tr:nth(2)', where).prepend($('<th/>', {class : 'title rotated', rowspan : _axes[0].values.length, text : _axes[0].name}))
       var cells = $('th,td', where).not('.title');
       var width = Array.max(cells.map(function(idx,it){return $(it).width()}));
       cells.css('height', width).css('width', width);
@@ -443,7 +442,7 @@ $coverage = function(){};
       onClick: function(node, event) {
         var json = findCoverpointJSON(node.data.key);
         if (json !== false && json.hasOwnProperty('coverpoint')) {
-          $coverage.coverageTable(log_id, cvg_point_pane, getCoverpointName(node.data.key), json);
+          this.coverageTable = new $coverage.coverageTable(log_id, cvg_point_pane, getCoverpointName(node.data.key), json);
         } else {
           node.expand(!node.bExpanded);
         }

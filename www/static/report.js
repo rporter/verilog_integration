@@ -677,7 +677,6 @@ $report = function(){
 
     this.log = new $report.openLog(data, this.tabs);
     this.log.add(this.tabs);
-    console.log(this.tabs);
   }
 
 })($report);
