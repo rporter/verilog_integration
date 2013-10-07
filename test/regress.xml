@@ -14,6 +14,7 @@
     </group>
     <group name='coverage'>
       <test>coverage</test>
+      <test>vpi_coverage</test>
     </group>
     <test>capacity</test>
     <test>example</test>
@@ -37,6 +38,7 @@
     </group>
     <group name='coverage'>
       <test>coverage</test>
+      <test>vpi_coverage</test>
     </group>
     <test>capacity</test>
     <test>example</test>
