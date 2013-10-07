@@ -34,9 +34,9 @@ int main(int argc, char **argv, char **env) {
     Verilated::debug(0);
     Verilated::fatalOnVpiError(0);
 
-#if VM_TRACE                              // If verilator was invoked with --trace
     int depth;                            // trace depth
     const char *filename;
+#if VM_TRACE                              // If verilator was invoked with --trace
     VerilatedVcdC* tfp = NULL;
 #endif
     if (exm_waves(&filename, &depth)) {
