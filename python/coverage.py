@@ -335,6 +335,14 @@ class hierarchy :
     return value
 
   @classmethod
+  def calc_offset(cls, offset) :
+    'keep track of number of buckets'
+    root = cls.get_root()
+    current_offset = getattr(root, 'offset', 0)
+    root.offset = current_offset + offset
+    return current_offset
+
+  @classmethod
   def dump_all(cls, func=None, reference=False) :
     total_cvg = cls.get_root().dump(func, reference)
     if not reference :
@@ -355,8 +363,6 @@ class coverpoint(hierarchy) :
   SYMBOL  = '+'
   MESSAGE = messages.CVG_42
 
-  offset = 0
-
   def __init__(self, model=None, name=None, description=None, parent=None, id=None, axes={}, defaults=None, cumulative=False) :
     self.name        = name or self.__doc__.strip()
     self.description = description or self.__doc__.strip()
@@ -370,14 +376,14 @@ class coverpoint(hierarchy) :
     self.defaults    = defaults
     self.cumulative  = str(cumulative).lower() # jsonify
     # enumerate buckets
-    self.offset  = coverpoint.offset # running count of buckets for all coverpoints
     self.hits    = 0                 # running total of hits for coverpoint
     self.hit     = False
     self.buckets = [bucket(self, idx, seq) for idx, seq in enumerate(self.indices_dict())]
     self.multipliers = self.significands()
     self.goal    = reduce(lambda a, b : a+b.target(), self.buckets, 0)
     self.total_hits()
-    coverpoint.offset += self.num_of_buckets() # increment global offset
+    # running count of buckets for all coverpoints and increment global offset
+    self.offset = hierarchy.calc_offset(self.num_of_buckets())
     # record this point
     messages.CVG_1(name=self.name)
     for name, axe in self.axes() :
