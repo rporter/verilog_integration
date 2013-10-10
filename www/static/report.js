@@ -149,8 +149,10 @@ $report = function(){
         "aaSorting": [[0, "desc"]],
         "iDisplayLength": available || self.options.view,
         "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
-          var cvg = $('td:nth(8)', nRow).addClass('cvg').addClass('cvg-'+aData[8]);
-          $(cvg).bind('show.example', $report.testJSON.get_cvg(cvg, nRow, aData[0]));
+          $(nRow).bind('show.example', function(event){
+            var cvg = $('td.cvg', nRow).addClass('cvg-'+aData[8]);
+            $report.testJSON.get_cvg(cvg, nRow, aData[0])(event);
+          });
           $(nRow).bind('click.example', {log_id : aData[0], children : aData[9], anchor : anchor},
             function(event) {
               var log;
@@ -167,12 +169,13 @@ $report = function(){
         }
       });
 
-      self.coverage = $('th:nth-child(9), td.cvg', self.container);
+      var rows = $('tbody tr', self.container);
       if (self.options.view_coverage) {
-        self.coverage.trigger('show.example');
+        rows.trigger('show.example');
       } else {
-        self.coverage.hide();
+        table.css('width', '100%')
       }
+
       if (self.url !== undefined) {
         var control = $('<div class="ui-corner-all control"></div>').prependTo(self.container);
         var lenctrl = $('<div class="length"><div>Fetch <select>'+
@@ -199,9 +202,10 @@ $report = function(){
           self.options.view_coverage = $(this).is(':checked');
           $('input', self.container).attr('checked', self.options.view_coverage);
           if (self.options.view_coverage) {
-            self.coverage.show().trigger('show.example');
+            table.fnSetColumnVis(8, true);
+            rows.trigger('show.example');
           } else {
-            self.coverage.hide();
+            table.fnSetColumnVis(8, false);
           }
         });
       }
@@ -218,7 +222,7 @@ $report = function(){
 	{ "sTitle": "errors" },
 	{ "sTitle": "warnings" },
 	{ "sTitle": "message" },
-	{ "sTitle": "coverage" },
+	{ "sTitle": "coverage", "sClass" : "cvg", "bVisible" : self.options.view_coverage },
 	{ "sTitle": "children" },
 	{ "sTitle": "status" },
       ];
