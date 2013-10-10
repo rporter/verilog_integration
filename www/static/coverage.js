@@ -75,7 +75,7 @@ $coverage = function(){};
 
     function bucketIdx(axisIdxs) {
       var cumul = 1;
-      return axisIdxs.reduce(function(p, c, idx) {
+      return axisIdxs.reduceRight(function(p, c, idx) {
         if (axes[idx].visible === false) return p;
         var result = p + c[0]*cumul;
         cumul *= c[1];
