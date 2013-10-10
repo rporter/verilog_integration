@@ -312,15 +312,22 @@ $report = function(){
         dataType : 'json',
         success : function(json) {
           var result = coverage_cls(json);
-          $(cvg).text(result).addClass('cvg-'+result);
-          $(cvg).unbind(event.type+'.'+event.namespace); // no need to do again
-          $(nRow).data('coverage', json);
-          if (onsuccess !== undefined) onsuccess(json);
+          if (cvg) {
+            $(cvg).text(result).addClass('cvg-'+result);
+            $(cvg).unbind(event.type+'.'+event.namespace); // no need to do again
+          }
+          if (nRow) {
+            $(nRow).data('coverage', json);
+          }
+          if (onsuccess !== undefined) {
+            onsuccess(json);
+          }
         },
         error : function(xhr, status, index) {
-          var result = json.length?coverage_cls(json):'error';
-          $(cvg).text('error').addClass('cvg-error');
-          $(cvg).unbind(event.type+'.'+event.namespace); // no need to do again
+          if (cvg) {
+            $(cvg).text('error').addClass('cvg-error');
+            $(cvg).unbind(event.type+'.'+event.namespace); // no need to do again
+          }
           console.log(xhr, status, index);
         }
       });
@@ -489,21 +496,22 @@ $report = function(){
       tabs.tabs('add', '#'+self.id, data.log_id+' log');
     }
 
-    this.div.appendTo(anchor);
-    if (node !== undefined) {
-      function wrapif(cvg) {
-        cvg = cvg || self.coverage;
-        if (coverage_cls(cvg) !== 'none') {
-          self.wrap();
-        }
-      }
-      if (self.coverage === undefined) {
-        // fetch coverage
-        $report.testJSON.get_cvg($('td.cvg', node), node, data.log_id, wrapif)({type:'show', namespace:'example'});
-      } else {
-        wrapif();
+    function wrapif(cvg) {
+      cvg = cvg || self.coverage;
+      if (coverage_cls(cvg) !== 'none') {
+        self.wrap();
       }
     }
+
+    this.div.appendTo(anchor);
+
+    if (self.coverage === undefined) {
+      // fetch coverage
+      $report.testJSON.get_cvg($('td.cvg', node), node, data.log_id, wrapif)({type:'show', namespace:'example'});
+    } else {
+      wrapif();
+    }
+
     $.ajax({
       url : 'msgs/'+data.log_id,
       dataType : 'json',
@@ -625,6 +633,7 @@ $report = function(){
         },
         onActivate: function(node) {
           var create = node.data.children.length?$report.openRegr:$report.openLog;
+console.log(node.data.key, node.data.children);
           // this will be a tab-within-tab
           (new create({log_id : node.data.key, hier : [self.find(node.data.key),], anchor : anchor})).add(anchor);
         },
