@@ -116,6 +116,8 @@ $report = function(){
     this.url = url && url.replace(/\/\d.*$/,'');
     this.order = order || 'down';
     this.options = $report.data(this.url, {view:20, view_coverage:false});
+    this.container = $('<div><table class="display"></table></div>');
+
     var get = function(severity, attr) {
       var result = this.msgs.filter(function(a){return a.severity === severity})[0];
       if (attr === undefined) return result;
@@ -129,9 +131,7 @@ $report = function(){
     }
 
     this.render = function(available) {
-      var container = $('<div><table class="display"></table></div>');
-      self.container = container;
-      $('table', container).dataTable({
+      var table = $('table', self.container).dataTable({
         "bJQueryUI": true,
         "bPaginate": self.url === undefined,
         "bFilter": false,
@@ -167,14 +167,14 @@ $report = function(){
         }
       });
 
-      self.coverage = $('th:nth-child(9), td.cvg', container);
+      self.coverage = $('th:nth-child(9), td.cvg', self.container);
       if (self.options.view_coverage) {
         self.coverage.trigger('show.example');
       } else {
         self.coverage.hide();
       }
       if (self.url !== undefined) {
-        var control = $('<div class="ui-corner-all control"></div>').prependTo(container);
+        var control = $('<div class="ui-corner-all control"></div>').prependTo(self.container);
         var lenctrl = $('<div class="length"><div>Fetch <select>'+
    	    '<option value="20">20</option>'+
    	    '<option value="50">50</option>'+
@@ -189,15 +189,15 @@ $report = function(){
         $('<span class="ui-icon ui-icon-seek-end"></span>').attr('title', 'last').appendTo(navigation);
         navigation.clone().addClass('left').prependTo(control);
         navigation.clone().addClass('right').appendTo(control);
-        control.clone().appendTo(container);
-        $('select', container).bind('change.example', self.select);
-        $('span.ui-icon-seek-first', container).bind('click.example', self.first);
-        $('span.ui-icon-seek-prev',  container).bind('click.example', self.prev);
-        $('span.ui-icon-seek-next',  container).bind('click.example', self.next);
-        $('span.ui-icon-seek-end',   container).bind('click.example', self.end);
-        $('input', container).change(function() {
+        control.clone().appendTo(self.container);
+        $('select', self.container).bind('change.example', self.select);
+        $('span.ui-icon-seek-first', self.container).bind('click.example', self.first);
+        $('span.ui-icon-seek-prev',  self.container).bind('click.example', self.prev);
+        $('span.ui-icon-seek-next',  self.container).bind('click.example', self.next);
+        $('span.ui-icon-seek-end',   self.container).bind('click.example', self.end);
+        $('input', self.container).change(function() {
           self.options.view_coverage = $(this).is(':checked');
-          $('input', container).attr('checked', self.options.view_coverage);
+          $('input', self.container).attr('checked', self.options.view_coverage);
           if (self.options.view_coverage) {
             self.coverage.show().trigger('show.example');
           } else {
@@ -205,7 +205,7 @@ $report = function(){
           }
         });
       }
-      return container;
+      return self.container;
     }
 
     this.cols = function() {
