@@ -322,7 +322,7 @@ $coverage = function(){};
       })
     }
 
-    function table() {
+    function build_table() {
       where.append('<div class="t"><table><thead><tr><th class="bkt">bucket</th>' + axes.reduce(function(p, c, idx){return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))}, '') + '<th>goal</th><th>hits</th></thead><tbody id="cvg-point-body"></tbody></table></div>');
 
       addMenu();
@@ -339,7 +339,7 @@ $coverage = function(){};
         }
         body.append('<tr class="' + classFromBucket(bkt) + '"><td title="' + title + '">' + bucket + '</td>' + permsFromBucket(axes, bucket) + '<td>' + bkt[0] + '</td><td class="hits" bkt="' + bucket + '">' + bkt[1] + '</td></tr>');
       }
-      $('table', where).tablesorter();
+      table = $('table', where).tablesorter();
       if (coverpoint.cumulative === true) {
         $('td.hits', body).bind('mouseenter.coverage', function() {
           showBucket($(this));
@@ -353,7 +353,7 @@ $coverage = function(){};
       }
     }
 
-    function matrix() {
+    function build_matrix() {
       var _axes = visible_axes();
       var cnt = 0;
       where.append('<div class="t"><table style="width : auto; margin-left : auto; margin-right : auto"><tr><th class="title" colspan="2" rowspan="2"/><th class="title" colspan="'+_axes[1].values.length+'">'+_axes[1].name+'</th></tr><tr>' + _axes[1].values.reduce(function(p, c, idx){return p+'<th>'+c+'</th>'}, '') + '</tr>' + _axes[0].values.reduce(function(p, c, idx){return p+'<tr><th>'+c+'</th>'+_axes[1].values.reduce(function(p, c, idx){var bkt=buckets[cnt]; cnt+=1;return p+'<td class="hits '+classFromBucket(bkt)+'">'+bkt[1]+'</td>'}, '')+'</tr>'}, '') + '</table></div>');
@@ -375,9 +375,9 @@ $coverage = function(){};
     this.build = function() {
       where.html($('<h3/>', {html: name}));
       if (options.matrix) {
-        matrix(where);
+        build_matrix(where);
       } else {
-        table(where);
+        build_table(where);
       }
     }
 
