@@ -57,7 +57,7 @@ class cbClk(test_vpi.cbClk) :
   class assign(test_vpi.cbClk.assign) :
     def __init__(self, size, scope) :
       test_vpi.cbClk.assign.__init__(self, size, scope)
-      self.container = coverage.hierarchy(scope.fullname)
+      self.container = coverage.hierarchy(scope.fullname, 'Scope')
       self.cvr_pt0 = test_cvg.coverpoint_sig(self.scope.sig0, name='sig0', parent=self.container)
       self.cursor0 = self.cvr_pt0.cursor()
       self.cvr_pt1 = test_cvg.coverpoint_format(self.scope.sig0, name='sig0 x sig1', parent=self.container)

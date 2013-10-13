@@ -365,7 +365,6 @@ class coverpoint(hierarchy) :
 
   def __init__(self, model=None, name=None, description=None, parent=None, id=None, axes={}, defaults=None, cumulative=False) :
     self.name        = name or self.__doc__.strip()
-    self.description = description or self.__doc__.strip()
     self.model       = model
     # if given merge axes
     self.__dict__.update(axes)
@@ -388,9 +387,7 @@ class coverpoint(hierarchy) :
     messages.CVG_1(name=self.name)
     for name, axe in self.axes() :
       msg = messages.CVG_2(name=name)
-      for enum, val in axe.values.iteritems() :
-        pass # msg._attribute(str(enum), str(val))
-    hierarchy.__init__(self, name=self.name, parent=parent, id=id)
+    hierarchy.__init__(self, name=self.name, description=description or self.__doc__.strip(), parent=parent, id=id)
 
   def add_axis(self, name, **kwargs) :
     'add axis'
@@ -658,7 +655,7 @@ class insert(upload) :
         child.sql(insert.sql(self))
     def add_point(self, node) :
       with mdb.mdb.cursor() as db :
-        db.execute('INSERT INTO point (log_id, point_name, root, parent) VALUES (?,?,?,?)', (self.root().log_id, node.name, self.root_id(), self.parent_id()))
+        db.execute('INSERT INTO point (log_id, point_name, desc, root, parent) VALUES (?,?,?,?,?)', (self.root().log_id, node.name, node.description, self.root_id(), self.parent_id()))
         db.execute('SELECT last_insert_rowid() AS rowid;')
         self.sql_row_id = db.fetchone()[0]
 
