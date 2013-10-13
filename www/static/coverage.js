@@ -43,20 +43,6 @@ $coverage = function(){};
       return visible_axes().length == 2;
     }
 
-    function classFromBucket(bucket) {
-      switch (bucket[0]) {
-      case  0 :
-        return 'dont_care';
-      case -1 :
-	if (bucket[1] > 0) return 'illegal hit';
-        return 'illegal';
-      default :
-        if (bucket[1] >= bucket[0]) return 'hit';
-        if (bucket[1] >  0) return 'some';
-        return 'unhit';
-      }
-    }
-
     function permsFromBucket(axes, bucket) {
       if (axes.length == 0) return ""; // terminal case
       var last = axes.slice(-1)[0];
@@ -346,7 +332,7 @@ $coverage = function(){};
             title = bkt[2].join(',');
           }
         }
-        body.append('<tr class="' + classFromBucket(bkt) + '"><td title="' + title + '">' + bucket + '</td>' + permsFromBucket(axes, bucket) + '<td>' + bkt[0] + '</td><td class="hits" bkt="' + bucket + '">' + bkt[1] + '</td></tr>');
+        body.append('<tr class="' + coverageTable.classFromBucket(bkt) + '"><td title="' + title + '">' + bucket + '</td>' + permsFromBucket(axes, bucket) + '<td>' + bkt[0] + '</td><td class="hits" bkt="' + bucket + '">' + bkt[1] + '</td></tr>');
       }
       table = $('table', where).tablesorter();
       if (coverpoint.cumulative === true) {
@@ -368,8 +354,7 @@ $coverage = function(){};
       where.jqoteapp('#matrix-template', {
         x_axis : _axes[1],
         y_axis : _axes[0],
-        buckets : buckets,
-        classFromBucket : classFromBucket
+        buckets : buckets
       });
       // easiest way to place title in 1st data row
       $('tr:nth(2)', where).prepend($('<th/>', {class : 'title rotated', rowspan : _axes[0].values.length, text : _axes[0].name}))
@@ -399,6 +384,20 @@ $coverage = function(){};
     this.build();
 
   };
+
+  $coverage.coverageTable.classFromBucket = function classFromBucket(bucket) {
+    switch (bucket[0]) {
+    case  0 :
+      return 'dont_care';
+    case -1 :
+	if (bucket[1] > 0) return 'illegal hit';
+      return 'illegal';
+    default :
+      if (bucket[1] >= bucket[0]) return 'hit';
+      if (bucket[1] >  0) return 'some';
+      return 'unhit';
+    }
+  }
 
   $coverage.coverage = function(pane, log_id, data) {
     var self = this;

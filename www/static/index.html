@@ -62,7 +62,7 @@
                  var bkt=this.buckets[cnt];
                  cnt+=1;
             %>
-            <td class="hits <%= this.classFromBucket(bkt) %>"><%= bkt[1] %></td>
+            <td class="hits <%= $coverage.coverageTable.classFromBucket(bkt) %>"><%= bkt[1] %></td>
             <% } %>
           </tr>
           <% } %>
