@@ -60,7 +60,14 @@ class mixin(object) :
   def cursor(cls) :
     return connection().cursor()
 
+  def get_sema(self) :
+    if not hasattr(self, 'semaphore') :
+      self.semaphore = threading.Semaphore()
+    return self.semaphore
+
   def flush(self) :
+    semaphore = self.get_sema()
+    semaphore.acquire()
     with self.cursor() as cursor :
       def insert(cb_id, when, level, severity, ident, subident, filename, line, msg) :
         cursor.execute('INSERT INTO message (log_id, level, severity, date, ident, subident, filename, line, msg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);', (self.log_id, level, severity, when.tv_sec, ident, subident, filename, line, msg))
@@ -69,6 +76,7 @@ class mixin(object) :
           insert(*self.queue.get(False))
       except Queue.Empty :
         pass # done
+    semaphore.release()
 
   def log(self, uid, hostname, abv, root, parent, description) :
     'create entry in log table'
