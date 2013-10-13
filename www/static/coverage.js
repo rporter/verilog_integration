@@ -364,21 +364,13 @@ $coverage = function(){};
 
     function build_matrix() {
       var _axes = visible_axes();
-      var cnt = 0;
-      // This is pretty yucky way to build matrix table, perhaps should use jqote
-      where.append(
-        '<div class="t"><table style="width : auto; margin-left : auto; margin-right : auto">' +
-        '<tr><th class="title" colspan="2" rowspan="2"/><th class="title" colspan="'+_axes[1].values.length+'">'+_axes[1].name+'</th></tr>' +
-        '<tr>' + _axes[1].values.reduce(function(p, c, idx){
-          return p+'<th>'+c+'</th>';
-        }, '') + '</tr>' +
-        _axes[0].values.reduce(function(p, c, idx){
-          return p+'<tr><th>'+c+'</th>'+_axes[1].values.reduce(function(p, c, idx){
-            var bkt=buckets[cnt];
-            cnt+=1;
-            return p+'<td class="hits '+classFromBucket(bkt)+'">'+bkt[1]+'</td>';
-        }, '')+'</tr>'}, '') +
-      '</table></div>');
+      // Use jqote & template in index to create matrix table
+      where.jqoteapp('#matrix-template', {
+        x_axis : _axes[1],
+        y_axis : _axes[0],
+        buckets : buckets,
+        classFromBucket : classFromBucket
+      });
       // easiest way to place title in 1st data row
       $('tr:nth(2)', where).prepend($('<th/>', {class : 'title rotated', rowspan : _axes[0].values.length, text : _axes[0].name}))
       // navigate back

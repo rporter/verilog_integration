@@ -46,6 +46,29 @@
         </a>
       ]]>
     </script>
+    <script type="text/html" id="matrix-template">
+      <div class="t">
+        <table style="width : auto; margin-left : auto; margin-right : auto">
+          <tr>
+            <th class="title" colspan="2" rowspan="2"/>
+            <th class="title" colspan="<%= this.x_axis.values.length %>"><%= this.x_axis.name %></th>
+          </tr>
+          <tr><% var cnt = 0; for (var a1=0; a1<this.x_axis.values.length; a1++) { %>
+            <th><%= this.x_axis.values[a1] %></th>
+          <% } %></tr>
+          <% for (var a0=0; a0<this.y_axis.values.length; a0++) { %>
+          <tr><th><%= this.y_axis.values[a0] %></th>
+            <% for (var a1=0; a1<this.x_axis.values.length; a1++) {
+                 var bkt=this.buckets[cnt];
+                 cnt+=1;
+            %>
+            <td class="hits <%= this.classFromBucket(bkt) %>"><%= bkt[1] %></td>
+            <% } %>
+          </tr>
+          <% } %>
+       </table>
+      </div>
+    </script>
     <script type="text/html" id="menu">
       <ul class="popup">
         <li id="ident"><a href="#"><span class="uncheck ui-icon ui-icon-check"></span>View Ident</a></li>
