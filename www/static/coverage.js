@@ -97,7 +97,12 @@ $coverage = function(){};
       $.getJSON(url, function(data) {
         $('span', node).html(function() {
           if (data.tests.length) {
-            return $('<table/>', {class : 'bucket', html : '<tbody>'+data.tests.slice(0,10).map(function(it){return '<tr class="' + it.status + '"><td>'+it.log_id+'</td><td>'+it.hits+'</td></tr>'})+'</tbody>'});
+            return $('<table/>', {
+              class : 'bucket',
+              html : '<tbody>'+data.tests.slice(0,10).map(function(it){
+                return '<tr class="' + it.status + '"><td>'+it.log_id+'</td><td>'+it.hits+'</td></tr>';
+              })+'</tbody>'
+            });
           } else {
             return $('<i/>', {html : 'no hits'});
           }
@@ -323,7 +328,11 @@ $coverage = function(){};
     }
 
     function build_table() {
-      where.append('<div class="t"><table><thead><tr><th class="bkt">bucket</th>' + axes.reduce(function(p, c, idx){return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))}, '') + '<th>goal</th><th>hits</th></thead><tbody id="cvg-point-body"></tbody></table></div>');
+      where.append('<div class="t"><table><thead><tr><th class="bkt">bucket</th>' +
+        axes.reduce(function(p, c, idx){
+          return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))},
+          ''
+        ) + '<th>goal</th><th>hits</th></thead><tbody id="cvg-point-body"></tbody></table></div>');
 
       addMenu();
       var body = $("#cvg-point-body", where);
@@ -356,7 +365,20 @@ $coverage = function(){};
     function build_matrix() {
       var _axes = visible_axes();
       var cnt = 0;
-      where.append('<div class="t"><table style="width : auto; margin-left : auto; margin-right : auto"><tr><th class="title" colspan="2" rowspan="2"/><th class="title" colspan="'+_axes[1].values.length+'">'+_axes[1].name+'</th></tr><tr>' + _axes[1].values.reduce(function(p, c, idx){return p+'<th>'+c+'</th>'}, '') + '</tr>' + _axes[0].values.reduce(function(p, c, idx){return p+'<tr><th>'+c+'</th>'+_axes[1].values.reduce(function(p, c, idx){var bkt=buckets[cnt]; cnt+=1;return p+'<td class="hits '+classFromBucket(bkt)+'">'+bkt[1]+'</td>'}, '')+'</tr>'}, '') + '</table></div>');
+      // This is pretty yucky way to build matrix table, perhaps should use jqote
+      where.append(
+        '<div class="t"><table style="width : auto; margin-left : auto; margin-right : auto">' +
+        '<tr><th class="title" colspan="2" rowspan="2"/><th class="title" colspan="'+_axes[1].values.length+'">'+_axes[1].name+'</th></tr>' +
+        '<tr>' + _axes[1].values.reduce(function(p, c, idx){
+          return p+'<th>'+c+'</th>';
+        }, '') + '</tr>' +
+        _axes[0].values.reduce(function(p, c, idx){
+          return p+'<tr><th>'+c+'</th>'+_axes[1].values.reduce(function(p, c, idx){
+            var bkt=buckets[cnt];
+            cnt+=1;
+            return p+'<td class="hits '+classFromBucket(bkt)+'">'+bkt[1]+'</td>';
+        }, '')+'</tr>'}, '') +
+      '</table></div>');
       // easiest way to place title in 1st data row
       $('tr:nth(2)', where).prepend($('<th/>', {class : 'title rotated', rowspan : _axes[0].values.length, text : _axes[0].name}))
       // navigate back
