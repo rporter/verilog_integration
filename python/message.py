@@ -151,12 +151,12 @@ class callback(object) :
     try :
       if self.callbacks[name].finalize is not None : self.callbacks[name].finalize()
     except KeyError, AttributeError :
-      message.debug('callback finalize %(name)s raised exception %(exc)s', name=name, exc=sys.exc_info[0])
+      debug('callback finalize %(name)s raised exception %(exc)s', name=name, exc=sys.exc_info()[0])
     self.cb_map.rm_callback(name)
     try :
       del self.callbacks[name]
     except KeyError :
-      message.internal('callback %(name)s not in callback list', name=name)
+      internal('callback %(name)s not in callback list', name=name)
 
 ################################################################################
 
