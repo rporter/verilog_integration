@@ -23,6 +23,20 @@ class messages :
 
 ################################################################################
 
+class lazyProperty(object):
+    'thanks http://blog.pythonisito.com/2008/08/lazy-descriptors.html'
+    def __init__(self, func):
+        self._func = func
+        self.__name__ = func.__name__
+        self.__doc__ = func.__doc__
+
+    def __get__(self, obj, *args):
+        if obj is None: return None
+        result = obj.__dict__[self.__name__] = self._func(obj)
+        return result
+
+################################################################################
+
 class coverage :
   'Helper class to ensure consistent interpretation and formating of coverage result'
 
@@ -684,13 +698,15 @@ class insert(upload) :
     def __init__(self, parent=None, log_id=None) :
       self.parent = parent
       self.log_id = log_id
+    def __del__(self) :
+      if self.is_root :
+        self.cursor.close()
     def axis(self, axis) :
-      with mdb.mdb.cursor() as db :
-        db.execute('INSERT INTO axis (point_id, axis_name) VALUES (?,?)', (self.parent_id(), axis.name))
-        db.execute('SELECT last_insert_rowid() AS rowid;')
-        self.sql_row_id = db.fetchone()[0]
-        for enum, value in axis.values.iteritems() :
-          db.execute('INSERT INTO enum (axis_id, enum, value) VALUES (?,?,?)', (self.sql_row_id, enum, value))
+      self.cursor.execute('INSERT INTO axis (point_id, axis_name) VALUES (?,?)', (self.parent_id, axis.name))
+      self.cursor.execute('SELECT last_insert_rowid() AS rowid;')
+      self.sql_row_id = self.cursor.fetchone()[0]
+      for enum, value in axis.values.iteritems() :
+        self.cursor.execute('INSERT INTO enum (axis_id, enum, value) VALUES (?,?,?)', (self.sql_row_id, enum, value))
 
     def coverpoint(self, coverpoint) :
       self.add_point(coverpoint)
@@ -701,17 +717,27 @@ class insert(upload) :
       for child in hierarchy.children :
         child.sql(insert.sql(self))
     def add_point(self, node) :
-      with mdb.mdb.cursor() as db :
-        db.execute('INSERT INTO point (log_id, point_name, desc, root, parent) VALUES (?,?,?,?,?)', (self.root().log_id, node.name, node.description, self.root_id(), self.parent_id()))
-        db.execute('SELECT last_insert_rowid() AS rowid;')
-        self.sql_row_id = db.fetchone()[0]
+      self.cursor.execute('INSERT INTO point (log_id, point_name, desc, root, parent) VALUES (?,?,?,?,?)', (self.root.log_id, node.name, node.description, self.root_id, self.parent_id))
+      self.cursor.execute('SELECT last_insert_rowid() AS rowid;')
+      self.sql_row_id = self.cursor.fetchone()[0]
 
+    @lazyProperty
     def root(self) :
-      return self.parent.root() if self.parent else self
+      return self.parent.root if self.parent else self
+    @lazyProperty
     def root_id(self) :
-      return self.parent and self.root().sql_row_id
+      return self.parent and self.root.sql_row_id
+    @lazyProperty
+    def is_root(self) :
+      return self.root == self
+    @lazyProperty
     def parent_id(self) :
       return self.parent and self.parent.sql_row_id
+
+    @lazyProperty
+    def cursor(self) :
+      if self.is_root : return mdb.mdb.cursor()
+      return self.root.cursor
 
   def __init__(self, reference) :
     self.reference = reference
