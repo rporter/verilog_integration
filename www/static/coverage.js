@@ -29,7 +29,7 @@ $coverage = function(){};
     var axes    = $.extend(true, [], coverpoint.axes);
     var offset  = coverpoint.offset;
     var table;
-    options = options || {hide_illegal : false, hide_dont_care : false, matrix : false};
+    options = options || {hide_hits : false, hide_illegal : false, hide_dont_care : false, matrix : false};
 
     function visible_axes() {
       return axes.reduce(function(sum, it, idx){
@@ -175,6 +175,9 @@ $coverage = function(){};
         cvg_point_menu.hide();
       });
 
+      if (options.hide_hits) {
+        $('#hide-hits span.ui-icon', cvg_point_menu).addClass('check');
+      }
       if (options.hide_dont_care) {
         $('#hide-dontcare span.ui-icon', cvg_point_menu).addClass('check');
       }
@@ -277,6 +280,14 @@ $coverage = function(){};
         table.trigger("sorton", [[[source.attr('data-column'), 1]]]);
       })
       // ----------------------------------------
+      $('#hide-hits', cvg_point_menu).mouseup(function() {
+        options.hide_hits = $('span.ui-icon', this).toggleClass('check').hasClass('check');
+        if (options.hide_hits) {
+          $('tr.hit', where).hide();
+        } else {
+          $('tr.hit', where).show();
+        }
+      })
       $('#hide-dontcare', cvg_point_menu).mouseup(function() {
         options.hide_dont_care = $('span.ui-icon', this).toggleClass('check').hasClass('check');
         if (options.hide_dont_care) {
