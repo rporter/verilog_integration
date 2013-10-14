@@ -20,7 +20,7 @@ class test_cvg :
       self.bit    = self.add_axis('bit', values=range(0, self.size))
       self.sense  = self.add_axis('sense', true=1, false=0)
       self.fmt    = self.add_axis('fmt', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
-      coverage.coverpoint.__init__(self, signal, name, parent=parent)
+      coverage.coverpoint.__init__(self, name=name, parent=parent)
 
     def define(self, bucket) :
       'set goal'
@@ -32,7 +32,7 @@ class test_cvg :
     def __init__(self, signal, name=None, parent=None) :
       self.fmt0 = self.add_axis('fmt0', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
       self.fmt1 = self.add_axis('fmt1', vpiBinStr=0, vpiOctStr=1, vpiHexStr=2, vpiDecStr=3)
-      coverage.coverpoint.__init__(self, signal, name, parent=parent)
+      coverage.coverpoint.__init__(self, name=name, parent=parent)
 
     def define(self, bucket) :
       'set goal'
@@ -43,7 +43,7 @@ class test_cvg :
     ''
     def __init__(self, signal, name=None, parent=None) :
       self.count = self.add_axis('count', count=0)
-      coverage.coverpoint.__init__(self, signal, name, parent=parent)
+      coverage.coverpoint.__init__(self, name=name, parent=parent)
 
     def define(self, bucket) :
       'set goal'
