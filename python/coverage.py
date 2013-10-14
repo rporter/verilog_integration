@@ -736,8 +736,7 @@ class insert(upload) :
 
     @lazyProperty
     def cursor(self) :
-      if self.is_root : return mdb.mdb.cursor()
-      return self.root.cursor
+      return mdb.mdb.cursor() if self.is_root else self.root.cursor
 
   def __init__(self, reference) :
     self.reference = reference
