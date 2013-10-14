@@ -111,7 +111,7 @@ class bucket :
     self.goal      = goal
     self.illegal   = illegal
     self.dont_care = dont_care
-    if hits :  self.hits = hits
+    if hits : self.hits = hits
 
   def target(self) :
     if self.illegal or self.dont_care : return 0
@@ -120,9 +120,10 @@ class bucket :
   def incr(self, hits=1, oneoff=False) :
     if self.illegal : 
       message.error('hit on bucket marked as illegal', idx=self.idx, enum=self.seq)
+    if oneoff and self.hits : 
+      # if oneoff is true only count if bucket unhit
       return
-    if oneoff and self.hits : return # if oneoff is true only count if bucket unhit
-    if not self.dont_care and self.hits < self.goal : 
+    if not (self.illegal or self.dont_care) and self.hits < self.goal : 
       # we keep a tally of point hits
       self.parent.tally_hits(self, hits)
     self.hits += hits
@@ -572,6 +573,13 @@ class cursor :
       except :
         raise axisNameError(axis)
     return self
+
+  def __getattr__(self, attr) :
+    'look for axis name and return state'
+    try :
+      return cursor.axes.axisDesc.__get__(self.axis.__dict__[attr], None, None)
+    except :
+      raise axisNameError(axis)
 
   def hit(self) :
     try :
