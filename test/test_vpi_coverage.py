@@ -27,6 +27,16 @@ class test_cvg :
       # no dont cares or illegals
       bucket.default(goal=10)
 
+    def _define(self, bucket) :
+      'An example of more involved goal setting'
+      bucket.default(goal=10, dont_care=bucket.axis.fmt=='vpiBinStr')
+      # bit will be an integer
+      if bucket.axis.fmt == 'vpiDecStr' : 
+        bucket.goal += bucket.axis.bit * 10
+      # sense will be a string value
+      if bucket.axis.sense == 'true' :
+        bucket.goal += 1
+
   class coverpoint_format(coverage.coverpoint) :
     'format x format'
     def __init__(self, signal, name=None, parent=None) :
@@ -70,8 +80,9 @@ class cbClk(test_vpi.cbClk) :
       sig1 = self.value()
       self.scope.direct.sig0 = sig0
       self.scope.direct.sig1 = sig1
+      self.cursor0(fmt=sig0.__class__.__name__)
       for i in self.cvr_pt0.bit.get_values() :
-        self.cursor0(bit=i, sense='true' if sig0[i] else 'false', fmt=sig0.__class__.__name__).incr()
+        self.cursor0(bit=i, sense='true' if sig0[i] else 'false').incr()
       self.cursor1(fmt0=sig0.__class__.__name__, fmt1=sig1.__class__.__name__).incr()
       # use cursor to remember state for get()
       self.cursor2(fmt0=sig0.__class__.__name__)
