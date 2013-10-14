@@ -18,6 +18,8 @@ class messages :
   CVG_42  = message.ident('CVG',  42, message.INFORMATION, 'coverage tree leaf node "%(name)s", id %(id)d of type %(type)s')
   CVG_100 = message.ident('CVG', 100, message.INFORMATION, '%(agent)s coverage import start')
   CVG_101 = message.ident('CVG', 101, message.INFORMATION, '%(agent)s coverage import end after %(time)0.2fs')
+  CVG_110 = message.ident('CVG', 110, message.INFORMATION, '%(agent)s coverage point import start')
+  CVG_111 = message.ident('CVG', 111, message.INFORMATION, '%(agent)s coverage point import end after %(time)0.2fs')
 
 ################################################################################
 
@@ -364,6 +366,16 @@ class coverpoint(hierarchy) :
   SYMBOL  = '+'
   MESSAGE = messages.CVG_42
 
+  DUMP_HITS      = 0
+  DUMP_ILLEGAL   = 1
+  DUMP_DONT_CARE = 2
+  DUMP_ALL       = DUMP_ILLEGAL | DUMP_DONT_CARE
+
+  # change what hits get dumped
+  # e.g. coverpoint.DUMP = coverpoint.DUMP_NONE
+  # default dumps everything
+  DUMP = DUMP_ALL
+
   def __init__(self, model=None, name=None, description=None, parent=None, id=None, axes={}, defaults=None, cumulative=False) :
     self.name        = name or self.__doc__.strip()
     self.model       = model
@@ -466,9 +478,26 @@ class coverpoint(hierarchy) :
     reference : output data is tabulation of bucket index and goal, not hit data
     compress  : when not reference, do not dump unhit or dont_care buckets.
     '''
+    dump_all = self.DUMP == self.DUMP_HITS
+    dump_illegal = self.DUMP & self.DUMP_ILLEGAL
+    dump_dont_care = self.DUMP & self.DUMP_DONT_CARE
+    def bfilter(bucket) :
+      'Filter function to determine if to dump details on hit bucket'
+      if dump_all :
+        # Dump this bucket
+        return False
+      if bucket.illegal and not(dump_illegal) :
+        # Don't dump this bucket
+        return True
+      if bucket.dont_care and not(dump_dont_care) :
+        # Don't dump this bucket
+        return True
+      # Dump this bucket
+      return False
+
     if func :
       for bucket in self.buckets :
-        if not reference and compress and (bucket.dont_care or bucket.hits == 0) :
+        if not reference and compress and (bfilter(bucket) or bucket.hits == 0) :
           continue
         func(bucket.dump(self.offset, reference))
     # generate a summary for this point
@@ -574,6 +603,12 @@ class cursor :
         raise axisNameError(axis)
     return self
 
+  def __enter__(self) :
+    return self
+
+  def __exit__(self, type, value, traceback) :
+    pass
+
   def __getattr__(self, attr) :
     'look for axis name and return state'
     try :
@@ -622,11 +657,15 @@ class upload :
 
   @classmethod
   def write(cls, hierarchy, log_id, reference=False) :
-    _ref   = 'reference' if reference else 'data'
-    messages.CVG_100(agent=cls.__name__, reference=reference)
+    agent = cls.__name__
     if reference:
       hierarchy.get_root().debug()
+      elapsed = time.time()
+      messages.CVG_110(agent=agent, reference=reference)
       hierarchy.get_root().sql(cls.sql(log_id=log_id))
+      elapsed = time.time()-elapsed
+      messages.CVG_111(agent=agent, time=elapsed, reference=reference)
+    messages.CVG_100(agent=agent, reference=reference)
     elapsed = time.time()
     target  = (log_id, )
     with cls(reference) as out :
@@ -634,7 +673,7 @@ class upload :
         out.insert(target + bucket)
       hierarchy.dump_all(dump, reference)
     elapsed = time.time()-elapsed
-    messages.CVG_101(agent='insert', time=elapsed, reference=reference)
+    messages.CVG_101(agent=agent, time=elapsed, reference=reference)
 
 class insert(upload) :
   """
