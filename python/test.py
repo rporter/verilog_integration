@@ -4,11 +4,36 @@ import coverage
 import mdb
 import message
 import sys
-import verilog
 
-class epilogue(verilog.callback) :
-  def __init__(self, func) :
-    verilog.callback.__init__(self, name='epilogue callback', reason=verilog.callback.cbEndOfSimulation, func=func)
+# need to fix this test for non embeddedness
+if open('/proc/self/cmdline').read().startswith('python') :
+  # try to emulate verilog library
+  class epilogue :
+    def __init__(self, func) :
+      pass
+
+  class verilog :
+    class info :
+      product = 'Not Specified'
+      version = 'Not Specified'
+    class args :
+      db = None
+    class callback :
+      @staticmethod
+      def remove_all() :
+        pass
+    @staticmethod
+    def vpiInfo() :
+      return verilog.info
+    @staticmethod
+    def plusargs() :
+      return verilog.args
+else :
+  import verilog
+
+  class epilogue(verilog.callback) :
+    def __init__(self, func) :
+      verilog.callback.__init__(self, name='epilogue callback', reason=verilog.callback.cbEndOfSimulation, func=func)
 
 class test :
   default_db = '../db/mdb.db'
@@ -41,6 +66,10 @@ class test :
 
     if coverage.hierarchy.populated() :
       coverage.insert.write(coverage.hierarchy, self.mdb.log_id, coverage.upload.REFERENCE)
+
+    # is verilog library synthetic?
+    if type(verilog) == type(test) :
+      self.end_of_simulation()
 
   def get_db(self) :
     return verilog.plusargs().db or self.default_db
