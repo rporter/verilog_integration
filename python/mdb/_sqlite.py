@@ -41,7 +41,10 @@ class connection(object) :
         self.db = kwargs['db']
       except KeyError:
         self.db = self.default_db
-      instance = sqlite3.connect(self.db)
+      try :
+        instance = sqlite3.connect(self.db)
+      except :
+        message.warning('Unable to connect. File %(db)s because %(exc)s', db=self.db, exc=sys.exc_info()[0])
       instance.execute('PRAGMA journal_mode=WAL;')
       self.instance[threading.current_thread()] = instance
 
