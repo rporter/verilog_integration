@@ -184,7 +184,7 @@ class axis :
   """
 
   def __init__(self, name=None, parent=None, values=None, start=0, **enums) :
-    self.name = name or "None Given"
+    self.name = name or "No Description Given"
     if parent :
       parent.add_axis(self)
     if values is not None :
