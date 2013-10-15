@@ -46,5 +46,11 @@
     <test>mem_init</test>
     <test>mdb_fmt</test>
   </group>
+  <group name='other'>
+    <option ignore='1'>
+      <target>python</target>
+    </option>
+    <test>coverage_capacity</test>
+  </group>
 </regression>
 

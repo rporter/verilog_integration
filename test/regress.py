@@ -12,12 +12,15 @@ import sys
 
 parser = message.reportOptionParser()
 parser.add_option('-s', '--subset', default=None, help='Test subset', action='append')
-parser.add_option('-x', '--xml', help='set regression xml description', default='test/regress.xml')
+parser.add_option('-x', '--xml', help='set regression xml description', default='regress.xml')
 options, values = parser.parse_args()
 
 ################################################################################
 
-mdb.db.connection.set_default_db(db='../db/mdb.db', root=options.root)
+if options.root :
+  os.chdir(options.root)
+
+mdb.db.connection.set_default_db(db='../db/mdb.db')
 mdb_conn=mdb.mdb('regress', activity='regression')
 
 ################################################################################
@@ -44,7 +47,7 @@ class regression :
   def enqueue(self, cmd) :
     'just execute here'
     message.debug('enqueue %(cmd)s', cmd=cmd)
-    result = subprocess.Popen(cmd.split(' '), env=dict(os.environ, MDB='root='+str(mdb_conn.get_root())+',parent='+str(mdb_conn.log_id))).wait()
+    result = subprocess.Popen(cmd.split(' '), env=dict(os.environ, MDB='root='+str(mdb_conn.get_root())+',parent='+str(mdb_conn.log_id), PYTHONPATH=os.environ['PYTHONPATH']+':../python')).wait()
     if result > 0 :
       message.warning('process %(cmd)s returned non zero %(result)d', cmd=cmd, result=result)
 
@@ -54,7 +57,7 @@ class regression :
     else :
       for name in subset :
         for node in self.xml.xpathEval('''
-(//*[@nid="%(name)s"]/* | //test[text()="%(name)s"] | //*[@name="%(name)s"])
+(//*[@nid="%(name)s"]/* | //test[contains(text(), "%(name)s")] | //*[contains(@name, "%(name)s")])
 [not(@ignore)]''' % locals()) :
           self.tree(node)
     return self
@@ -73,9 +76,14 @@ class regression :
 
   def tree(self, node) :
     if node.name == 'test' :
-      self.enqueue('make -C test ' + self.getopt('target', node) + ' SCRIPT=test_' + node.getContent())
+      target = self.getopt('target', node)
+      script = 'test_' + node.getContent()
+      if target == 'python' :
+        self.enqueue('python test_%s.py' % node.getContent())
+      else :
+        self.enqueue('make ' + target + ' SCRIPT=test_' + node.getContent())
     else :
-      self.enqueue('test/regress -s ' + node.prop('nid'))
+      self.enqueue('./regress -s ' + node.prop('nid'))
 
 ################################################################################
 
