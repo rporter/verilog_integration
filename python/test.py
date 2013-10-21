@@ -14,7 +14,7 @@ if open('/proc/self/cmdline').read().startswith('python') :
 
   class verilog :
     class info :
-      product = 'Not Specified'
+      product = 'Python'
       version = 'Not Specified'
     class args :
       db = None
