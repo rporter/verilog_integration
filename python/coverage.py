@@ -13,7 +13,7 @@ class messages :
   CVG_20  = message.ident('CVG',  20, message.INFORMATION, 'cover point "%(name)s" is at %(cvg)s%%')
   CVG_21  = message.ident('CVG',  21, message.INFORMATION, 'cover point "%(name)s" is at 100%%')
   CVG_22  = message.ident('CVG',  22, message.INFORMATION, 'coverage : %(hits)d out of %(goal)d = %(cvg)s%%')
-  CVG_40  = message.ident('CVG',  40, message.INFORMATION, 'creating coverage root node "%(name)s"')
+  CVG_40  = message.ident('CVG',  40, message.INFORMATION, 'creating coverage root node "%(name)s", id %(id)d')
   CVG_41  = message.ident('CVG',  41, message.INFORMATION, 'coverage tree node "%(name)s", id %(id)d of type %(type)s')
   CVG_42  = message.ident('CVG',  42, message.INFORMATION, 'coverage tree leaf node "%(name)s", id %(id)d of type %(type)s')
   CVG_100 = message.ident('CVG', 100, message.INFORMATION, '%(agent)s coverage import start')
@@ -252,18 +252,35 @@ class hierarchy :
   SYMBOL    = '>'
   MESSAGE   = messages.CVG_41
   
-  root      = None
-  next_id   = 0
-  all_nodes = dict()
+  class rootMixin :
+    'dynamic mixin for root nodes'
+    def __init__(self, id) :
+      # default to 0 for root node
+      self.id = int(id or 0)
+      self.next_id = self.id + 1
+      self.offset = 0
+      self.all_nodes = dict()
+      hierarchy.aroot = self.root # store latest root for backwards compatability
+    def get_id(self) :
+      value, self.next_id = self.next_id, self.next_id+1
+      return value
+    def calc_offset(self, offset) :
+      current_offset = self.offset
+      self.offset += offset
+      return current_offset
+    @classmethod
+    def mixin(cls, inst, *args) :
+      inst.__class__.__bases__ = (cls,) + inst.__class__.__bases__
+      cls.__init__(inst, *args)
 
   def __init__(self, name, description=None, parent=None, root=False, type=None, id=None) :
     if parent is None :
       if root :
         # this is the new root node
-        hierarchy.root = self
+        self.root = self
       else :
         # default is root node
-        _parent = hierarchy.get_root()
+        _parent = self.root
         message.debug("Hierarchy '%(name)s' given no parent id, defaulting to root", name=name)
     else :
       try :
@@ -271,29 +288,27 @@ class hierarchy :
         _parent = self.all_nodes[int(parent)]
         message.debug('Parent id given as integer %(parent)d', parent=int(parent))
       except :
+        # must be hierarchy object
         _parent = parent
-    
+
     self.name        = name
     self.description = description or 'None given'
     self.children    = list()
 
-    if hierarchy.root != self :
-      _parent.add_child(self)
-    else :
-      # root node has no parent
+    if root :
       self.parent = None
+      self.rootMixin.mixin(self, id)
+    else :
+      _parent.add_child(self)
+      # assign unique id
+      self.id = id or self.root.get_id()
 
-    # assign unique id
-    self.id = id or hierarchy.get_id()
     # store hashed by this id
     self.all_nodes[self.id] = self
-    if hierarchy.root == self :
+    if self.is_root :
       # root node
-      messages.CVG_40(name=self.name, id=self.root.id)
+      messages.CVG_40(name=self.name, id=self.id)
     self.MESSAGE(name=name, id=self.id, type=self.__class__.__name__, parent=self.get_parent_id())
-
-  def is_root(self) :
-    return self.parent == None
 
   def add_child(self, child) :
     child.parent = self
@@ -334,30 +349,36 @@ class hierarchy :
   def sql(self, inst) :
     return inst.hierarchy(self)
 
-  @classmethod
-  def populated(cls) :
-    'is there anything here?'
-    return cls.root != None
+  @lazyProperty
+  def root(self) :
+    'If no root node exists, make one'
+    if getattr(self, 'parent', None) is None :
+      if self.aroot is None :
+        self.root = hierarchy(name=self.ROOTNAME, root=True)
+      else :
+        self.root = self.aroot
+      return self.root
+    return self.parent.root
+
+  @lazyProperty
+  def is_root(self) :
+    return self.parent == None
+
+  @lazyProperty
+  def all_nodes(self) :
+    return self.root.all_nodes
+
+  # The following are for backward compatability with singleton root model
+  aroot     = None
 
   @classmethod
   def get_root(cls) :
-    'If no root node exists, make one'
-    if cls.root is None :
-      cls.root = cls(name=cls.ROOTNAME, root=True)
-    return cls.root
+    return cls.aroot
 
   @classmethod
-  def get_id(cls) :
-    value, cls.next_id = cls.next_id, cls.next_id+1
-    return value
-
-  @classmethod
-  def calc_offset(cls, offset) :
-    'keep track of number of buckets'
-    root = cls.get_root()
-    current_offset = getattr(root, 'offset', 0)
-    root.offset = current_offset + offset
-    return current_offset
+  def populated(cls) :
+    'is there anything here?'
+    return cls.get_root() != None
 
   @classmethod
   def dump_all(cls, func=None, reference=False) :
@@ -367,9 +388,7 @@ class hierarchy :
 
   @classmethod
   def reset(cls) :
-    cls.root      = None
-    cls.next_id   = 0
-    cls.all_nodes = dict()
+    cls.aroot = None
 
 ################################################################################
 
@@ -409,7 +428,7 @@ class coverpoint(hierarchy) :
     self.goal    = reduce(lambda a, b : a+b.target(), self.buckets, 0)
     self.total_hits()
     # running count of buckets for all coverpoints and increment global offset
-    self.offset = hierarchy.calc_offset(self.num_of_buckets())
+    self.offset = self.root.calc_offset(self.num_of_buckets())
     # record this point
     messages.CVG_1(name=self.name)
     for name, axe in self.axes() :
