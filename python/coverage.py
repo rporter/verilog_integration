@@ -1,6 +1,6 @@
 # Copyright (c) 2013 Rich Porter - see LICENSE for further details
 
-import inspect, itertools, math, sys, time
+import hashlib, inspect, itertools, math, sys, time
 
 import mdb
 import message
@@ -242,6 +242,13 @@ class axis :
   def sql(self, inst) :
     return inst.axis(self)
 
+  @lazyProperty
+  def md5(self) :
+    'md5 hash of axis'
+    md5 = hashlib.md5()
+    md5.update(str(self.values))
+    return md5.hexdigest()
+
 ################################################################################
 
 class hierarchy :
@@ -348,6 +355,20 @@ class hierarchy :
 
   def sql(self, inst) :
     return inst.hierarchy(self)
+  @lazyProperty
+  def md5(self) :
+    'return tuple of 2 md5 sums : self, children'
+    return (self.md5_self, self.md5_children)
+  @lazyProperty
+  def md5_self(self) :
+    md5 = hashlib.md5()
+    md5.update(self.name + self.description)
+    return md5.hexdigest()
+  @lazyProperty
+  def md5_children(self) :
+    md5 = hashlib.md5()
+    md5.update(str([child.md5 for child in self.children]))
+    return md5.hexdigest()
 
   @lazyProperty
   def root(self) :
@@ -419,7 +440,7 @@ class coverpoint(hierarchy) :
       self._axes = axes.items()
     # this is a generator that yields the bucket defaults as a dictionary
     self.defaults    = defaults
-    self.cumulative  = str(cumulative).lower() # jsonify
+    self.cumulative  = cumulative
     # enumerate buckets
     self.hits    = 0                 # running total of hits for coverpoint
     self.hit     = False
@@ -434,6 +455,9 @@ class coverpoint(hierarchy) :
     for name, axe in self.axes() :
       msg = messages.CVG_2(name=name)
     hierarchy.__init__(self, name=self.name, description=description or self.__doc__.strip(), parent=parent, id=id)
+
+  def __len__(self) :
+    return len(self.buckets)
 
   def add_axis(self, name, **kwargs) :
     'add axis'
@@ -546,6 +570,21 @@ class coverpoint(hierarchy) :
 
   def sql(self, inst) :
     return inst.coverpoint(self)
+
+  @lazyProperty
+  def md5(self) :
+    'return tuple of 3 md5 sums : self, goal, axes'
+    return (self.md5_self, self.md5_axes, self.md5_goal)
+  @lazyProperty
+  def md5_axes(self) :
+    md5 = hashlib.md5()
+    md5.update(str([axis.md5 for axis in self.get_axes()]))
+    return md5.hexdigest()
+  @lazyProperty
+  def md5_goal(self) :
+    md5 = hashlib.md5()
+    md5.update(str([bucket.goal for bucket in self.buckets]))
+    return md5.hexdigest()
 
   def bucket_id(self, **axes) :
     'Call with dictionary of axis=int(value)'
@@ -720,25 +759,25 @@ class insert(upload) :
     def __del__(self) :
       if self.is_root :
         self.cursor.close()
+    def last_id(self) :
+      self.cursor.execute('SELECT last_insert_rowid() AS rowid;')
+      return self.cursor.fetchone()[0]
+
     def axis(self, axis) :
       self.cursor.execute('INSERT INTO axis (point_id, axis_name) VALUES (?,?)', (self.parent_id, axis.name))
-      self.cursor.execute('SELECT last_insert_rowid() AS rowid;')
-      self.sql_row_id = self.cursor.fetchone()[0]
+      self.sql_row_id = self.last_id()
       for enum, value in axis.values.iteritems() :
         self.cursor.execute('INSERT INTO enum (axis_id, enum, value) VALUES (?,?,?)', (self.sql_row_id, enum, value))
-
     def coverpoint(self, coverpoint) :
-      self.add_point(coverpoint)
+      self.cursor.execute('INSERT INTO point (log_id, point_name, desc, root, parent, offset, size, md5_self, md5_axes, md5_goal) VALUES (?,?,?,?,?,?,?,?,?,?)', (self.root.log_id, coverpoint.name, coverpoint.description, self.root_id, self.parent_id, coverpoint.offset, len(coverpoint)) + coverpoint.md5)
+      self.sql_row_id = self.last_id()
       for name, axis in coverpoint.axes() :
         axis.sql(insert.sql(self))
     def hierarchy(self, hierarchy) :
-      self.add_point(hierarchy)
+      self.cursor.execute('INSERT INTO point (log_id, point_name, desc, root, parent, md5_self, md5_axes) VALUES (?,?,?,?,?,?,?)', (self.root.log_id, hierarchy.name, hierarchy.description, self.root_id, self.parent_id) + hierarchy.md5)
+      self.sql_row_id = self.last_id()
       for child in hierarchy.children :
         child.sql(insert.sql(self))
-    def add_point(self, node) :
-      self.cursor.execute('INSERT INTO point (log_id, point_name, desc, root, parent) VALUES (?,?,?,?,?)', (self.root.log_id, node.name, node.description, self.root_id, self.parent_id))
-      self.cursor.execute('SELECT last_insert_rowid() AS rowid;')
-      self.sql_row_id = self.cursor.fetchone()[0]
 
     @lazyProperty
     def root(self) :

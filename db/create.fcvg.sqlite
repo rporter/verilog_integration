@@ -8,10 +8,10 @@ CREATE TABLE point (
   parent     INTEGER,                                    -- parent point or NULL if root
   offset     INTEGER,                                    -- 1st bucket index
   size       INTEGER,                                    -- number of buckets for convenience
-  md5_all    INTEGER,                                    -- for congruency checking
-  md5_goal   INTEGER,                                    -- for congruency checking of goal data 
+  md5_self   INTEGER,                                    -- for congruency checking of name & description
   md5_axes   INTEGER,                                    -- for congruency checking of axis & enum data 
-  FOREIGN KEY (log_id) REFERENCES log (log_id),
+  md5_goal   INTEGER,                                    -- for congruency checking of goal data 
+  FOREIGN KEY (log_id) REFERENCES log   (log_id),
   FOREIGN KEY (root)   REFERENCES point (point_id),
   FOREIGN KEY (parent) REFERENCES point (point_id),
   FOREIGN KEY (offset) REFERENCES goal  (bucket_id)

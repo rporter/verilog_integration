@@ -14,8 +14,8 @@ class test_cvg :
     'bits toggle'
     def __init__(self, signal, name=None, parent=None) :
       self.size  = signal.size
-      self.bit   = coverage.axis('bit', values=range(0, 1+self.size))
-      self.sense = coverage.axis('sense', true=1, false=0)
+      self.bit   = self.add_axis('bit', values=range(0, 1+self.size))
+      self.sense = self.add_axis('sense', true=1, false=0)
       coverage.coverpoint.__init__(self, signal, name, parent=parent)
 
     def define(self, bucket) :
@@ -44,7 +44,7 @@ class arr_cb(verilog.callback) :
 class thistest(test.test) :
   activity='simulation'
   block='default'
-  name='test coverge'
+  name='test coverage'
   def prologue(self) :
     simctrl = verilog.scope('example.simctrl_0_u')
     # up timeout 
