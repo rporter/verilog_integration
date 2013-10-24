@@ -508,8 +508,8 @@ $report = function(){
     }
 
     function wrapif(cvg) {
-      cvg = cvg || self.coverage;
-      if (coverage_cls(cvg) !== 'none') {
+      self.coverage = self.coverage || cvg; // update coverage if given
+      if (coverage_cls(self.coverage) !== 'none') {
         self.wrap();
       }
     }
