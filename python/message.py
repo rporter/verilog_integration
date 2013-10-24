@@ -49,6 +49,9 @@ class message :
   @classmethod
   def terminating(cls) :
     return cls.instance.terminating()
+  @classmethod
+  def get_msg(cls, *args) :
+    return cls.instance.get_tags().get(*args)
 
 ################################################################################
 
@@ -64,11 +67,13 @@ class internal(message)    : pass
 
 ################################################################################
 
-class ident(message) :
+class ident(message, object) :
   'thin wrapper around ident class which is declared in swig exm_msg.i'
   def __init__(self, ident, subident, level, msg) :
     self.msg_id = exm_msg.ident(ident, subident, level, msg)
+    self.tag    = exm_msg.tag(ident, subident)
     self.text   = msg
+    self._init = True
   def __call__(self, **args) :
     # default to scope above
     file, line = inspect.stack()[1][1:3]
@@ -76,6 +81,11 @@ class ident(message) :
       self.msg_id(str(self.text % args), args.setdefault('file', file), args.setdefault('line', line))
     except :
       self.msg_id(args.setdefault('file', file), args.setdefault('line', line))
+  def __setattr__(self, attr, val) :
+    if hasattr(self, '_init') :
+      setattr(message.get_msg(self.tag), attr, val)
+    else :
+      object.__setattr__(self, attr, val)
 
 class by_id(message) :
   def __init__(self, ident, subident, **args) :

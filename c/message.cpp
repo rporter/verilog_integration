@@ -86,8 +86,6 @@ const char* msg::severity() const {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class noMessageError {};
-
 msg_tags::msg_tags() : map(NULL) {
 }
 msg_tags::~msg_tags() {

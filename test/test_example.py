@@ -2,6 +2,7 @@
 
 import atexit
 import message
+import test
 import verilog
 
 def root() :
@@ -9,8 +10,8 @@ def root() :
 
 simctrl = verilog.scope(root() + '.simctrl_0_u')
 
-if verilog.plusargs().timeout :
-  simctrl.direct.sim_ctrl_timeout_i = verilog.vpiInt(verilog.plusargs().timeout)
+if test.plusargs().timeout :
+  simctrl.direct.sim_ctrl_timeout_i = verilog.vpiInt(test.plusargs().timeout)
 
 # use verilog vpi cbEndOfSimulation callback
 class cbEndOfSimulation(verilog.callback) :

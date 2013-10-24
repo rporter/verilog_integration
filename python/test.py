@@ -3,7 +3,25 @@
 import coverage
 import mdb
 import message
+import re
 import sys
+
+################################################################################
+
+class plusargs(object) :
+  argval = re.compile(r'^\+(?P<arg>[^+=]+)(?:[+=](?P<val>.*))?$')
+  _instance = None
+  class store(dict) :
+    def __init__(self, *args) :
+      dict.__init__(self, *args)
+    def __getattr__(self, attr) :
+      return self.get(attr, None)
+  def __new__(self, *args, **kwargs) :
+    if self._instance is None :
+      self._instance = self.store([(arg.group('arg'), True if arg.group('val') is None else arg.group('val')) for arg in map(self.argval.match, sys.argv) if arg])
+    return self._instance
+
+################################################################################
 
 # need to fix this test for non embeddedness
 if open('/proc/self/cmdline').read().startswith('python') :
@@ -16,8 +34,6 @@ if open('/proc/self/cmdline').read().startswith('python') :
     class info :
       product = 'Python'
       version = 'Not Specified'
-    class args :
-      db = None
     class callback :
       @staticmethod
       def remove_all() :
@@ -25,9 +41,6 @@ if open('/proc/self/cmdline').read().startswith('python') :
     @staticmethod
     def vpiInfo() :
       return verilog.info
-    @staticmethod
-    def plusargs() :
-      return verilog.args
 else :
   import verilog
 
@@ -65,14 +78,20 @@ class test :
       self.traceback(exc[2])
 
     if coverage.hierarchy.populated() :
-      coverage.insert.write(coverage.hierarchy, self.mdb.log_id, coverage.upload.REFERENCE)
+      if getattr(self, 'master_id', False) :
+        coverage.insert.set_master(self.mdb.log_id, self.master_id)
+        if getattr(self, 'master_chk', False) :
+          # create the hierarchy from master id and verify congruent
+          pass
+      else :
+        coverage.insert.write(coverage.hierarchy, self.mdb.log_id, coverage.upload.REFERENCE)
 
     # is verilog library synthetic?
     if type(verilog) == type(test) :
       self.end_of_simulation()
 
   def get_db(self) :
-    return verilog.plusargs().db or self.default_db
+    return plusargs().db or self.default_db
 
   def terminate(self, *args) :
     self.end_of_simulation(False)
@@ -94,7 +113,7 @@ class test :
     # tidy up
     mdb.finalize_all()
     # coverage
-    if coverage.hierarchy.populated() :
+    if coverage.hierarchy.populated() and not getattr(self, 'is_master', False) :
       coverage.insert.write(coverage.hierarchy, self.mdb.log_id, coverage.upload.RESULT)
     # remove callbacks
     verilog.callback.remove_all()

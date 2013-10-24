@@ -144,6 +144,17 @@
 
 %ignore example::message::emitf(unsigned int level, char *file, unsigned int line, char* text, va_list args);
 
+%exception example::msg_tags::get {
+  try {
+    $function
+  } catch (::example::noMessageError &e) {
+    PyErr_SetString(PyExc_LookupError, "No message with matching tag");
+    return NULL;
+  }
+}
+%exception;
+
+
 %include "std_string.i"
 %include "std_map.i"
 

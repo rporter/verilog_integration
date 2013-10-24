@@ -128,6 +128,9 @@ struct msg {
   const char* severity() const;
 };
 
+class noMessageError {
+};
+
 class msg_tags {
  public :
   typedef std::map<const tag, const msg> tagmap;

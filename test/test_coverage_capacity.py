@@ -17,6 +17,8 @@ class big_coverpoint(coverage.coverpoint) :
     # no dont cares or illegals
     bucket.default(goal=10)
 
+################################################################################
+
 class thistest(test.test) :
   bits=5
   size=1<<bits

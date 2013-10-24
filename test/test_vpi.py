@@ -96,7 +96,7 @@ class test_vpi(test.test) :
   TIMEOUT=200
   def prologue(self) :
     # initialize random seed with deterministic value
-    seed = verilog.plusargs().get('seed', 1)
+    seed = test.plusargs().get('seed', 1)
     random.seed(seed)
     
     simctrl = verilog.scope('example.simctrl_0_u')

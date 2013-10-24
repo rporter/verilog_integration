@@ -21,6 +21,9 @@ class messages :
   CVG_110 = message.ident('CVG', 110, message.INFORMATION, '%(agent)s coverage point import start')
   CVG_111 = message.ident('CVG', 111, message.INFORMATION, '%(agent)s coverage point import end after %(time)0.2fs')
 
+  CVG_200 = message.ident('CVG', 200, message.ERROR      , 'hit on bucket marked as illegal')
+
+
 ################################################################################
 
 class lazyProperty(object):
@@ -135,7 +138,7 @@ class bucket :
 
   def incr(self, hits=1, oneoff=False) :
     if self.illegal : 
-      message.error('hit on bucket marked as illegal', idx=self.idx, enum=self.seq)
+      messages.CVG_200(idx=self.idx, enum=self.seq)
     if oneoff and self.hits : 
       # if oneoff is true only count if bucket unhit
       return
@@ -217,12 +220,10 @@ class axis :
     return len(self.values.keys())
 
   def get_values(self) :
-    for value in sorted(self.values.values()) :
-      yield value
+    return sorted(self.values.values())
 
   def get_enums(self) :
-    for value in self.get_values() :
-      yield self.rev[value]
+    return [self.rev[value] for value in self.get_values()]
 
   def __set__(self, instance, value) :
     if value in self.values.values() :
@@ -796,7 +797,7 @@ class insert(upload) :
     def cursor(self) :
       return mdb.mdb.cursor() if self.is_root else self.root.cursor
 
-  def __init__(self, reference) :
+  def __init__(self, reference=False) :
     self.reference = reference
     self.data      = list()
     message.debug("sqlite insert created")
@@ -818,5 +819,10 @@ class insert(upload) :
   def insert(self, data) :
     'add data to insert values'
     self.data.append(data)
+
+  @classmethod
+  def set_master(cls, log_id, master_id) :
+    with mdb.mdb.cursor() as cursor :
+      cursor.execute('INSERT INTO master (log_id, goal_id) VALUES (?, ?);', (log_id, master_id))
 
 ################################################################################

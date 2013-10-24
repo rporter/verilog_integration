@@ -21,7 +21,7 @@ class accessor(dict) :
     if hasattr(self, '_init') :
       self[attr] = val
     else :
-       setattr(self, attr, val)
+      setattr(self, attr, val)
 
   def __add__(self, other) :
     return self.__class__(self.items() + other.items())

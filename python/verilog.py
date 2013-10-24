@@ -609,21 +609,6 @@ class callback :
 
 ################################################################################
 
-class plusargs(object) :
-  argval = re.compile(r'^\+(?P<arg>[^+=]+)(?:[+=](?P<val>.*))?$')
-  _instance = None
-  class store(dict) :
-    def __init__(self, *args) :
-      dict.__init__(self, *args)
-    def __getattr__(self, attr) :
-      return self.get(attr, None)
-  def __new__(self, *args, **kwargs) :
-    if self._instance is None :
-      self._instance = self.store([(arg.group('arg'), True if arg.group('val') is None else arg.group('val')) for arg in map(self.argval.match, sys.argv) if arg])
-    return self._instance
-
-################################################################################
-
 class vpiChkErrorCb(callback) :
   def __init__(self) :
     callback.__init__(self, name='PLI error callback', reason=vpi.cbPLIError, func=self.execute)
