@@ -39,8 +39,7 @@ class thistest(test.test) :
     self.master_id = test.plusargs().master_id
     if self.master_id :
       # make some coverage
-      print coverage.messages.CVG_200.tag
-      coverage.messages.CVG_200.level = message.WARNING
+      coverage.messages.CVG_200.level = message.IGNORE
       for i in range(0, 99999) :
         with random.choice(cpts) as cursor :
           for name, axis in cursor.point.axes() :

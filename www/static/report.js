@@ -15,16 +15,17 @@ $report = function(){
   }
 
   $report.levels = {
-    INT_DEBUG   : 0,
-    DEBUG       : 1,
-    INFORMATION : 2,
-    NOTE        : 3,
-    SUCCESS     : 4,
-    WARNING     : 5,
-    ERROR       : 6,
-    INTERNAL    : 7,
-    FATAL       : 8,
-    _SIZE       : 9,
+    IGNORE      : 0,
+    INT_DEBUG   : 1,
+    DEBUG       : 2,
+    INFORMATION : 3,
+    NOTE        : 4,
+    SUCCESS     : 5,
+    WARNING     : 6,
+    ERROR       : 7,
+    INTERNAL    : 8,
+    FATAL       : 9,
+    _SIZE       : 10,
     severity    : function (level) {
       for (var l in this) {
         if (this[l] === level) {

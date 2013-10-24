@@ -50,7 +50,7 @@ class _mdb(object) :
     self.commit_level = level
     self.abv = activityBlockVersion(**kwargs)
     self.queue = Queue.Queue()
-    # init filter
+    # init default filter
     self.filter_fn = self.filter
     self.root = root or mdbDefault().root
     self.parent = parent or mdbDefault().parent
@@ -67,7 +67,8 @@ class _mdb(object) :
     message.debug('hello ...')
 
   def filter(self, cb_id, level, filename) :
-    return False
+    'do not store messages less important that INFORMATION by default'
+    return level < message.INFORMATION
 
   def finalize(self, *args) :
     'set test status & clean up'

@@ -3,7 +3,7 @@
 import atexit
 import collections
 import exm_msg
-from exm_msg import INT_DEBUG, DEBUG, INFORMATION, NOTE, SUCCESS, WARNING, ERROR, INTERNAL, FATAL
+from exm_msg import IGNORE, INT_DEBUG, DEBUG, INFORMATION, NOTE, SUCCESS, WARNING, ERROR, INTERNAL, FATAL
 import inspect
 import sys
 

@@ -26,7 +26,7 @@ static void cb_emit_default(const cb_id& id, unsigned int level, timespec& when,
 }
 
 static void cb_terminate_summary(const cb_id& id) {
-  for (int i=MAX_LEVEL;--i>=INT_DEBUG;) {
+  for (int i=MAX_LEVEL;--i>=IGNORE;) {
     control* attr = message::get_ctrl(i);
     INFORMATION("%12s : %d", message::name(i), attr->count);
   }
@@ -131,12 +131,12 @@ int control::toomany() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-  message::message() : terminating_cnt(0), terminated(false) {
+message::message() : terminating_cnt(0), terminated(false) {
   cb_emit.insert("account", 99, cb_account);
   cb_emit.insert("default", 0, cb_emit_default);
   cb_terminate.insert("summary", 98, cb_terminate_summary);
   cb_terminate.insert("exit", 99, cb_terminate_default);
-  for (int i=INT_DEBUG; i<MAX_LEVEL; i++) {
+  for (int i=IGNORE; i<MAX_LEVEL; i++) {
     attrs[i].echo = i>DEBUG;
     if (i>ERROR) {
       attrs[i].threshold = 1;
@@ -184,6 +184,7 @@ char* message::name(int level) {
 
 char* message::name(enum levels level) {
   static char* names[] = {
+    (char*)"IGNORE",
     (char*)"INT_DEBUG",
     (char*)"DEBUG",
     (char*)"INFORMATION",
@@ -194,7 +195,7 @@ char* message::name(enum levels level) {
     (char*)"INTERNAL",
     (char*)"FATAL"
   };
-  if (level >= INT_DEBUG && level <= FATAL) {
+  if (level >= IGNORE && level <= FATAL) {
     return names[level];
   }
   return (char*)"**undefined**";
@@ -205,14 +206,14 @@ control* message::get_ctrl() {
 }
 
 control* message::get_ctrl(unsigned int level) {
-  if (level >= INT_DEBUG and level <= FATAL) {
+  if (level >= IGNORE and level <= FATAL) {
     return &self->attrs[level];
   }
   return NULL;
 }
 
 void message::verbosity(unsigned int level) {
-  for (int i=INT_DEBUG; i<MAX_LEVEL;i++) {
+  for (int i=IGNORE; i<MAX_LEVEL;i++) {
     self->attrs[i].echo = i>=level;
   }
 };

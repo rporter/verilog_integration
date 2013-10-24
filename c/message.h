@@ -12,7 +12,8 @@ namespace example {
 ////////////////////////////////////////////////////////////////////////////////
 
 enum levels {
-  INT_DEBUG = 0,
+  IGNORE = 0,
+  INT_DEBUG,
   DEBUG,
   INFORMATION,
   NOTE,
