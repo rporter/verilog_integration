@@ -383,7 +383,7 @@ $report = function(){
       var align  = function() {
         widget.animate({top:$(self.log).scrollTop()},{duration:100,queue:false});
       };
-      $(this.log).scroll(align);
+      $(self.log).scroll(align);
       // show/hide timestamp
       var show = $('<p class="show">Show<span class="ui-icon ui-icon-carat-1-s"></span></p>').appendTo(widget);
       var menu = $($('#menu').text()).appendTo(show).menu();
