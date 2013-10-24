@@ -140,9 +140,9 @@ urls = (
   ('/msgs/<log_id:int>', msgs,),
   ('/rgr/<log_id:int>', rgr,),
   ('/cvg/<log_id:int>', cvg,),
+  ('/cvg/<log_id:int>/<goal_id:int>', cvg,),
   ('/cvg/<log_id:int>/<cumulative:re(cumulative)>', cvg,),
   ('/cvr/<log_id:int>', cvr,),
-  ('/cvr/<log_id:int>/<goal_id:int>', cvr,),
 )
 
 for path, cls in urls:

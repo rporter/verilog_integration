@@ -355,8 +355,14 @@ $report = function(){
       this.div.prepend('<ul><li><a href="#log">Log</a></li><li><a href="#cvg">Coverage</a></li></ul>');
       this.cvg = $('<div/>', {class: "cvg-pane", id:"cvg"}).appendTo(this.div);
       this.tabs = this.div.tabs();
+      function url() {
+        var url = 'cvg/' + data.log_id;
+        if (self.coverage.master) url += '/' + self.coverage.master;
+        if (self.coverage.root  ) url += '/' + self.coverage.root;
+        return url;
+      }
       $.ajax({
-        url : 'cvg/' + data.log_id,
+        url : url(),
         dataType : 'json',
         success : function(data) {
           $coverage.coverage(self.cvg, data.log_id, data);

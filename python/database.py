@@ -232,7 +232,7 @@ class cvg :
       self.goal_id = goal_id or log_id
     def points(self) :
       with mdb.db.connection().row_cursor() as db :
-        db.execute('SELECT * FROM point LEFT OUTER JOIN axis USING (point_id) LEFT OUTER JOIN enum USING (axis_id) WHERE log_id=%(log_id)s ORDER BY point_id ASC, axis_id ASC, enum_id ASC;' % self.__dict__)
+        db.execute('SELECT * FROM point LEFT OUTER JOIN axis USING (point_id) LEFT OUTER JOIN enum USING (axis_id) WHERE log_id=%(goal_id)s ORDER BY point_id ASC, axis_id ASC, enum_id ASC;' % self.__dict__)
         cvg.hierarchy(db.fetchall(), self.coverage())
         return coverage.hierarchy.get_root()
     def coverage(self) :
@@ -256,10 +256,10 @@ class cvg :
 ################################################################################
 
 class cvr :
-  def result(self, log_id, goal_id=None) :
+  def result(self, log_id) :
     with mdb.db.connection().row_cursor() as db :
       message.debug('retrieving %(log_id)s coverage information', log_id=log_id)
-      db.execute('SELECT IFNULL((SELECT log_id FROM goal WHERE log_id = %(log_id)s LIMIT 1), 0) AS goal, IFNULL((SELECT log_id FROM hits WHERE log_id = %(log_id)s LIMIT 1), 0) AS coverage, (SELECT goal_id FROM master WHERE log_id = %(log_id)s LIMIT 1) AS master;' % locals())
+      db.execute('SELECT %(log_id)s as log_id, (SELECT log_id FROM goal WHERE log_id = %(log_id)s LIMIT 1) AS goal, (SELECT log_id FROM hits WHERE log_id = %(log_id)s LIMIT 1) AS coverage, (SELECT goal_id FROM master WHERE log_id = %(log_id)s LIMIT 1) AS master, (SELECT goal.log_id FROM goal JOIN log ON (log.root = goal.log_id) WHERE log.log_id = %(log_id)s LIMIT 1) AS root;' % locals())
       return db.fetchone()
 
 ################################################################################

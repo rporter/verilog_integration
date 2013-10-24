@@ -32,23 +32,23 @@ class thistest(test.test) :
   def prologue(self):
     # initialize all the same
     random.seed(test.plusargs().cvr_seed or 0)
-    cpts = [coverpoint('%d random coverpoint' % i).cursor() for i in range(0, self.insts)]
+    self.cpts = [coverpoint('%d random coverpoint' % i).cursor() for i in range(0, self.insts)]
 
     random.seed(test.plusargs().tst_seed or 0)
     
     self.master_id = test.plusargs().master_id
+    if not self.master_id :
+      self.is_master = True
+
+  def epilogue(self) :
     if self.master_id :
       # make some coverage
       coverage.messages.CVG_200.level = message.IGNORE
       for i in range(0, 99999) :
-        with random.choice(cpts) as cursor :
+        with random.choice(self.cpts) as cursor :
           for name, axis in cursor.point.axes() :
             cursor(**{name : random.choice(axis.get_values())})
           cursor.incr(random.randrange(10))
-    else :
-      self.is_master = True
-
-  def epilogue(self) :
     self.success()
 
 ################################################################################

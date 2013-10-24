@@ -16,6 +16,7 @@ class messages :
   CVG_40  = message.ident('CVG',  40, message.INFORMATION, 'creating coverage root node "%(name)s", id %(id)d')
   CVG_41  = message.ident('CVG',  41, message.INFORMATION, 'coverage tree node "%(name)s", id %(id)d of type %(type)s')
   CVG_42  = message.ident('CVG',  42, message.INFORMATION, 'coverage tree leaf node "%(name)s", id %(id)d of type %(type)s')
+  CVG_50  = message.ident('CVG',  50, message.INFORMATION, 'using coverage master %(master_id)s for %(log_id)s')
   CVG_100 = message.ident('CVG', 100, message.INFORMATION, '%(agent)s coverage import start')
   CVG_101 = message.ident('CVG', 101, message.INFORMATION, '%(agent)s coverage import end after %(time)0.2fs')
   CVG_110 = message.ident('CVG', 110, message.INFORMATION, '%(agent)s coverage point import start')
@@ -824,5 +825,6 @@ class insert(upload) :
   def set_master(cls, log_id, master_id) :
     with mdb.mdb.cursor() as cursor :
       cursor.execute('INSERT INTO master (log_id, goal_id) VALUES (?, ?);', (log_id, master_id))
+    messages.CVG_50(**locals())
 
 ################################################################################
