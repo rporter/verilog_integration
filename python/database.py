@@ -265,7 +265,7 @@ class bkt :
   def result(self, log_id, buckets) :
     with mdb.db.connection().row_cursor() as db :
       message.debug('retrieving %(log_id)s bucket coverage', log_id=log_id)
-      db.execute('SELECT hits.log_id, SUM(hits.hits) AS hits FROM hits NATURAL JOIN log WHERE log.root = %(log_id)s AND bucket_id IN (%(buckets)s) GROUP BY hits.log_id;' % locals())
+      db.execute('SELECT hits.log_id, SUM(hits.hits) AS hits FROM hits NATURAL JOIN log WHERE log.root = %(log_id)s AND bucket_id IN (%(buckets)s) GROUP BY hits.log_id ORDER BY hits DESC;' % locals())
       return db.fetchall()
 
 ################################################################################
