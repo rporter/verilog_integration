@@ -73,7 +73,6 @@ $coverage = function(){};
       var bucket_id = parseInt(node.attr('bkt'));
       var bucket    = buckets[bucket_id];
       var url       = '/bkt/' + log_id + '/';
-console.log(bucket);
       if (bucket.length < 3) {
         url += (bucket_id + offset);
       } else {
@@ -352,6 +351,9 @@ console.log(bucket);
         $('td.hits', body).bind('mouseenter.coverage', function() {
           showBucket($(this));
  	});
+      }
+      if (options.hide_hits) {
+        $('tr.hit', where).hide();
       }
       if (options.hide_dont_care) {
         $('tr.dont_care', where).hide();
