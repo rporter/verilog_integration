@@ -216,24 +216,25 @@ class rgr(index) :
 
 class cvg : 
   class hierarchy :
-    def __init__(self, db, defaults) :
+    def __init__(self, db, defaults, cumulative) :
       coverage.hierarchy.reset()
       for parent, children in index.groupby(db, lambda row : row.point_id) :
         if parent.axis_id :
-          coverage.coverpoint(name=parent.point_name, description=parent.desc, id=parent.point_id, parent=parent.parent, axes=self.get_axes(children), defaults=defaults)
+          coverage.coverpoint(name=parent.point_name, description=parent.desc, id=parent.point_id, parent=parent.parent, axes=self.get_axes(children), defaults=defaults, cumulative=cumulative)
         else :
           coverage.hierarchy(parent.point_name, parent.desc, id=parent.point_id, root=parent.root == None, parent=parent.parent)
     def get_axes(self, nodes) :
       return collections.OrderedDict([(axis.axis_name, coverage.axis(axis.axis_name, **dict([(e.enum, e.enum_id) for e in enum]))) for axis, enum in index.groupby(nodes, lambda node : node.axis_id)])
         
   class single :
+    cumulative=False
     def __init__(self, log_id, goal_id=None) :
       self.log_id = log_id
       self.goal_id = goal_id or log_id
     def points(self) :
       with mdb.db.connection().row_cursor() as db :
         db.execute('SELECT * FROM point LEFT OUTER JOIN axis USING (point_id) LEFT OUTER JOIN enum USING (axis_id) WHERE log_id=%(goal_id)s ORDER BY point_id ASC, axis_id ASC, enum_id ASC;' % self.__dict__)
-        cvg.hierarchy(db.fetchall(), self.coverage())
+        cvg.hierarchy(db.fetchall(), self.coverage(), self.cumulative)
         return coverage.hierarchy.get_root()
     def coverage(self) :
       with mdb.db.connection().row_cursor() as db :
@@ -245,13 +246,27 @@ class cvg :
           yield {}
 
   class cumulative(single) :
+    cumulative=True
     def coverage(self) :
       with mdb.db.connection().row_cursor() as db :
-        db.execute('SELECT goal.goal, IFNULL(cumulative.hits, 0) AS hits FROM goal LEFT OUTER NATURAL JOIN (SELECT bucket_id, SUM(hits.hits) AS hits, COUNT(hits.hits) as tests FROM hits JOIN (SELECT log_id FROM log WHERE root=%(log_id)s AND parent != NULL) AS runs ON (log_id) GROUP BY bucket_id) AS cumulative WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;' % self.__dict__)
-        return db.fetchall()
+        db.execute('SELECT goal.goal, IFNULL(cumulative.hits, 0) AS hits FROM goal LEFT OUTER NATURAL JOIN (SELECT bucket_id, SUM(hits.hits) AS hits, COUNT(hits.hits) as tests FROM hits JOIN (SELECT log_id FROM log WHERE root=%(log_id)s AND parent is not NULL) AS runs USING (log_id) GROUP BY bucket_id) AS cumulative WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;' % self.__dict__)
+        for result in db.fetchall() :
+          yield result
+        while (1) : 
+          message.warning('missing bucket')
+          yield {}
 
   def result(self, log_id, goal_id=None, cumulative=False) :
     return (self.cumulative if cumulative else self.single)(log_id, goal_id)
+
+################################################################################
+
+class bkt :
+  def result(self, log_id, buckets) :
+    with mdb.db.connection().row_cursor() as db :
+      message.debug('retrieving %(log_id)s bucket coverage', log_id=log_id)
+      db.execute('SELECT hits.log_id, SUM(hits.hits) AS hits FROM hits NATURAL JOIN log WHERE log.root = %(log_id)s AND bucket_id IN (%(buckets)s) GROUP BY hits.log_id;' % locals())
+      return db.fetchall()
 
 ################################################################################
 

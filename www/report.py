@@ -122,6 +122,15 @@ class cvr(serve_something, database.cvr) :
 
 ################################################################################
 
+class bkt(serve_something, database.bkt) :
+  CONTENTTYPE='application/json'
+  encapsulate=False
+
+  def doit(self, **kwargs):
+    json.dump(self.result(**kwargs), self.page)
+
+################################################################################
+
 @bottle.get('/static/<filename:path>')
 def server_static(filename):
     return bottle.static_file(filename, root=static)
@@ -141,8 +150,10 @@ urls = (
   ('/rgr/<log_id:int>', rgr,),
   ('/cvg/<log_id:int>', cvg,),
   ('/cvg/<log_id:int>/<goal_id:int>', cvg,),
-  ('/cvg/<log_id:int>/<cumulative:re(cumulative)>', cvg,),
+  ('/cvg/<log_id:int>/<cumulative:re:(cumulative)>', cvg,),
+  ('/cvg/<log_id:int>/<goal_id:int>/<cumulative:re:(cumulative)>', cvg,),
   ('/cvr/<log_id:int>', cvr,),
+  ('/bkt/<log_id:int>/<buckets>', bkt,),
 )
 
 for path, cls in urls:

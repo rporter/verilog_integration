@@ -71,22 +71,24 @@ $coverage = function(){};
 
     function showBucket(node) {
       var bucket_id = parseInt(node.attr('bkt'));
+      var bucket    = buckets[bucket_id];
       var url       = '/bkt/' + log_id + '/';
-      if (buckets[bucket_id].length < 3) {
+console.log(bucket);
+      if (bucket.length < 3) {
         url += (bucket_id + offset);
       } else {
-        url += buckets[bucket_id][2].map(function(bkt){return bkt+offset}).join(',');
+        url += bucket[2].map(function(bkt){return bkt+offset}).join(',');
       }
       node.html(function(){
         return '<a class="popup">' + $(this).text() + '<span id="hits-' + bucket_id + '" title="hit details for ' + log_id + '/' + bucket_id + '"></span></a>';
       });
       $.getJSON(url, function(data) {
         $('span', node).html(function() {
-          if (data.tests.length) {
+          if (data.length) {
             return $('<table/>', {
               class : 'bucket',
-              html : '<tbody>'+data.tests.slice(0,10).map(function(it){
-                return '<tr class="' + it.status + '"><td>'+it.log_id+'</td><td>'+it.hits+'</td></tr>';
+              html : '<tbody>'+data.slice(0,10).map(function(it){
+                return '<tr class="'+coverageTable.classFromBucket([bucket[0], it.hits])+'"><td>'+it.log_id+'</td><td>'+it.hits+'</td></tr>';
               })+'</tbody>'
             });
           } else {

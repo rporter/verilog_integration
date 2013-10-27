@@ -60,10 +60,10 @@
           <tr><th><%= this.y_axis.values[a0] %></th>
             <% for (var a1=0; a1<this.x_axis.values.length; a1++) {
                  var bkt=this.buckets[cnt];
-                 cnt+=1;
             %>
-            <td class="hits <%= $coverage.coverageTable.classFromBucket(bkt) %>" title="goal = <%= bkt[0] %>"><%= bkt[1] %></td>
-            <% } %>
+            <td class="hits <%= $coverage.coverageTable.classFromBucket(bkt) %>" bkt="<%= cnt %>" title="goal = <%= bkt[0] %>"><%= bkt[1] %></td>
+            <%   cnt+=1;
+               } %>
           </tr>
           <% } %>
        </table>

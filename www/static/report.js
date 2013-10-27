@@ -159,7 +159,7 @@ $report = function(){
               var log;
               if (event.data.children) {
                 // this will be a tab-within-tab
-                log = new $report.openRegr(event.data);
+                log = new $report.openRegr(event.data, nRow);
               } else {
                 // place report log in new tab
                 log = new $report.openLog(event.data, undefined, nRow);
@@ -318,7 +318,7 @@ $report = function(){
         success : function(json) {
           var result = coverage_cls(json);
           if (cvg) {
-            $(cvg).text(result).addClass('cvg-'+result);
+            $(cvg).addClass('cvg-'+result).html('<a class="popup">'+result+'<span title="'+result+'"><table>' + Object.keys(json).reduce(function(p, c){return p + '<tr><td>'+c+'</td><td>'+json[c]+'</td></tr>'}, '') + '</table></span></a>');
             $(cvg).unbind(event.type+'.'+event.namespace); // no need to do again
           }
           if (nRow) {
@@ -358,20 +358,19 @@ $report = function(){
       function url() {
         var url = 'cvg/' + data.log_id;
         if (self.coverage.master) url += '/' + self.coverage.master;
-        if (self.coverage.root  ) url += '/' + self.coverage.root;
+        else if (self.coverage.root) url += '/' + self.coverage.root;
         return url;
       }
       $.ajax({
         url : url(),
         dataType : 'json',
-        success : function(data) {
-          $coverage.coverage(self.cvg, data.log_id, data);
+        success : function(cdata) {
+          $coverage.coverage(self.cvg, data.log_id, cdata);
         },
         error : function(xhr, status, index) {
           console.log(xhr, status, index);
         }
       });
-
     }
 
     this.widget = function() {
@@ -644,7 +643,6 @@ $report = function(){
         },
         onActivate: function(node) {
           var create = node.data.children.length?$report.openRegr:$report.openLog;
-console.log(node.data.key, node.data.children);
           // this will be a tab-within-tab
           (new create({log_id : node.data.key, hier : [self.find(node.data.key),], anchor : anchor})).add(anchor);
         },
@@ -675,10 +673,12 @@ console.log(node.data.key, node.data.children);
     }
   }
 
-  $report.openRegr = function(data){
+  $report.openRegr = function(data, node) {
     var self = this;
     this.id  = $report.tab_id();
     this.div = $('<div>', {id : this.id}).append('<ul>');
+    this.coverage = $(node).data('coverage');
+
     this.add = function(tabs) {
       self.parent = tabs;
       tabs.tabs('add', '#'+self.id, data.log_id+' regr');
@@ -697,6 +697,39 @@ console.log(node.data.key, node.data.children);
 
     this.log = new $report.openLog(data, this.tabs);
     this.log.add(this.tabs);
+
+    function addcvg(cvg) {
+      self.coverage = self.coverage || cvg; // update coverage if given
+      if (coverage_cls(self.coverage) !== 'none') {
+        self.cvg = $('<div/>', {class: 'tab cvg-pane', id:'cvg-'+self.id}).appendTo(self.div);
+        self.tabs.tabs('add', '#cvg-'+self.id, data.log_id+' cumulative coverage');
+        function url() {
+          var url = 'cvg/' + data.log_id;
+          if (self.coverage.master) url += '/' + self.coverage.master;
+          else if (self.coverage.root) url += '/' + self.coverage.root;
+          return url + '/cumulative';
+        }
+        $.ajax({
+          url : url(),
+          dataType : 'json',
+          success : function(cdata) {
+            $coverage.coverage(self.cvg, data.log_id, cdata);
+          },
+          error : function(xhr, status, index) {
+            console.log(xhr, status, index);
+          }
+        });
+      }
+    }
+
+    if (self.coverage === undefined) {
+      // fetch coverage
+      $report.testJSON.get_cvg($('td.cvg', node), node, data.log_id, addcvg)({type:'show', namespace:'example'});
+    } else {
+      addcvg();
+    }
+
+
   }
 
 })($report);
