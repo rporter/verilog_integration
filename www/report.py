@@ -66,7 +66,7 @@ class serve_something(object) :
     elapsed=time.time()
     self.doit(**args)
     elapsed = time.time()-elapsed
-    message.note('page %(page)s served in %(time)0.2fs', page=bottle.request.url, time=elapsed)
+    message.note('page %(page)s served in %(time)0.2fs', page=bottle.request.fullpath, time=elapsed)
     return elapsed
 
   def doit(self, inv_id):

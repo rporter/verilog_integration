@@ -68,6 +68,36 @@ $report = function(){
       return 'log-'+id;
     }
   }();
+  $report.fit = function(obj) {
+    var adjust  = true;
+    var padding = parseInt($(obj).parents('div.ui-tabs-panel:first').css('padding-top'));
+    var fn      = function() {
+      $(obj).height($(window).height() - $(obj).offset().top - padding);
+    };
+    var schedule = function(height) {
+      if (!jQuery.contains(document.documentElement, obj[0])) {
+        $report.fit.callbacks().remove(fn);
+      } else {
+        adjust = true;
+        fn();
+      }
+    }
+    $(obj).scroll(function() {
+      if (adjust) {
+        fn();
+        adjust = false;
+      }
+    });
+    fn();
+    $report.fit.callbacks().add(schedule);
+  }
+  $report.fit.callbacks = function() {
+    if ($report.fit._callbacks === undefined) {
+      $report.fit._callbacks = $.Callbacks();
+      $(window).resize(function(){ $report.fit._callbacks.fire(); });
+    }
+    return $report.fit._callbacks;
+  }
 
   $report.formatTabs = function(tabs, onempty) {
     function hijax(panel) { 
@@ -90,7 +120,7 @@ $report = function(){
         hijax(ui.panel); 
       },
       panelTemplate: '<div class="tab"></div>',
-      tabTemplate: '<li><a href="#{href}">#{label}</a><a href="#" class="icon"><span class="ui-icon ui-icon-close"></span><span class="ui-icon ui-icon-refresh"></span></a></li>'
+      tabTemplate: '<li><span><a href="#{href}">#{label}</a><a href="#" class="icon"><span class="ui-icon ui-icon-close"></span><span class="ui-icon ui-icon-refresh"></span></a></span></li>'
     });
     // close icon: removing the tab on click
     tabs.tabs().delegate("> ul span.ui-icon-close", "click", function() {
@@ -529,6 +559,7 @@ $report = function(){
         self.json = data.map(function(msg){msg.seconds = msg.date - data[0].date; return msg});
         self.log.jqoteapp('#template', self.json);
         self.widget();
+        $report.fit(self.log);
       },
       error : function(xhr, status, index) {
         console.log(xhr, status, index);

@@ -326,7 +326,7 @@ $coverage = function(){};
     }
 
     function build_table() {
-      where.append('<div class="t"><table><thead><tr><th class="bkt">bucket</th>' +
+      where.append('<div class="table"><table><thead><tr><th class="bkt">bucket</th>' +
         axes.reduce(function(p, c, idx){
           return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))},
           ''
@@ -393,6 +393,7 @@ $coverage = function(){};
       } else {
         build_table(where);
       }
+      $report.fit($('div.table', where));
     }
 
     // on construction

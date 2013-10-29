@@ -1,3 +1,4 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
   <head>
     <link   type="text/css" rel="stylesheet" href="static/report.css"/>
@@ -28,6 +29,7 @@
          panelTemplate: '<div class="tab"></div>'
         });
         $report.formatTabs($report.tabs());
+        $('span.ui-icon-close', $report.tabs()).css('visibility', 'hidden');
       });
     </script>
     <script type="text/html" id="template">
@@ -47,7 +49,7 @@
       ]]>
     </script>
     <script type="text/html" id="matrix-template">
-      <div class="t">
+      <div class="table">
         <table style="width : auto; margin-left : auto; margin-right : auto">
           <tr>
             <th class="title" colspan="2" rowspan="2"/>
@@ -112,9 +114,9 @@
   <body>
     <div id="report">
       <ul>
-        <li><a href="index/all"><span>All Tests</span></a><a href="#" class="icon"><span class="ui-icon ui-icon-refresh"></span></a></li>
-        <li><a href="index/rgr"><span>Regressions</span></a><a href="#" class="icon"><span class="ui-icon ui-icon-refresh"></span></a></li>
-        <li><a href="index/sngl"><span>Singletons</span></a><a href="#" class="icon"><span class="ui-icon ui-icon-refresh"></span></a></li>
+        <li><span><a href="index/all">All Tests<a href="#" class="icon"><span class="ui-icon ui-icon-close"></span><span class="ui-icon ui-icon-refresh">refresh</span></a></a></span></li>
+        <li><span><a href="index/rgr">Regressions<a href="#" class="icon"><span class="ui-icon ui-icon-close"></span><span class="ui-icon ui-icon-refresh">refresh</span></a></a></span></li>
+        <li><span><a href="index/sngl">Singletons<a href="#" class="icon"><span class="ui-icon ui-icon-close"></span><span class="ui-icon ui-icon-refresh">refresh</span></a></a></span></li>
       </ul>
     </div>
   </body>

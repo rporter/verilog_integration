@@ -27,7 +27,7 @@
    result fail  { background-color : #f88 }
    result other { background-color : #88f }
 
-   div.tab     { height : 80%; overflow-y: scroll; position : relative }
+   div.tab     { }
    a.icon      { padding : 0 ! important }
    code        { display: block; white-space : pre }
    code.INT_DEBUG   { color : #888 }
@@ -119,8 +119,9 @@
      display   : inline-block;
    }
 
-   div.cvg div              { display : inline }
-   div.cvg-pane		    { height : 80% }
+   div#log	            { overflow-y : scroll; padding : 0; position : relative }
+   div.cvg div	            { }
+   div.cvg-pane		    { }
    div.cvg-pane ul.popup    { position: absolute; font-size : 0.5em }
    div.cvg-pane ul.popup span.ui-icon { visibility:hidden; float : left; vertical-align : middle }
    div.cvg-pane ul.popup span.check   { visibility:visible }
@@ -133,7 +134,7 @@
    div.cvg-tree-pane        { float : left ; width : 30% }
    div.cvg-tree-pane  div   { overflow-y : scroll  }
    div.cvg-point-pane       { float : right; width : 70%; background : #eee }
-   div.cvg-point-pane div.t  { height : 95% ; overflow-y : scroll}
+   div.cvg-point-pane div.table  { overflow-y : scroll }
    div.cvg-point-pane table { table-layout: fixed }
    div.cvg-point-pane th.bkt{ width : 6em; }
    div.cvg-point-pane th.selected { background : #66d }

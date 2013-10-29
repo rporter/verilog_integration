@@ -31,8 +31,8 @@ class thistest(test.test) :
   activity='python'
   block='default'
   name='multiple coverage capacity test'
-  insts=2
-  children=2
+  insts=20
+  children=20
 
   def prologue(self):
     # initialize all the same
@@ -41,7 +41,6 @@ class thistest(test.test) :
     self.cpts = [coverpoint('%d random coverpoint' % i).cursor() for i in range(0, self.insts)]
     self.master_id = test.plusargs().master_id
     self.is_master = test.plusargs().master or self.mdb.is_root()
-    print self.is_master
   
   def epilogue(self) :
 
