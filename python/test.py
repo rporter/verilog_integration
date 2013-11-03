@@ -177,8 +177,8 @@ class test :
         message.warning(detail)
 
   @classmethod
-  def filename(self) :
-    return os.path.basename(inspect.getfile(inspect.currentframe()))
+  def filename(cls) :
+    return os.path.basename(inspect.getfile(cls))
 
   @property
   def test(self) :
