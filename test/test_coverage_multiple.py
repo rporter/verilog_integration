@@ -9,6 +9,7 @@ import test
 import os
 import random
 import subprocess
+import xml.etree.ElementTree as etree
 
 ################################################################################
 
@@ -30,6 +31,34 @@ class coverpoint(coverage.coverpoint) :
     'set goal'
     # no dont cares or illegals
     bucket.default(goal=random.randrange(1, 100), dont_care=random.choice(choices), illegal=random.choice(choices))
+
+################################################################################
+
+class baseList :
+  class test :
+    def __init__(self, file, **args) :
+      self.file = file
+      self.args = args
+    def __str__(self) :
+      return 'python ' + self.file + ' ' + ' '.join('+%s=%s' % i for i in self.args.items())
+  
+  def __iter__(self) :
+    for test in self.tests :
+      yield str(test)
+
+class randomList(baseList) :
+  def __init__(self, count, seed, testname, **args) :
+    # set per run seed
+    random.seed(seed)
+    self.tests = [self.test(testname, tst_seed=str(random.randint(0,1<<30)), idx=idx, **args) for idx in range(0, count)]
+
+class xmlList(baseList) :
+  def __init__(self, xmlfile, **args) :
+    def _test(node) :
+      file, seed = node.find('test').text.split('-')
+      return self.test(file, tst_seed=seed, **args)
+    xml = etree.parse(xmlfile)
+    self.tests = [_test(test) for test in xml.findall('./test')]
 
 ################################################################################
 
@@ -55,14 +84,14 @@ class thistest(test.test) :
       if result > 0 :
         message.warning('process %(cmd)s returned non zero %(result)d', cmd=cmd, result=result)
 
-    # set per run seed
-    random.seed(self.tst_seed)
     if self.is_master :
       # spawn some children
-      for i in range(0, int(test.plusargs().children or self.children)) :
-        enqueue('python ' + __file__ + ' +master_id=' + str(self.master_id or self.mdb.log_id)  + ' +cvr_seed='+str(self.cvr_seed)+' +tst_seed='+str(random.randint(0,1<<30)))
+      for test in self.tests() :
+        enqueue(str(test))
       database.rgr().result(self.mdb.log_id, self.mdb.is_root()).summary().summary()
     else :
+      # set per run seed
+      random.seed(self.tst_seed)
       # ignore illegal bucket hits
       coverage.messages.CVG_200.level = message.IGNORE
       # make some coverage
@@ -73,6 +102,13 @@ class thistest(test.test) :
           cursor.incr(random.randrange(10))
     # if everything else ok
     self.success()
+
+  def tests(self) :
+    args = dict(master_id=str(self.master_id or self.mdb.log_id), cvr_seed=str(self.cvr_seed))
+    if test.plusargs().test_xml :
+      return xmlList(test.plusargs().test_xml, **args)
+    else :
+      return randomList(int(test.plusargs().children or self.children), self.tst_seed, __file__, **args)
 
   @property
   def test(self) :
