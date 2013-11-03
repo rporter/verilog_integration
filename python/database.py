@@ -278,3 +278,80 @@ class cvr :
       return db.fetchone()
 
 ################################################################################
+
+class profile :
+  INVS='invs'
+  STATUS='status'
+  def __init__(self, log_ids) :
+    self.log_ids = log_ids
+    s_log_ids = ','.join(map(str, log_ids))
+    'log_ids is a list of regression roots'
+    self.tests = mdb.db.connection().row_cursor()
+    # create table of individual runs, but not root node as this may have already summarised coverage
+    self.tests.execute('create temporary table '+self.INVS+' as select l1.*, goal_id as master from log as l0 join log as l1 on (l0.log_id = l1.root) left outer join master on (l1.log_id = master.log_id) where l1.root in (?);', (s_log_ids,))
+    message.information('%(log_ids)s has %(children)d children', log_ids=s_log_ids, children=self.tests.rowcount)
+    # check congruency
+    self.cvg = mdb.db.connection().row_cursor()
+    self.cvg.execute("select distinct(md5_self) as md5, 'md5_self' as type, invs.* from point join "+self.INVS+" as invs on (invs.master = point.log_id and point.parent is null);")
+    self.master = mdb.accessor(md5=self.cvg.fetchone())
+    self.cvg.execute("select distinct(md5_axes) as md5, 'md5_axes' as type, invs.* from point join "+self.INVS+" as invs on (invs.master = point.log_id and point.parent is null);")
+    self.master.axes = self.tests.fetchone()
+    if self.cvg.rowcount > 1 :
+      message.warning('md5 of masters do not match')
+    # create status table, collating goal & hits
+    self.cvg.execute('create temporary table '+self.STATUS+' (bucket_id INTEGER NOT NULL PRIMARY KEY, goal INTEGER, hits INTEGER, total_hits INTEGER, tests INTEGER);')
+
+  def __del__(self) :
+    self.tests.execute('drop table if exists '+self.INVS)
+    self.tests.close()
+    self.cvg.execute('drop table if exists '+self.STATUS)
+    self.cvg.close()
+
+  def __iter__(self) :
+    self.reset()
+    current = self.status()
+    for log in self.testlist() :
+      updates = self.increment(log.log_id)
+      status  = self.status()
+      yield mdb.accessor(log=log, last=current, updates=updates, status=status, hits=status.hits-current.hits)
+      current = status
+
+  def increment(self, log_id) :
+    # in e.g. mysql we can use a join in an update
+    # self.cvg.execute('update '+self.STATUS+' as status set hits = min(status.goal, status.hits + goal.hits), total_hits = status.total_hits + goal.total_hits join hits using (bucket_id) where hits.log_id = ?;', log_id)
+    # but we need to resort to this for sqlite
+    self.cvg.execute('replace into '+self.STATUS+' select status.bucket_id, status.goal, CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE min(status.goal, status.hits + hits.hits) END as hits, status.total_hits + hits.hits as total_hits, status.tests + 1 from '+self.STATUS+' as status join hits using (bucket_id) where hits.log_id = ?;', (log_id,))
+    message.debug('update %(cnt)d rows', cnt=self.cvg.rowcount)
+    return self.cvg.rowcount
+
+  def testlist(self) :
+    self.tests.execute('select * from '+self.INVS)
+    return self.tests.fetchall()
+
+  def reset(self) :
+    self.cvg.execute('replace into '+self.STATUS+' select bucket_id, goal, 0 as hits, 0 as total_hits, 0 as tests from goal where log_id=?;', (self.get_master(), ))
+
+  def status(self) :
+    'calculate & return current coverage'
+    with mdb.db.connection().row_cursor() as db :
+      db.execute('select sum(min(goal, hits)) as hits, sum(goal) as goal from '+self.STATUS+' where goal > 0;')
+      return coverage.coverage(db.fetchone())
+
+  def get_master(self) :
+    return int(self.master.md5.master or self.master.md5.root)
+
+################################################################################
+
+class cvgOrderedProfile(profile) :
+  'order tests in coverage order'
+  def testlist(self) :
+    self.tests.execute('select invs.*, sum(min(status.goal, hits.hits)) as hits from '+self.INVS+' as invs natural join hits join '+self.STATUS+' as status on (hits.bucket_id = status.bucket_id and status.goal > 0) group by log_id order by hits desc;')
+    return self.tests.fetchall()
+
+################################################################################
+
+class posOrderedProfile(profile) :
+  'order tests in given order'
+  pass
+
+################################################################################

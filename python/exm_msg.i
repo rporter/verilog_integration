@@ -85,7 +85,7 @@
       result = PyObject_CallFunction(func, (char*)"(O)", instance);     // Call Python
 
       if (result == NULL) {
-	WARNING("function call associated with %s returned NULL", c_str_name);
+	INTERNAL("function call (%s, %s) associated with %s returned NULL", id.name.c_str(), id.priority, c_str_name);
         disable();
       }
   
@@ -110,7 +110,8 @@
 
       result = PyObject_CallFunction(func, (char*)"(O, O, i, s, O, s, i, s)", instance, pywhen, level, severity, pytag, file, line, text);     // Call Python
       if (result == NULL) {
-        WARNING("function call associated with %s returned NULL", c_str_name);
+	ERROR("function call (%s, %s) associated with %s returned NULL", id.name.c_str(), id.priority, c_str_name);
+        INTERNAL("(%s) %s", severity, text);
         disable();
       }
   

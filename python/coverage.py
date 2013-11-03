@@ -44,11 +44,14 @@ class lazyProperty(object):
 class coverage :
   'Helper class to ensure consistent interpretation and formating of coverage result'
 
-  def __init__(self, **args) :
-    self.goal = args.get('goal', 0)
-    self.hits = args.get('hits', 0)
-    self.dp   = args.get('dp'  , 2)
+  def __init__(self, values=None, **kwargs) :
+    if not values : values = kwargs
+    self.goal = values.get('goal', 0)
+    self.hits = values.get('hits', 0)
+    self.dp   = values.get('dp'  , 2)
 
+  def __int__(self) :
+    return self.integer()
   def __str__(self) :
     return self.format()
 
@@ -85,6 +88,9 @@ class coverage :
     if self.hits >= self.goal : return 'hit'
     if self.hits              : return 'some'
     return 'unhit'
+
+  def is_hit(self) :
+    return self.hits >= self.goal
 
   def json(self) :
     'Dump as dict for json-ification'

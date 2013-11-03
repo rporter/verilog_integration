@@ -46,7 +46,7 @@ class _mdb(object) :
     def running(self) :
       return not self.finished.is_set()
 
-  def __init__(self, description='none given', root=None, parent=None, level=message.ERROR, **kwargs) :
+  def __init__(self, description='none given', test=None, root=None, parent=None, level=message.ERROR, **kwargs) :
     self.commit_level = level
     self.abv = activityBlockVersion(**kwargs)
     self.queue = Queue.Queue()
@@ -55,7 +55,7 @@ class _mdb(object) :
     self.root = root or mdbDefault().root
     self.parent = parent or mdbDefault().parent
     # create log entry for this run
-    self.log_id = self.log(os.getuid(), socket.gethostname(), self.abv, self.root, self.parent, description)
+    self.log_id = self.log(os.getuid(), socket.gethostname(), self.abv, self.root, self.parent, description, test)
     # install callbacks
     message.emit_cbs.add('mdb emit', 1, self.add, None)
     message.terminate_cbs.add('mdb terminate', 20, self.finalize, self.finalize)
@@ -90,7 +90,7 @@ class _mdb(object) :
   def get_root(self) :
     return self.root or self.log_id
   def is_root(self) :
-    return self.get_root() == self.log_id
+    return self.root is None
 
   @classmethod
   def finalize_all(cls) :

@@ -11,13 +11,23 @@ import threading
 class connection(object) :
 
   class _cursor(object) :
+    ident=0
+    debug=False
     def __init__(self, connection, factory=None) :
       self.connection             = connection
       self.connection.row_factory = factory
       self.db                     = self.connection.cursor()
+      self.dump = open(self.filename(), 'w') if self.debug else None
+      if self.dump :
+        import inspect, pprint
+        pprint.pprint(inspect.stack(), stream=self.dump)
 
     def commit(self) :
       self.connection.commit()
+    def execute(self, *args) :
+      if self.dump :
+        self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+      return self.db.execute(*args)
 
     def __getattr__(self, attr) :
       return getattr(self.db, attr)
@@ -30,7 +40,16 @@ class connection(object) :
 
     def __exit__(self, type, value, traceback): 
       self.connection.commit()
-      self.db.close()      
+      self.db.close()
+
+    def __del__(self) :
+      if self.dump :
+        self.dump.close()
+
+    @classmethod
+    def filename(cls) :
+      name, cls.ident = 'sql_%d' % cls.ident, cls.ident + 1
+      return name
 
   instance = dict()
   default_db = 'default.db'
@@ -81,8 +100,8 @@ class mixin(object) :
         pass # done
     semaphore.release()
 
-  def log(self, uid, hostname, abv, root, parent, description) :
+  def log(self, uid, hostname, abv, root, parent, description, test) :
     'create entry in log table'
     with self.cursor() as db :
-      db.execute('INSERT INTO log (uid, root, parent, activity, block, version, description, hostname) VALUES (?, ?, ?, ?, ?, ?, ?, ?);', (uid, root, parent, abv.activity, abv.block, abv.version, description, hostname))
+      db.execute('INSERT INTO log (uid, root, parent, activity, block, version, description, test, hostname) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);', (uid, root, parent, abv.activity, abv.block, abv.version, description, test, hostname))
       return db.lastrowid

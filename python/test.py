@@ -1,8 +1,10 @@
 # Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 import coverage
+import inspect
 import mdb
 import message
+import os
 import re
 import sys
 
@@ -55,16 +57,17 @@ class test :
   SUCCESS = message.ident('PYTN', 0, message.SUCCESS, 'test successful')
   FATAL   = message.ident('PYTN', 1, message.FATAL,   'test did not terminate correctly')
   START   = message.ident('PYTN', 2, message.NOTE,    'simulation starts using %(platform)s[%(version)s]' % {'platform':verilog.vpiInfo().product, 'version':verilog.vpiInfo().version})
-  def __init__(self, name=None, activity=None, block=None, db=None) :
+  def __init__(self, name=None, activity=None, block=None, test=None, db=None) :
     self.epilogue_cb = epilogue(self.end_of_simulation)
     self.name = name or self.name
+    self.test = test or self.test
     self.is_success = None
     activity = activity or self.activity
     block = block or self.block
     message.terminate_cbs.add(self.name, 10, self.terminate, self.check_success)
     try :
       mdb.db.connection.set_default_db(db=self.get_db())
-      self.mdb = mdb.mdb(self.name, activity=activity, block=block)
+      self.mdb = mdb.mdb(self.name, activity=activity, block=block, test=self.test)
     except :
       message.note('Not using mdb because ' + str(sys.exc_info()))
 
@@ -87,7 +90,7 @@ class test :
         coverage.insert.write(coverage.hierarchy, self.mdb.log_id, coverage.upload.REFERENCE)
 
     # is verilog library synthetic?
-    if type(verilog) == type(test) :
+    if verilog.vpiInfo().product == 'Python' :
       self.end_of_simulation()
 
   def get_db(self) :
@@ -172,3 +175,11 @@ class test :
     for details in traceback.format_tb(_traceback) :
       for detail in details.strip('\n').split('\n') :
         message.warning(detail)
+
+  @classmethod
+  def filename(self) :
+    return os.path.basename(inspect.getfile(inspect.currentframe()))
+
+  @property
+  def test(self) :
+    return self.filename()
