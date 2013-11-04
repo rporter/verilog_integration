@@ -288,16 +288,26 @@ class profile :
     'log_ids is a list of regression roots'
     self.tests = mdb.db.connection().row_cursor()
     # create table of individual runs, but not root node as this may have already summarised coverage
-    self.tests.execute('create temporary table '+self.INVS+' as select l1.*, goal_id as master from log as l0 join log as l1 on (l0.log_id = l1.root) left outer join master on (l1.log_id = master.log_id) where l1.root in (?);', (s_log_ids,))
-    message.information('%(log_ids)s has %(children)d children', log_ids=s_log_ids, children=self.tests.rowcount)
+    self.tests.execute('create temporary table '+self.INVS+' as select l1.*, goal_id as master from log as l0 join log as l1 on (l0.log_id = l1.root) left outer join master on (l1.log_id = master.log_id) where l1.root in ('+s_log_ids+');')
+    self.tests.execute('select count(*) as children from '+self.INVS)
+    children = self.tests.fetchone().children
+    message.information('%(log_ids)s has %(children)d children', log_ids=s_log_ids, children=children)
+    if children < 1 :
+      message.fatal('no children')
     # check congruency
     self.cvg = mdb.db.connection().row_cursor()
-    self.cvg.execute("select distinct(md5_self) as md5, 'md5_self' as type, invs.* from point join "+self.INVS+" as invs on (invs.master = point.log_id and point.parent is null);")
-    self.master = mdb.accessor(md5=self.cvg.fetchone())
-    self.cvg.execute("select distinct(md5_axes) as md5, 'md5_axes' as type, invs.* from point join "+self.INVS+" as invs on (invs.master = point.log_id and point.parent is null);")
-    self.master.axes = self.tests.fetchone()
+    self.cvg.execute("select md5_self as md5, 'md5_self' as type, invs.master, invs.root from point join "+self.INVS+" as invs on (invs.master = point.log_id and point.parent is null) group by md5;")
     if self.cvg.rowcount > 1 :
-      message.warning('md5 of masters do not match')
+      message.warning('md5 of multiple masters do not match')
+    elif self.cvg.rowcount == 0 :
+      message.fatal('no master')
+    else :
+      message.debug('md5 query returns %(rows)d', rows=self.cvg.rowcount)
+    self.master = mdb.accessor(md5=self.cvg.fetchone())
+    self.cvg.execute("select distinct(md5_axes) as md5, 'md5_axes' as type, invs.master, invs.root from point join "+self.INVS+" as invs on (invs.master = point.log_id and point.parent is null);")
+    if self.cvg.rowcount > 1 :
+      message.warning('md5 of multiple axis masters do not match')
+    self.master.axes = self.tests.fetchone()
     # create status table, collating goal & hits
     self.cvg.execute('create temporary table '+self.STATUS+' (bucket_id INTEGER NOT NULL PRIMARY KEY, goal INTEGER, hits INTEGER, total_hits INTEGER, tests INTEGER);')
 
