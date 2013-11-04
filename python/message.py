@@ -184,10 +184,13 @@ class reportOptionParser(OptionParser):
 
     def increase_verbosity(option, opt, value, parser) :
       parser.values.verbosity -= 1
-    
+    def debug_sql(option, opt, value, parser) :
+      mdb._sqlite.connection._cursor.debug = True
+
     self.add_option('', '--root', help='root directory')
     self.add_option('', '--verbosity', help='set absolute verbosity', default=INFORMATION)
     self.add_option('-v', '', help='increase verbosity', action='callback', callback=increase_verbosity)
+    self.add_option('-d', '--debug', help='debug sql', action='callback', callback=debug_sql)
 
   def exit(self, status=0, msg=None):
     if msg:

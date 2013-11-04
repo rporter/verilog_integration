@@ -52,8 +52,6 @@ class xmlDump :
 
 ################################################################################
 
-#mdb._sqlite.connection._cursor.debug = True
-
 profile = database.cvgOrderedProfile(ids)
 xml = xmlDump()
 
