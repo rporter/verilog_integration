@@ -216,13 +216,17 @@ class rgr(index) :
 
 class cvg : 
   class hierarchy :
-    def __init__(self, db, defaults, cumulative) :
+    def __init__(self, goal_id, defaults, cumulative) :
       coverage.hierarchy.reset()
-      for parent, children in index.groupby(db, lambda row : row.point_id) :
+      with mdb.db.connection().row_cursor() as db :
+        db.execute('SELECT * FROM point LEFT OUTER JOIN axis USING (point_id) LEFT OUTER JOIN enum USING (axis_id) WHERE log_id=%(goal_id)s ORDER BY point_id ASC, axis_id ASC, enum_id ASC;' % locals())
+        points = db.fetchall()
+      for parent, children in index.groupby(points, lambda row : row.point_id) :
         if parent.axis_id :
           coverage.coverpoint(name=parent.point_name, description=parent.desc, id=parent.point_id, parent=parent.parent, axes=self.get_axes(children), defaults=defaults, cumulative=cumulative)
         else :
           coverage.hierarchy(parent.point_name, parent.desc, id=parent.point_id, root=parent.root == None, parent=parent.parent)
+
     def get_axes(self, nodes) :
       return collections.OrderedDict([(axis.axis_name, coverage.axis(axis.axis_name, **dict([(e.enum, e.enum_id) for e in enum]))) for axis, enum in index.groupby(nodes, lambda node : node.axis_id)])
         
@@ -232,10 +236,8 @@ class cvg :
       self.log_id = log_id
       self.goal_id = goal_id or log_id
     def points(self) :
-      with mdb.db.connection().row_cursor() as db :
-        db.execute('SELECT * FROM point LEFT OUTER JOIN axis USING (point_id) LEFT OUTER JOIN enum USING (axis_id) WHERE log_id=%(goal_id)s ORDER BY point_id ASC, axis_id ASC, enum_id ASC;' % self.__dict__)
-        cvg.hierarchy(db.fetchall(), self.coverage(), self.cumulative)
-        return coverage.hierarchy.get_root()
+      cvg.hierarchy(self.goal_id, self.coverage(), self.cumulative)
+      return coverage.hierarchy.get_root()
     def coverage(self) :
       with mdb.db.connection().row_cursor() as db :
         db.execute('SELECT goal.bucket_id, goal.goal, IFNULL(hits.hits, 0) AS hits, goal < 0 as illegal, goal = 0 as dont_care FROM goal LEFT OUTER JOIN hits ON (goal.bucket_id = hits.bucket_id AND hits.log_id=%(log_id)s) WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;' % self.__dict__)
@@ -349,6 +351,19 @@ class profile :
 
   def get_master(self) :
     return int(self.master.md5.master or self.master.md5.root)
+
+  def hierarchy(self) :
+    with mdb.db.connection().row_cursor() as db :
+      db.execute('select * from ' + self.STATUS)
+      buckets = db.fetchall()
+    def values() :
+      for bucket in buckets : yield bucket
+    cvg.hierarchy(self.get_master(), values(), False)
+    return coverage.hierarchy.get_root()
+
+  def insert(self, log_id) :
+    coverage.insert.set_master(log_id, self.get_master())
+    self.cvg.execute('REPLACE INTO hits SELECT %(log_id)s AS log_id, bucket_id, hits FROM %(status)s AS status;' % {'log_id' : log_id, 'status' : self.STATUS})
 
 ################################################################################
 

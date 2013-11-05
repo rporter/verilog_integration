@@ -65,6 +65,11 @@ for incr in profile :
     break
 message.information('coverage : ' + profile.status().description())
 
+# now regenerate hierarchy and report coverage on point basis
+profile.hierarchy().dump()
+# and annotate optimized coverage result to this invocation
+profile.insert(mdb_conn.log_id)
+
 ################################################################################
 
 if options.xml :

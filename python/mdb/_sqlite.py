@@ -65,6 +65,7 @@ class connection(object) :
       except :
         message.warning('Unable to connect. File %(db)s because %(exc)s', db=self.db, exc=sys.exc_info()[0])
       instance.execute('PRAGMA journal_mode=WAL;')
+      instance.execute('PRAGMA read_uncommitted = 1;')
       self.instance[threading.current_thread()] = instance
 
   def cursor(self, *args) :
