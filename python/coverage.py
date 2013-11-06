@@ -24,6 +24,13 @@ class messages :
 
   CVG_200 = message.ident('CVG', 200, message.ERROR      , 'hit on bucket marked as illegal')
 
+  @classmethod
+  def hush_creation(cls, hush=True) :
+    level = message.IGNORE if hush else message.INFORMATION
+    if hush :
+      message.note('reducing coverage point creation verbosity')
+    for msg in [messages.CVG_1, messages.CVG_2, messages.CVG_40, messages.CVG_41, messages.CVG_42] :
+      msg.level = level
 
 ################################################################################
 

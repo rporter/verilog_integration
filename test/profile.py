@@ -2,6 +2,7 @@
 
 import xml.etree.ElementTree as etree
 
+import coverage
 import database
 import mdb
 import message
@@ -66,6 +67,7 @@ for incr in profile :
 message.information('coverage : ' + profile.status().description())
 
 # now regenerate hierarchy and report coverage on point basis
+coverage.messages.hush_creation()
 profile.hierarchy().dump()
 # and annotate optimized coverage result to this invocation
 profile.insert(mdb_conn.log_id)
