@@ -142,16 +142,16 @@ class bucket :
 
   def default(self, illegal=False, dont_care=False, goal=0, hits=0, **others) :
     self.goal      = goal
-    self.illegal   = illegal
-    self.dont_care = dont_care
+    self.illegal   = illegal or goal < 0
+    self.dont_care = dont_care or goal == 0
     if hits : self.hits = hits
 
   def target(self) :
     if self.illegal or self.dont_care : return 0
     return self.goal
 
-  def incr(self, hits=1, oneoff=False) :
-    if self.illegal : 
+  def incr(self, hits=1, oneoff=False, quiet=False) :
+    if self.illegal and not quiet : 
       messages.CVG_200(idx=self.idx, enum=self.seq)
     if oneoff and self.hits : 
       # if oneoff is true only count if bucket unhit
@@ -175,6 +175,13 @@ class bucket :
       return (idx, self.adj_goal())
     else :
       return (idx, self.hits)
+
+  def load(self, hits=0, bucket_id=None, **others) :
+    # just for loading with coverage
+    # if bucket id is given, make sure it tallies
+    if bucket_id and bucket_id != self.parent.offset+self.idx :
+      message.error('given bucket index does no match actual bucket index')
+    self.incr(hits, quiet=True)
 
   def json(self) :
     'Dump as list for json-ification'
@@ -352,7 +359,14 @@ class hierarchy :
 
   def dump(self, func=None, reference=False) :
     'dump coverage data'
-    return sum([pt.dump(func, reference) for pt in self.children], coverage())
+    result = sum([pt.dump(func, reference) for pt in self.children], coverage())
+    if not reference :
+      messages.CVG_22(hits=result.hits, goal=result.goal, cvg=result.format())
+    return result
+
+  def load(self, func=None) :
+    'dump coverage data'
+    return sum([pt.load(func) for pt in self.children], coverage())
 
   def html(self, chan=sys.stdout) :
     cvg = self.coverage()
@@ -419,8 +433,10 @@ class hierarchy :
   @classmethod
   def dump_all(cls, func=None, reference=False) :
     total_cvg = cls.get_root().dump(func, reference)
-    if not reference :
-      messages.CVG_22(hits=total_cvg.hits, goal=total_cvg.goal, cvg=total_cvg.format())
+
+  @classmethod
+  def load_all(cls, func=None) :
+    cls.get_root().load(func)
 
   @classmethod
   def reset(cls) :
@@ -577,6 +593,11 @@ class coverpoint(hierarchy) :
       if not self.is_hit() :
         # if it is hit that will already have been recorded
         messages.CVG_20(name=self.name, cvg=self.coverage().format(), hits=self.hits, goal=self.goal, offset=self.offset, buckets=self.num_of_buckets())
+    return self.coverage()
+
+  def load(self, func) :
+    for bucket in self.buckets :
+      bucket.load(**next(func))
     return self.coverage()
 
   def json(self) :
@@ -743,13 +764,13 @@ class upload :
     self.close()
 
   @classmethod
-  def write(cls, hierarchy, log_id, reference=False) :
+  def write(cls, root, log_id, reference=False) :
     agent = cls.__name__
     if reference:
-      hierarchy.get_root().debug()
+      root.debug()
       elapsed = time.time()
       messages.CVG_110(agent=agent, reference=reference)
-      hierarchy.get_root().sql(cls.sql(log_id=log_id))
+      root.sql(cls.sql(log_id=log_id))
       elapsed = time.time()-elapsed
       messages.CVG_111(agent=agent, time=elapsed, reference=reference)
     messages.CVG_100(agent=agent, reference=reference)
@@ -758,7 +779,7 @@ class upload :
     with cls(reference) as out :
       def dump(bucket) :
         out.insert(target + bucket)
-      hierarchy.dump_all(dump, reference)
+      root.dump(dump, reference)
     elapsed = time.time()-elapsed
     messages.CVG_101(agent=agent, time=elapsed, reference=reference)
 

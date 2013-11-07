@@ -1,7 +1,5 @@
 # Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
-import xml.etree.ElementTree as etree
-
 import coverage
 import database
 import mdb
@@ -40,36 +38,12 @@ message.information('profiling begins on %(ids)s', ids=str(ids))
 
 ################################################################################
 
-class xmlDump :
-  def __init__(self) :
-    self.root = etree.Element('profile')
-    self.xml  = etree.ElementTree(self.root)
-  def add(self, test) :
-    node = etree.SubElement(self.root, 'test')
-    for attr, value in test.log.iteritems() :
-      etree.SubElement(node, attr).text = str(value)
-  def write(self, file) :
-    self.xml.write(file)
-
-################################################################################
-
-profile = database.cvgOrderedProfile(ids)
-xml = xmlDump()
-
-for incr in profile :
-  message.information(' %(log_id)6d : %(rows)6d : %(hits)6d : %(cvg)s', log_id=incr.log.log_id, rows=incr.updates, hits=incr.hits, cvg=incr.status.description())
-  if incr.hits :
-    # this test contributed to overall coverage
-    xml.add(incr)
-  if incr.status.is_hit() :
-    message.note('all coverage hit')
-    break
-message.information('coverage : ' + profile.status().description())
-
-# now regenerate hierarchy and report coverage on point basis
 coverage.messages.hush_creation()
-profile.hierarchy().dump()
-# and annotate optimized coverage result to this invocation
+# profile by run coverage
+profile = database.cvgOrderedProfile(ids)
+# do profile run
+xml = profile.run()
+# annotate optimized coverage result to this invocation
 profile.insert(mdb_conn.log_id)
 
 ################################################################################

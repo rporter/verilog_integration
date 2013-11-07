@@ -13,7 +13,7 @@ import xml.etree.ElementTree as etree
 
 ################################################################################
 
-message.message.verbosity(message.INT_DEBUG)
+#message.message.verbosity(message.INT_DEBUG)
 
 ################################################################################
 
@@ -89,6 +89,14 @@ class thistest(test.test) :
       for test in self.tests() :
         enqueue(str(test))
       database.rgr().result(self.mdb.log_id, self.mdb.is_root()).summary().summary()
+      # profile ...
+      profile = database.cvgOrderedProfile([self.mdb.log_id,])
+      coverage.messages.hush_creation()
+      # do profile run
+      xml = profile.run()
+      # ... and annotate coverage summary
+      if self.coverage :
+        self.coverage.load(profile.dump())
     else :
       # set per run seed
       random.seed(self.tst_seed)

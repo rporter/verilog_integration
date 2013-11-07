@@ -35,7 +35,7 @@ if open('/proc/self/cmdline').read().startswith('python') :
   class verilog :
     class info :
       product = 'Python'
-      version = 'Not Specified'
+      version = '.'.join(map(str, sys.version_info))
     class callback :
       @staticmethod
       def remove_all() :
@@ -80,14 +80,16 @@ class test :
       message.error('prologue failed because ' + str(exc[0]))
       self.traceback(exc[2])
 
-    if coverage.hierarchy.populated() :
+    self.coverage = coverage.hierarchy.populated()
+    if self.coverage :
+      self.coverage = coverage.hierarchy.get_root()
       if getattr(self, 'master_id', False) :
         coverage.insert.set_master(self.mdb.log_id, self.master_id)
         if getattr(self, 'master_chk', False) :
           # create the hierarchy from master id and verify congruent
           pass
       else :
-        coverage.insert.write(coverage.hierarchy, self.mdb.log_id, coverage.upload.REFERENCE)
+        coverage.insert.write(self.coverage, self.mdb.log_id, coverage.upload.REFERENCE)
 
     # is verilog library synthetic?
     if verilog.vpiInfo().product == 'Python' :
@@ -116,8 +118,8 @@ class test :
     # tidy up
     mdb.finalize_all()
     # coverage
-    if coverage.hierarchy.populated() and not getattr(self, 'is_master', False) :
-      coverage.insert.write(coverage.hierarchy, self.mdb.log_id, coverage.upload.RESULT)
+    if self.coverage :
+      coverage.insert.write(self.coverage, self.mdb.log_id, coverage.upload.RESULT)
     # remove callbacks
     verilog.callback.remove_all()
 

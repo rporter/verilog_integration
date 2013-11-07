@@ -1,6 +1,7 @@
 # Copyright (c) 2013 Rich Porter - see LICENSE for further details
 
 import collections
+import xml.etree.ElementTree as etree
 
 import coverage
 import mdb
@@ -353,17 +354,49 @@ class profile :
     return int(self.master.md5.master or self.master.md5.root)
 
   def hierarchy(self) :
+    cvg.hierarchy(self.get_master(), self.dump(), False)
+    return coverage.hierarchy.get_root()
+
+  def dump(self) :
     with mdb.db.connection().row_cursor() as db :
       db.execute('select * from ' + self.STATUS)
       buckets = db.fetchall()
     def values() :
       for bucket in buckets : yield bucket
-    cvg.hierarchy(self.get_master(), values(), False)
-    return coverage.hierarchy.get_root()
+    return values()
 
   def insert(self, log_id) :
     coverage.insert.set_master(log_id, self.get_master())
     self.cvg.execute('REPLACE INTO hits SELECT %(log_id)s AS log_id, bucket_id, hits FROM %(status)s AS status;' % {'log_id' : log_id, 'status' : self.STATUS})
+
+  class xmlDump :
+    def __init__(self) :
+      self.root = etree.Element('profile')
+      self.xml  = etree.ElementTree(self.root)
+    def add(self, test) :
+      node = etree.SubElement(self.root, 'test')
+      for attr, value in test.log.iteritems() :
+        etree.SubElement(node, attr).text = str(value)
+    def write(self, file) :
+      self.xml.write(file)
+
+  def run(self) :
+    xml = self.xmlDump()
+    
+    for incr in self :
+      message.information(' %(log_id)6d : %(rows)6d : %(hits)6d : %(cvg)s', log_id=incr.log.log_id, rows=incr.updates, hits=incr.hits, cvg=incr.status.description())
+      if incr.hits :
+        # this test contributed to overall coverage
+        xml.add(incr)
+      if incr.status.is_hit() :
+        message.note('all coverage hit')
+        break
+    message.information('coverage : ' + self.status().description())
+    
+    # now regenerate hierarchy and report coverage on point basis
+    self.hierarchy().dump()
+
+    return xml
 
 ################################################################################
 
