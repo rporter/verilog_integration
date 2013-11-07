@@ -374,7 +374,7 @@ $coverage = function(){};
       // easiest way to place title in 1st data row
       $('tr:nth(2)', where).prepend($('<th/>', {class : 'title rotated', rowspan : _axes[0].values.length, text : _axes[0].name}))
       // navigate back
-      $('div.t', where).append($('<h5><a>Back to table view</a></h5>').click(function(){options.matrix=false; self.build()}));
+      $('div.table', where).append($('<h5><a>Back to table view</a></h5>').click(function(){options.matrix=false; self.build()}));
 
       var cells = $('th,td', where).not('.title');
       var width = Array.max(cells.map(function(idx,it){return $(it).width()}));
