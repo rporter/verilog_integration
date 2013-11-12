@@ -279,6 +279,12 @@ $report = function(){
       return url;
     }
     this.update = function() {
+      self.container.children().fadeTo('slow', 0.3);
+      var img = $('<img>', {src: 'static/loading.gif', class: 'loading'});
+      img.css({
+        'margin-left' : -img.width()/2,
+        'margin-top'  : -img.height()/2
+      }).appendTo(this.container);
       $.ajax({
         url : self.genurl(),
         dataType : 'json',
@@ -288,6 +294,8 @@ $report = function(){
             // horriblish hack
             $report.tabs('url', $report.tabs('option', 'active') , self.genurl());
           } else {
+            img.remove();
+            self.container.children().fadeTo('slow', 1);
             alert('no more data');
             self.id = undefined;
           }

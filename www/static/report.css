@@ -3,6 +3,8 @@
 
    p  { white-space : pre; }
 
+   img.loading { position : absolute; top : 50%; left : 50%; zoom : 2 }
+
    table       { width : 100%; border-collapse : collapse ; border: 2px solid black ; font-family : sans-serif ; font-size : 12px }
    thead       { background-color: #999 ; padding : 0 ; border: 2px solid black ; font-weight: bold; text-transform: capitalize ; text-align : center }
    tfoot       { background-color: #ddd ; padding : 0 ; border: 2px solid black ; font-weight: bold; text-transform: capitalize }
