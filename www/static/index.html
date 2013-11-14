@@ -16,6 +16,7 @@
     <script type="text/javascript">
       $(document).ready(function() {
         $report.tabs({
+          spinner : function() {},
           ajaxOptions : {
             cache      : false,
             dataType   : 'html', // it will be html in the end
@@ -114,9 +115,9 @@
   <body>
     <div id="report">
       <ul>
-        <li><span><a href="index/all">All Tests<a href="#" class="icon"><span class="ui-icon ui-icon-close"></span><span class="ui-icon ui-icon-refresh">refresh</span></a></a></span></li>
-        <li><span><a href="index/rgr">Regressions<a href="#" class="icon"><span class="ui-icon ui-icon-close"></span><span class="ui-icon ui-icon-refresh">refresh</span></a></a></span></li>
-        <li><span><a href="index/sngl">Singletons<a href="#" class="icon"><span class="ui-icon ui-icon-close"></span><span class="ui-icon ui-icon-refresh">refresh</span></a></a></span></li>
+        <li><a href="index/all">All Tests</a><span class="ui-icon ui-icon-close ui-closable-tab"></span><span class="ui-icon ui-icon-refresh">refresh</span></li>
+        <li><a href="index/rgr">Regressions</a><span class="ui-icon ui-icon-close ui-closable-tab"></span><span class="ui-icon ui-icon-refresh">refresh</span></li>
+        <li><a href="index/sngl">Singletons</a><span class="ui-icon ui-icon-close ui-closable-tab"></span><span class="ui-icon ui-icon-refresh">refresh</span></li>
       </ul>
     </div>
   </body>
