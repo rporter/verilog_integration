@@ -69,9 +69,47 @@ $coverage = function(){};
       }, 0);
     }
 
+    function showDialog(event) {
+      // create table of all hits in a dialog popup
+      var container = $('<div><div><table/></div></div>');
+      var table = $('table', container).dataTable({
+        "bJQueryUI": true,
+        "bFilter": false,
+        "aoColumns": [
+  	  { "sTitle": "log id" },
+	  { "sTitle": "hits" }
+        ],
+        "aaData" : event.data.coverage.map(function(hit){return [hit.log_id, hit.hits]}),
+        "aaSorting": [[1, "desc"]], // sort hits descending
+        "aLengthMenu": [[10, 25, 50, 100 , -1], [10, 25, 50, 100, "All"]],
+        "iDisplayLength": 10,
+        "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
+          $(nRow).addClass(coverageTable.classFromBucket([event.data.goal, aData[1]]));
+        }
+      });
+      container.bind('mousewheel', function(event) {
+        var oSettings = table.fnSettings();
+        if (event.originalEvent.wheelDelta/120 < 0) {
+          if (oSettings._iDisplayStart >= (oSettings.aoData.length - oSettings._iDisplayLength)) {
+            return false;
+          }
+          oSettings.iInitDisplayStart = oSettings._iDisplayStart + 1;
+        } else {
+          if (oSettings._iDisplayStart < 1) {
+            return false;
+          }
+          oSettings.iInitDisplayStart = oSettings._iDisplayStart - 1;
+        }
+        table.fnDraw();
+        return false;
+      });
+      container.dialog();
+    }
+
     function showBucket(node) {
       var bucket_id = parseInt(node.attr('bkt'));
       var bucket    = buckets[bucket_id];
+      var goal      = bucket[0];
       var url       = '/bkt/' + log_id + '/';
       if (bucket.length < 3) {
         url += (bucket_id + offset);
@@ -84,10 +122,11 @@ $coverage = function(){};
       $.getJSON(url, function(data) {
         $('span', node).html(function() {
           if (data.length) {
+            node.bind('click.coverage', {coverage:data, goal:goal}, showDialog);
             return $('<table/>', {
               class : 'bucket',
               html : '<tbody>'+data.slice(0,10).map(function(it){
-                return '<tr class="'+coverageTable.classFromBucket([bucket[0], it.hits])+'"><td>'+it.log_id+'</td><td>'+it.hits+'</td></tr>';
+                return '<tr class="'+coverageTable.classFromBucket([goal, it.hits])+'"><td>'+it.log_id+'</td><td>'+it.hits+'</td></tr>';
               })+'</tbody>'
             });
           } else {
@@ -96,9 +135,6 @@ $coverage = function(){};
   	});
       });
       node.unbind('mouseenter.coverage'); // don't do again
-      node.bind('click.coverage', function(){
-        $('span', node).clone().dialog();
-      });
     }
 
     function updateVisible() {
