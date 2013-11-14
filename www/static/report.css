@@ -3,7 +3,7 @@
 
    p  { white-space : pre; }
 
-   img.loading { position : absolute; top : 50%; left : 50%; zoom : 2 }
+   img.loading { position : absolute; top : 50%; left : 50% }
 
    table       { width : 100%; border-collapse : collapse ; border: 2px solid black ; font-family : sans-serif ; font-size : 12px }
    thead       { background-color: #999 ; padding : 0 ; border: 2px solid black ; font-weight: bold; text-transform: capitalize ; text-align : center }
@@ -134,7 +134,6 @@
    div.cvg-pane h5 a:hover  { color : #00f }
    div.cvg-pane a.hierarchy { font-family : monospace }
    div.cvg-tree-pane        { float : left ; width : 30% }
-   div.cvg-tree-pane  div   { overflow-y : scroll  }
    div.cvg-point-pane       { float : right; width : 70%; background : #eee }
    div.cvg-point-pane div.table  { overflow-y : scroll }
    div.cvg-point-pane table { table-layout: fixed }

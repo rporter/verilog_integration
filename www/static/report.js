@@ -68,9 +68,10 @@ $report = function(){
       return 'log-'+id;
     }
   }();
-  $report.fit = function(obj) {
+  $report.fit = function(obj, overflow) {
     var adjust  = true;
     var padding = parseInt($(obj).parents('div.ui-tabs-panel:first').css('padding-top'));
+    if (isNaN(padding)) padding = 0;
     var fn      = function() {
       $(obj).height($(window).height() - $(obj).offset().top - padding);
     };
@@ -88,6 +89,9 @@ $report = function(){
         adjust = false;
       }
     });
+    if (overflow !== false) {
+      obj.css('overflow-y', 'auto');
+    }
     fn();
     $report.fit.callbacks().add(schedule);
   }
@@ -240,6 +244,7 @@ $report = function(){
           }
         });
       }
+      $report.fit(self.container);
       return self.container;
     }
 
@@ -590,6 +595,9 @@ $report = function(){
     this.div = $('<div>', {id : this.id});
     this.explorer = $('<div class="explorer">');
     this.children = $('<div class="children">');
+
+    // add scrollbar if necessary
+    $report.fit(this.explorer);
 
     // summary object
     this.summary = function() {

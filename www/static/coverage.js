@@ -482,6 +482,8 @@ $coverage = function(){};
         return false;
      }
     });
+    // add scrollbar if necessary
+    $report.fit(cvg_tree_pane, false);
   };
 
 })($coverage);

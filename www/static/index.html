@@ -30,7 +30,7 @@
          panelTemplate: '<div class="tab"></div>'
         });
         $report.formatTabs($report.tabs());
-        $('span.ui-icon-close', $report.tabs()).css('visibility', 'hidden');
+        $('span.ui-icon-refresh', $report.tabs()).css('float', 'right');
       });
     </script>
     <script type="text/html" id="template">
@@ -115,9 +115,9 @@
   <body>
     <div id="report">
       <ul>
-        <li><a href="index/all">All Tests</a><span class="ui-icon ui-icon-close ui-closable-tab"></span><span class="ui-icon ui-icon-refresh">refresh</span></li>
-        <li><a href="index/rgr">Regressions</a><span class="ui-icon ui-icon-close ui-closable-tab"></span><span class="ui-icon ui-icon-refresh">refresh</span></li>
-        <li><a href="index/sngl">Singletons</a><span class="ui-icon ui-icon-close ui-closable-tab"></span><span class="ui-icon ui-icon-refresh">refresh</span></li>
+        <li><a href="index/all">All Tests</a><span class="ui-icon ui-icon-refresh">refresh</span></li>
+        <li><a href="index/rgr">Regressions</a><span class="ui-icon ui-icon-refresh">refresh</span></li>
+        <li><a href="index/sngl">Singletons</a><span class="ui-icon ui-icon-refresh">refresh</span></li>
       </ul>
     </div>
   </body>
