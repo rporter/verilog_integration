@@ -8,6 +8,7 @@ import time
 import coverage
 import mdb
 import message
+import utils
 
 ################################################################################
 
@@ -352,20 +353,20 @@ class insert(upload) :
       for child in hierarchy.children :
         child.sql(insert.sql(self))
 
-    @coverage.lazyProperty
+    @utils.lazyProperty
     def root(self) :
       return self.parent.root if self.parent else self
-    @coverage.lazyProperty
+    @utils.lazyProperty
     def root_id(self) :
       return self.parent and self.root.sql_row_id
-    @coverage.lazyProperty
+    @utils.lazyProperty
     def is_root(self) :
       return self.root == self
-    @coverage.lazyProperty
+    @utils.lazyProperty
     def parent_id(self) :
       return self.parent and self.parent.sql_row_id
 
-    @coverage.lazyProperty
+    @utils.lazyProperty
     def cursor(self) :
       return mdb.mdb.cursor() if self.is_root else self.root.cursor
 

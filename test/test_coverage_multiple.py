@@ -1,15 +1,16 @@
 # Copyright (c) 2013 Rich Porter - see LICENSE for further details
 
+import os
+import random
+import subprocess
+import xml.etree.ElementTree as etree
+
 import coverage
 import database
 import mdb
 import message
 import test
-
-import os
-import random
-import subprocess
-import xml.etree.ElementTree as etree
+import utils
 
 ################################################################################
 
@@ -119,23 +120,23 @@ class thistest(test.test) :
   @property
   def test(self) :
     return thistest.filename()+'-'+str(hex(self.tst_seed))
-  @coverage.lazyProperty
+  @utils.lazyProperty
   def is_master(self) :
     try :
       return int(test.plusargs().master)
     except :
       return self.mdb.is_root()
 
-  @coverage.lazyProperty
+  @utils.lazyProperty
   def cvr_seed(self) :
     return self.plusarg_opt_int('cvr_seed', 0, '08x')
-  @coverage.lazyProperty
+  @utils.lazyProperty
   def tst_seed(self) :
     return self.plusarg_opt_int('tst_seed', 0, '08x')
-  @coverage.lazyProperty
+  @utils.lazyProperty
   def children(self) :
     return self.plusarg_opt_int('children', 20, 'd')
-  @coverage.lazyProperty
+  @utils.lazyProperty
   def instances(self) :
     return self.plusarg_opt_int('instances', 20, 'd')
 

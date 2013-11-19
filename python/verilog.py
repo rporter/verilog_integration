@@ -6,20 +6,7 @@ import traceback
 import vpi
 
 import message
-
-################################################################################
-
-class lazyProperty(object):
-    'thanks http://blog.pythonisito.com/2008/08/lazy-descriptors.html'
-    def __init__(self, func):
-        self._func = func
-        self.__name__ = func.__name__
-        self.__doc__ = func.__doc__
-
-    def __get__(self, obj, *args):
-        if obj is None: return None
-        result = obj.__dict__[self.__name__] = self._func(obj)
-        return result
+import utils
 
 ################################################################################
 
@@ -239,36 +226,36 @@ class vpiObject(object) :
       pass
     return result
 
-  @lazyProperty
+  @utils.lazyProperty
   def name(self) :
     return self.get_str(vpi.vpiName)
-  @lazyProperty
+  @utils.lazyProperty
   def fullname(self) :
     return self.get_str(vpi.vpiFullName)
 
-  @lazyProperty
+  @utils.lazyProperty
   def scalar(self) :
     return vpi.vpi_get(vpi.vpiScalar, self.handle)
-  @lazyProperty
+  @utils.lazyProperty
   def vector(self) :
     return vpi.vpi_get(vpi.vpiVector, self.handle)
-  @lazyProperty
+  @utils.lazyProperty
   def size(self) :
     result = vpi.vpi_get(vpi.vpiSize, self.handle)
     self.vpi_chk_error = vpiChkError()
     return result
-  @lazyProperty
+  @utils.lazyProperty
   def index(self) :
     handle = vpi.vpi_handle(vpi.vpiIndex, self.handle)
     self.vpi_chk_error = vpiChkError()
     return int(signal(handle))
 
-  @lazyProperty
+  @utils.lazyProperty
   def lhs(self) :
     handle = vpi.vpi_handle(vpi.vpiLeftRange, self.handle)
     self.vpi_chk_error = vpiChkError(True)
     return int(signal(handle))
-  @lazyProperty
+  @utils.lazyProperty
   def rhs(self) :
     handle = vpi.vpi_handle(vpi.vpiRightRange, self.handle)
     self.vpi_chk_error = vpiChkError(True)
@@ -434,7 +421,7 @@ class memory(vpiObject) :
         raise StopIteration
       i += self.direction
 
-  @lazyProperty
+  @utils.lazyProperty
   def direction(self):
     return -1 if self.lhs > self.rhs else 1
 

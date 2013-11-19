@@ -8,6 +8,9 @@ import sys
 
 import mdb
 import message
+import utils
+
+################################################################################
 
 class messages :
   CVG_0   = message.ident('CVG',   0, message.INFORMATION, 'coverage')
@@ -35,20 +38,6 @@ class messages :
       message.note('reducing coverage point creation verbosity')
     for msg in [messages.CVG_1, messages.CVG_2, messages.CVG_40, messages.CVG_41, messages.CVG_42] :
       msg.level = level
-
-################################################################################
-
-class lazyProperty(object):
-    'thanks http://blog.pythonisito.com/2008/08/lazy-descriptors.html'
-    def __init__(self, func):
-        self._func = func
-        self.__name__ = func.__name__
-        self.__doc__ = func.__doc__
-
-    def __get__(self, obj, *args):
-        if obj is None: return None
-        result = obj.__dict__[self.__name__] = self._func(obj)
-        return result
 
 ################################################################################
 
@@ -268,7 +257,7 @@ class axis :
   def sql(self, inst) :
     return inst.axis(self)
 
-  @lazyProperty
+  @utils.lazyProperty
   def md5(self) :
     'md5 hash of axis'
     md5 = hashlib.md5()
@@ -388,22 +377,22 @@ class hierarchy :
 
   def sql(self, inst) :
     return inst.hierarchy(self)
-  @lazyProperty
+  @utils.lazyProperty
   def md5(self) :
     'return tuple of 2 md5 sums : self, children'
     return (self.md5_self, self.md5_children)
-  @lazyProperty
+  @utils.lazyProperty
   def md5_self(self) :
     md5 = hashlib.md5()
     md5.update(self.name + self.description)
     return md5.hexdigest()
-  @lazyProperty
+  @utils.lazyProperty
   def md5_children(self) :
     md5 = hashlib.md5()
     md5.update(str([child.md5 for child in self.children]))
     return md5.hexdigest()
 
-  @lazyProperty
+  @utils.lazyProperty
   def root(self) :
     'If no root node exists, make one'
     if getattr(self, 'parent', None) is None :
@@ -414,11 +403,11 @@ class hierarchy :
       return self.root
     return self.parent.root
 
-  @lazyProperty
+  @utils.lazyProperty
   def is_root(self) :
     return self.parent == None
 
-  @lazyProperty
+  @utils.lazyProperty
   def all_nodes(self) :
     return self.root.all_nodes
 
@@ -611,16 +600,16 @@ class coverpoint(hierarchy) :
   def sql(self, inst) :
     return inst.coverpoint(self)
 
-  @lazyProperty
+  @utils.lazyProperty
   def md5(self) :
     'return tuple of 3 md5 sums : self, goal, axes'
     return (self.md5_self, self.md5_axes, self.md5_goal)
-  @lazyProperty
+  @utils.lazyProperty
   def md5_axes(self) :
     md5 = hashlib.md5()
     md5.update(str([axis.md5 for axis in self.get_axes()]))
     return md5.hexdigest()
-  @lazyProperty
+  @utils.lazyProperty
   def md5_goal(self) :
     md5 = hashlib.md5()
     md5.update(str([bucket.goal for bucket in self.buckets]))
