@@ -66,13 +66,11 @@ class thistest(test.test) :
   activity='python'
   block='default'
   name='multiple coverage capacity test'
-  insts=20
-  children=20
 
   def prologue(self):
     # initialize all the same
     random.seed(self.cvr_seed)
-    self.cpts = [coverpoint('%d random coverpoint' % i).cursor() for i in range(0, self.insts)]
+    self.cpts = [coverpoint('%d random coverpoint' % i).cursor() for i in range(0, self.instances)]
     self.master_id = test.plusargs().master_id
   
   def epilogue(self) :
@@ -83,7 +81,7 @@ class thistest(test.test) :
       result = subprocess.Popen(cmd.split(' '), env=dict(os.environ, MDB='root='+str(self.mdb.get_root())+',parent='+str(self.mdb.log_id))).wait()
       if result > 0 :
         message.warning('process %(cmd)s returned non zero %(result)d', cmd=cmd, result=result)
-
+    
     if self.is_master :
       # spawn some children
       for test in self.tests() :
@@ -116,7 +114,7 @@ class thistest(test.test) :
     if test.plusargs().test_xml :
       return xmlList(test.plusargs().test_xml, **args)
     else :
-      return randomList(int(test.plusargs().children or self.children), self.tst_seed, __file__, **args)
+      return randomList(self.children, self.tst_seed, __file__, **args)
 
   @property
   def test(self) :
@@ -127,22 +125,19 @@ class thistest(test.test) :
       return int(test.plusargs().master)
     except :
       return self.mdb.is_root()
+
   @coverage.lazyProperty
   def cvr_seed(self) :
-    try :
-      result = int(test.plusargs().cvr_seed, 0)
-    except :
-      result = 0
-    message.information('Using %(seed)08x for cvr_seed', seed=result)
-    return result
+    return self.plusarg_opt_int('cvr_seed', 0, '08x')
   @coverage.lazyProperty
   def tst_seed(self) :
-    try :
-      result = int(test.plusargs().tst_seed, 0)
-    except :
-      result = 0
-    message.information('Using %(seed)08x for tst_seed', seed=result)
-    return result
+    return self.plusarg_opt_int('tst_seed', 0, '08x')
+  @coverage.lazyProperty
+  def children(self) :
+    return self.plusarg_opt_int('children', 20, 'd')
+  @coverage.lazyProperty
+  def instances(self) :
+    return self.plusarg_opt_int('instances', 20, 'd')
 
 ################################################################################
 

@@ -44,6 +44,9 @@ class regression :
     except :
       return default
 
+  def getopts(self, node) :
+    return ' '.join('+%s=%s' % (attr.name, attr.content) for attr in node.properties)
+
   def enqueue(self, cmd) :
     'just execute here'
     message.debug('enqueue %(cmd)s', cmd=cmd)
@@ -79,7 +82,7 @@ class regression :
       target = self.getopt('target', node)
       script = 'test_' + node.getContent()
       if target == 'python' :
-        self.enqueue('python test_%s.py' % node.getContent())
+        self.enqueue('python test_%s.py %s' % (node.getContent(), self.getopts(node)))
       else :
         self.enqueue('make ' + target + ' SCRIPT=test_' + node.getContent())
     else :

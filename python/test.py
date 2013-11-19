@@ -1,12 +1,14 @@
 # Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
-import coverage
 import inspect
-import mdb
-import message
 import os
 import re
 import sys
+
+import coverage
+import database
+import mdb
+import message
 
 ################################################################################
 
@@ -16,8 +18,8 @@ class plusargs(object) :
   class store(dict) :
     def __init__(self, *args) :
       dict.__init__(self, *args)
-    def __getattr__(self, attr) :
-      return self.get(attr, None)
+    def __getattr__(self, attr, default=None) :
+      return self.get(attr, default)
   def __new__(self, *args, **kwargs) :
     if self._instance is None :
       self._instance = self.store([(arg.group('arg'), True if arg.group('val') is None else arg.group('val')) for arg in map(self.argval.match, sys.argv) if arg])
@@ -84,12 +86,12 @@ class test :
     if self.coverage :
       self.coverage = coverage.hierarchy.get_root()
       if getattr(self, 'master_id', False) :
-        coverage.insert.set_master(self.mdb.log_id, self.master_id)
+        database.insert.set_master(self.mdb.log_id, self.master_id)
         if getattr(self, 'master_chk', False) :
           # create the hierarchy from master id and verify congruent
           pass
       else :
-        coverage.insert.write(self.coverage, self.mdb.log_id, coverage.upload.REFERENCE)
+        database.insert.write(self.coverage, self.mdb.log_id, database.upload.REFERENCE)
 
     # is verilog library synthetic?
     if verilog.vpiInfo().product == 'Python' :
@@ -119,7 +121,7 @@ class test :
     mdb.finalize_all()
     # coverage
     if self.coverage :
-      coverage.insert.write(self.coverage, self.mdb.log_id, coverage.upload.RESULT)
+      database.insert.write(self.coverage, self.mdb.log_id, database.upload.RESULT)
     # remove callbacks
     verilog.callback.remove_all()
 
@@ -177,6 +179,16 @@ class test :
     for details in traceback.format_tb(_traceback) :
       for detail in details.strip('\n').split('\n') :
         message.warning(detail)
+
+  def plusarg_opt_int(self, name, default, fmt='08x') :
+    'To get default/command line options'
+    try :
+      result = int(plusargs().get(name, default))
+    except :
+      print sys.exc_info()
+      result = default
+    message.information('Using %(result)'+fmt+' for option "%(name)s"', result=result, name=name)
+    return result
 
   @classmethod
   def filename(cls) :

@@ -2,11 +2,12 @@
 
 import collections
 import xml.etree.ElementTree as etree
+import pwd
+import time
 
 import coverage
 import mdb
 import message
-import pwd
 
 ################################################################################
 
@@ -282,6 +283,123 @@ class cvr :
 
 ################################################################################
 
+class upload :
+  REFERENCE=True
+  RESULT=False
+  """
+  Base Class for all coverage upload types
+  """
+  def __del__(self) :
+    pass
+
+  def __enter__(self) :
+    return self
+
+  def __exit__(self, type, value, traceback) :
+    self.close()
+
+  @classmethod
+  def write(cls, root, log_id, reference=False) :
+    agent = cls.__name__
+    if reference:
+      root.debug()
+      elapsed = time.time()
+      coverage.messages.CVG_110(agent=agent, reference=reference)
+      root.sql(cls.sql(log_id=log_id))
+      elapsed = time.time()-elapsed
+      coverage.messages.CVG_111(agent=agent, time=elapsed, reference=reference)
+    coverage.messages.CVG_100(agent=agent, reference=reference)
+    elapsed = time.time()
+    target  = (log_id, )
+    with cls(reference) as out :
+      def dump(bucket) :
+        out.insert(target + bucket)
+      root.dump(dump, reference)
+    elapsed = time.time()-elapsed
+    coverage.messages.CVG_101(agent=agent, time=elapsed, reference=reference)
+
+################################################################################
+
+class insert(upload) :
+  """
+  Use sqlite INSERT
+  """
+
+  class sql :
+    def __init__(self, parent=None, log_id=None) :
+      self.parent = parent
+      self.log_id = log_id
+    def __del__(self) :
+      if self.is_root :
+        self.cursor.close()
+    def last_id(self) :
+      self.cursor.execute('SELECT last_insert_rowid() AS rowid;')
+      return self.cursor.fetchone()[0]
+
+    def axis(self, axis) :
+      self.cursor.execute('INSERT INTO axis (point_id, axis_name) VALUES (?,?)', (self.parent_id, axis.name))
+      self.sql_row_id = self.last_id()
+      for enum, value in axis.values.iteritems() :
+        self.cursor.execute('INSERT INTO enum (axis_id, enum, value) VALUES (?,?,?)', (self.sql_row_id, enum, value))
+    def coverpoint(self, coverpoint) :
+      self.cursor.execute('INSERT INTO point (log_id, point_name, desc, root, parent, offset, size, md5_self, md5_axes, md5_goal) VALUES (?,?,?,?,?,?,?,?,?,?)', (self.root.log_id, coverpoint.name, coverpoint.description, self.root_id, self.parent_id, coverpoint.offset, len(coverpoint)) + coverpoint.md5)
+      self.sql_row_id = self.last_id()
+      for name, axis in coverpoint.axes() :
+        axis.sql(insert.sql(self))
+    def hierarchy(self, hierarchy) :
+      self.cursor.execute('INSERT INTO point (log_id, point_name, desc, root, parent, md5_self, md5_axes) VALUES (?,?,?,?,?,?,?)', (self.root.log_id, hierarchy.name, hierarchy.description, self.root_id, self.parent_id) + hierarchy.md5)
+      self.sql_row_id = self.last_id()
+      for child in hierarchy.children :
+        child.sql(insert.sql(self))
+
+    @coverage.lazyProperty
+    def root(self) :
+      return self.parent.root if self.parent else self
+    @coverage.lazyProperty
+    def root_id(self) :
+      return self.parent and self.root.sql_row_id
+    @coverage.lazyProperty
+    def is_root(self) :
+      return self.root == self
+    @coverage.lazyProperty
+    def parent_id(self) :
+      return self.parent and self.parent.sql_row_id
+
+    @coverage.lazyProperty
+    def cursor(self) :
+      return mdb.mdb.cursor() if self.is_root else self.root.cursor
+
+  def __init__(self, reference=False) :
+    self.reference = reference
+    self.data      = list()
+    message.debug("sqlite insert created")
+
+  def close(self) :
+    table = 'goal' if self.reference else 'hits'
+    if len(self.data) == 0 :
+      message.note('No data to upload into table "%(table)s", skipping', table=table)
+      return
+    message.information('starting data upload to table "%(table)s" via insert', table=table)
+    with mdb.mdb.cursor() as cursor :
+      cursor.executemany('INSERT INTO %s VALUES (?,?,?);' % table, self.data)
+      rows = cursor.rowcount
+    if rows is None :
+      message.warning('upload to db via insert "%(table)s" returned None', table=table)
+    else :
+      message.information('upload to db via insert added %(rows)d rows to "%(table)s"', rows=int(rows), table=table)
+
+  def insert(self, data) :
+    'add data to insert values'
+    self.data.append(data)
+
+  @classmethod
+  def set_master(cls, log_id, master_id) :
+    with mdb.mdb.cursor() as cursor :
+      cursor.execute('INSERT INTO master (log_id, goal_id) VALUES (?, ?);', (log_id, master_id))
+    coverage.messages.CVG_50(**locals())
+
+################################################################################
+
 class profile :
   INVS='invs'
   STATUS='status'
@@ -366,7 +484,7 @@ class profile :
     return values()
 
   def insert(self, log_id) :
-    coverage.insert.set_master(log_id, self.get_master())
+    insert.set_master(log_id, self.get_master())
     self.cvg.execute('REPLACE INTO hits SELECT %(log_id)s AS log_id, bucket_id, hits FROM %(status)s AS status;' % {'log_id' : log_id, 'status' : self.STATUS})
 
   class xmlDump :
@@ -403,7 +521,7 @@ class profile :
 class cvgOrderedProfile(profile) :
   'order tests in coverage order'
   def testlist(self) :
-    self.tests.execute('select invs.*, sum(min(status.goal, hits.hits)) as hits from '+self.INVS+' as invs natural join hits join '+self.STATUS+' as status on (hits.bucket_id = status.bucket_id and status.goal > 0) group by log_id order by hits desc;')
+    self.tests.execute('select invs.*, IFNULL(sum(min(status.goal, hits.hits)), 0) as hits from '+self.INVS+' as invs left outer natural join hits join '+self.STATUS+' as status on (hits.bucket_id = status.bucket_id and status.goal > 0) group by log_id order by hits desc;')
     return self.tests.fetchall()
 
 ################################################################################
