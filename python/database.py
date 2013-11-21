@@ -1,7 +1,7 @@
 # Copyright (c) 2013 Rich Porter - see LICENSE for further details
 
 import collections
-import xml.etree.ElementTree as etree
+from lxml import etree
 import pwd
 import time
 
@@ -486,7 +486,9 @@ class profile :
 
   def insert(self, log_id) :
     insert.set_master(log_id, self.get_master())
+    coverage.messages.CVG_120()
     self.cvg.execute('REPLACE INTO hits SELECT %(log_id)s AS log_id, bucket_id, hits FROM %(status)s AS status;' % {'log_id' : log_id, 'status' : self.STATUS})
+    self.cvg.commit()
 
   class xmlDump :
     def __init__(self) :
@@ -497,7 +499,7 @@ class profile :
       for attr, value in test.log.iteritems() :
         etree.SubElement(node, attr).text = str(value)
     def write(self, file) :
-      self.xml.write(file)
+      self.xml.write(file, pretty_print=True)
 
   def run(self) :
     xml = self.xmlDump()

@@ -28,6 +28,7 @@ class messages :
   CVG_101 = message.ident('CVG', 101, message.INFORMATION, '%(agent)s coverage import end after %(time)0.2fs')
   CVG_110 = message.ident('CVG', 110, message.INFORMATION, '%(agent)s coverage point import start')
   CVG_111 = message.ident('CVG', 111, message.INFORMATION, '%(agent)s coverage point import end after %(time)0.2fs')
+  CVG_120 = message.ident('CVG', 120, message.INFORMATION, 'Inserting profiled coverage data')
 
   CVG_200 = message.ident('CVG', 200, message.ERROR      , 'hit on bucket marked as illegal')
 
