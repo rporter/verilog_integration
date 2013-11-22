@@ -3,6 +3,7 @@
 import hashlib
 import inspect
 import itertools
+from lxml import etree
 import math
 import sys
 
@@ -96,6 +97,12 @@ class coverage :
   def json(self) :
     'Dump as dict for json-ification'
     return dict(goal=self.goal, hits=self.hits, status=self.status(), coverage=self.coverage(), description=self.description())
+
+  def xml(self) :
+    'Serialize to xml'
+    node = etree.Element('coverage', goal=str(self.goal), hits=str(self.hits), status=self.status(), coverage=self.format())
+    node.text = self.description()
+    return node
 
 ################################################################################
 
@@ -375,6 +382,16 @@ class hierarchy :
   def json(self) :
     'Dump as dict for json-ification'
     return dict(hierarchy=self.name, description=self.description, id=self.id, coverage=self.coverage().json(), children=[child.json() for child in self.children])
+
+  def xml(self) :
+    'Serialize to xml'
+    node = etree.Element(self.__class__.__name__)
+    etree.SubElement(node, 'name').text = self.name
+    etree.SubElement(node, 'description').text = self.description
+    for pt in self.children :
+      node.append(pt.xml())
+    node.append(self.coverage().xml())
+    return node
 
   def sql(self, inst) :
     return inst.hierarchy(self)

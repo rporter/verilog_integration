@@ -456,10 +456,6 @@ class profile :
     message.debug('update %(cnt)d rows', cnt=self.cvg.rowcount)
     return self.cvg.rowcount
 
-  def testlist(self) :
-    self.tests.execute('select * from '+self.INVS)
-    return self.tests.fetchall()
-
   def reset(self) :
     self.cvg.execute('replace into '+self.STATUS+' select bucket_id, goal, 0 as hits, 0 as total_hits, 0 as tests from goal where log_id=?;', (self.get_master(), ))
 
@@ -498,6 +494,8 @@ class profile :
       node = etree.SubElement(self.root, 'test')
       for attr, value in test.log.iteritems() :
         etree.SubElement(node, attr).text = str(value)
+    def append(self, node) :
+      self.root.append(node)
     def write(self, file) :
       self.xml.write(file, pretty_print=True)
 
@@ -515,7 +513,8 @@ class profile :
     message.information('coverage : ' + self.status().description())
     
     # now regenerate hierarchy and report coverage on point basis
-    self.hierarchy().dump()
+    xml.append(self.hierarchy().xml())
+    #self.hierarchy().dump()
 
     return xml
 
@@ -530,7 +529,9 @@ class cvgOrderedProfile(profile) :
 ################################################################################
 
 class posOrderedProfile(profile) :
-  'order tests in given order'
-  pass
+  'order tests in log order'
+  def testlist(self) :
+    self.tests.execute('select * from '+self.INVS+' order by log_id asc;')
+    return self.tests.fetchall()
 
 ################################################################################
