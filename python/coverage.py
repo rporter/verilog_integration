@@ -253,7 +253,7 @@ class axis :
     elif type(value) == type(int) and value in self.rev.keys():
       self.value = self.rev[value]
     else :
-      message.error('axis %(name) has no enumeration %(value)', name=self.name, value=value)
+      message.error('axis %(name)s has no enumeration %(value)s', name=self.name, value=value)
 
   def __get__(self, instance, owner) :
     return self.value
@@ -261,6 +261,15 @@ class axis :
   def json(self) :
     'Dump as dict for json-ification'
     return dict(name=self.name, values=map(str, self.get_enums()))
+
+  def xml(self) :
+    'Serialize to xml'
+    node = etree.Element(self.__class__.__name__)
+    etree.SubElement(node, 'name').text = self.name
+    enums = etree.SubElement(node, 'enums')
+    for name in self.get_enums() :
+      etree.SubElement(enums, 'enum', value=str(self.values[name])).text = name
+    return node
 
   def sql(self, inst) :
     return inst.axis(self)
@@ -614,6 +623,14 @@ class coverpoint(hierarchy) :
   def json(self) :
     'Dump as dict for json-ification'
     return dict(coverpoint=self.name, description=self.description, id=self.id, cumulative=self.cumulative, coverage=self.coverage().json(), offset=self.offset, axes=[axis.json() for axis in self.get_axes()], buckets=[bucket.json() for bucket in self.buckets])
+
+  def xml(self) :
+    'Serialize to xml'
+    # call super function
+    node = hierarchy.xml(self)
+    for axis in self.get_axes() :
+      node.append(axis.xml())
+    return node
 
   def sql(self, inst) :
     return inst.coverpoint(self)
