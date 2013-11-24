@@ -410,15 +410,15 @@ class profile :
     'log_ids is a list of regression roots'
     self.tests = mdb.db.connection().row_cursor()
     # create table of individual runs, but not root node as this may have already summarised coverage
-    self.tests.execute('create temporary table '+self.INVS+' as select l1.*, goal_id as master from log as l0 join log as l1 on (l0.log_id = l1.root) left outer join master on (l1.log_id = master.log_id) where l1.root in ('+s_log_ids+');')
-    self.tests.execute('select count(*) as children from '+self.INVS)
+    self.tests.execute('CREATE TEMPORARY TABLE '+self.INVS+' AS select l1.*, goal_id AS master FROM log AS l0 JOIN log AS l1 ON (l0.log_id = l1.root) LEFT OUTER JOIN master ON (l1.log_id = master.log_id) WHERE l1.root IN ('+s_log_ids+');')
+    self.tests.execute('select count(*) AS children FROM '+self.INVS)
     children = self.tests.fetchone().children
     message.information('%(log_ids)s has %(children)d children', log_ids=s_log_ids, children=children)
     if children < 1 :
       message.fatal('no children')
     # check congruency
     self.cvg = mdb.db.connection().row_cursor()
-    self.cvg.execute("select md5_self as md5, 'md5_self' as type, invs.master, invs.root from point join "+self.INVS+" as invs on (invs.master = point.log_id and point.parent is null) group by md5;")
+    self.cvg.execute("SELECT md5_self AS md5, 'md5_self' AS type, invs.master, invs.root FROM point JOIN "+self.INVS+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
     if self.cvg.rowcount > 1 :
       message.warning('md5 of multiple masters do not match')
     elif self.cvg.rowcount == 0 :
@@ -426,17 +426,17 @@ class profile :
     else :
       message.debug('md5 query returns %(rows)d', rows=self.cvg.rowcount)
     self.master = mdb.accessor(md5=self.cvg.fetchone())
-    self.cvg.execute("select distinct(md5_axes) as md5, 'md5_axes' as type, invs.master, invs.root from point join "+self.INVS+" as invs on (invs.master = point.log_id and point.parent is null);")
+    self.cvg.execute("SELECT DISTINCT(md5_axes) AS md5, 'md5_axes' AS type, invs.master, invs.root FROM point JOIN "+self.INVS+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL);")
     if self.cvg.rowcount > 1 :
       message.warning('md5 of multiple axis masters do not match')
     self.master.axes = self.tests.fetchone()
     # create status table, collating goal & hits
-    self.cvg.execute('create temporary table '+self.STATUS+' (bucket_id INTEGER NOT NULL PRIMARY KEY, goal INTEGER, hits INTEGER, total_hits INTEGER, tests INTEGER);')
+    self.cvg.execute('CREATE TEMPORARY TABLE '+self.STATUS+' (bucket_id INTEGER NOT NULL PRIMARY KEY, goal INTEGER, hits INTEGER, total_hits INTEGER, tests INTEGER);')
 
   def __del__(self) :
-    self.tests.execute('drop table if exists '+self.INVS)
+    self.tests.execute('DROP TABLE IF EXISTS '+self.INVS)
     self.tests.close()
-    self.cvg.execute('drop table if exists '+self.STATUS)
+    self.cvg.execute('DROP TABLE IF EXISTS '+self.STATUS)
     self.cvg.close()
 
   def __iter__(self) :
@@ -452,17 +452,17 @@ class profile :
     # in e.g. mysql we can use a join in an update
     # self.cvg.execute('update '+self.STATUS+' as status set hits = min(status.goal, status.hits + goal.hits), total_hits = status.total_hits + goal.total_hits join hits using (bucket_id) where hits.log_id = ?;', log_id)
     # but we need to resort to this for sqlite
-    self.cvg.execute('replace into '+self.STATUS+' select status.bucket_id, status.goal, CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE min(status.goal, status.hits + hits.hits) END as hits, status.total_hits + hits.hits as total_hits, status.tests + 1 from '+self.STATUS+' as status join hits using (bucket_id) where hits.log_id = ?;', (log_id,))
+    self.cvg.execute('REPLACE INTO '+self.STATUS+' SELECT status.bucket_id, status.goal, CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE min(status.goal, status.hits + hits.hits) END AS hits, status.total_hits + hits.hits as total_hits, status.tests + 1 FROM '+self.STATUS+' AS status JOIN hits USING (bucket_id) WHERE hits.log_id = ?;', (log_id,))
     message.debug('update %(cnt)d rows', cnt=self.cvg.rowcount)
     return self.cvg.rowcount
 
   def reset(self) :
-    self.cvg.execute('replace into '+self.STATUS+' select bucket_id, goal, 0 as hits, 0 as total_hits, 0 as tests from goal where log_id=?;', (self.get_master(), ))
+    self.cvg.execute('REPLACE INTO '+self.STATUS+' SELECT bucket_id, goal, 0 AS hits, 0 AS total_hits, 0 AS tests FROM goal WHERE log_id=?;', (self.get_master(), ))
 
   def status(self) :
     'calculate & return current coverage'
     with mdb.db.connection().row_cursor() as db :
-      db.execute('select sum(min(goal, hits)) as hits, sum(goal) as goal from '+self.STATUS+' where goal > 0;')
+      db.execute('SELECT SUM(MIN(goal, hits)) AS hits, SUM(goal) AS goal FROM '+self.STATUS+' WHERE goal > 0;')
       return coverage.coverage(db.fetchone())
 
   def get_master(self) :
@@ -474,7 +474,7 @@ class profile :
 
   def dump(self) :
     with mdb.db.connection().row_cursor() as db :
-      db.execute('select * from ' + self.STATUS)
+      db.execute('SELECT * FROM ' + self.STATUS)
       buckets = db.fetchall()
     def values() :
       for bucket in buckets : yield bucket
@@ -523,7 +523,7 @@ class profile :
 class cvgOrderedProfile(profile) :
   'order tests in coverage order'
   def testlist(self) :
-    self.tests.execute('select invs.*, IFNULL(sum(min(status.goal, hits.hits)), 0) as hits from '+self.INVS+' as invs left outer natural join hits join '+self.STATUS+' as status on (hits.bucket_id = status.bucket_id and status.goal > 0) group by log_id order by hits desc;')
+    self.tests.execute('SELECT invs.*, IFNULL(sum(min(status.goal, hits.hits)), 0) AS hits FROM '+self.INVS+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.STATUS+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0) GROUP BY log_id ORDER BY hits DESC;')
     return self.tests.fetchall()
 
 ################################################################################
@@ -531,7 +531,7 @@ class cvgOrderedProfile(profile) :
 class posOrderedProfile(profile) :
   'order tests in log order'
   def testlist(self) :
-    self.tests.execute('select * from '+self.INVS+' order by log_id asc;')
+    self.tests.execute('SELECT * FROM '+self.INVS+' ORDER BY log_id ASC;')
     return self.tests.fetchall()
 
 ################################################################################
