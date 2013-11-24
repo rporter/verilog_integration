@@ -404,32 +404,40 @@ class insert(upload) :
 class profile :
   INVS='invs'
   STATUS='status'
-  def __init__(self, log_ids) :
+  def __init__(self, log_ids=[], test_ids=[]) :
+    'log_ids is a list of regression roots'
     self.log_ids = log_ids
     s_log_ids = ','.join(map(str, log_ids))
-    'log_ids is a list of regression roots'
     self.tests = mdb.db.connection().row_cursor()
     # create table of individual runs, but not root node as this may have already summarised coverage
-    self.tests.execute('CREATE TEMPORARY TABLE '+self.INVS+' AS select l1.*, goal_id AS master FROM log AS l0 JOIN log AS l1 ON (l0.log_id = l1.root) LEFT OUTER JOIN master ON (l1.log_id = master.log_id) WHERE l1.root IN ('+s_log_ids+');')
-    self.tests.execute('select count(*) AS children FROM '+self.INVS)
+    self.tests.execute('CREATE TEMPORARY TABLE '+self.INVS+' AS SELECT l1.*, goal_id AS master FROM log AS l0 JOIN log AS l1 ON (l0.log_id = l1.root) LEFT OUTER JOIN master ON (l1.log_id = master.log_id) WHERE l1.root IN ('+s_log_ids+');')
+    self.tests.execute('SELECT count(*) AS children FROM '+self.INVS)
     children = self.tests.fetchone().children
-    message.information('%(log_ids)s has %(children)d children', log_ids=s_log_ids, children=children)
-    if children < 1 :
-      message.fatal('no children')
+    if children :
+      message.information('%(log_ids)s %(has)s %(children)d children', log_ids=s_log_ids, children=children, has='have' if log_ids.len > 1 else 'has')
+    # append individual runs as given by test_ids
+    s_test_ids = ','.join(map(str, test_ids))
+    self.tests.execute('INSERT INTO '+self.INVS+' SELECT log.*, goal_id AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) WHERE log.log_id IN ('+s_test_ids+');')
+    self.tests.execute('SELECT count(*) AS tests FROM '+self.INVS)
+    tests = self.tests.fetchone().tests
+    if tests < 1 :
+      message.fatal('no tests')
     # check congruency
     self.cvg = mdb.db.connection().row_cursor()
     self.cvg.execute("SELECT md5_self AS md5, 'md5_self' AS type, invs.master, invs.root FROM point JOIN "+self.INVS+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
-    if self.cvg.rowcount > 1 :
-      message.warning('md5 of multiple masters do not match')
-    elif self.cvg.rowcount == 0 :
+    md5 = self.cvg.fetchall()
+    if not md5 :
       message.fatal('no master')
+    elif len(md5) > 1 :
+      message.fatal('md5 of multiple masters do not match')
     else :
       message.debug('md5 query returns %(rows)d', rows=self.cvg.rowcount)
-    self.master = mdb.accessor(md5=self.cvg.fetchone())
+    self.master = mdb.accessor(md5=md5[0])
     self.cvg.execute("SELECT DISTINCT(md5_axes) AS md5, 'md5_axes' AS type, invs.master, invs.root FROM point JOIN "+self.INVS+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL);")
-    if self.cvg.rowcount > 1 :
-      message.warning('md5 of multiple axis masters do not match')
-    self.master.axes = self.tests.fetchone()
+    md5 = self.cvg.fetchall()
+    if len(md5) > 1 :
+      message.fatal('md5 of multiple axis masters do not match')
+    self.master.axes = md5[0]
     # create status table, collating goal & hits
     self.cvg.execute('CREATE TEMPORARY TABLE '+self.STATUS+' (bucket_id INTEGER NOT NULL PRIMARY KEY, goal INTEGER, hits INTEGER, total_hits INTEGER, tests INTEGER);')
 

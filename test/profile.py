@@ -9,6 +9,7 @@ import message
 
 parser = message.reportOptionParser()
 parser.add_option('-r', '--regression', default=None, help='Regression root id', action='append')
+parser.add_option('-t', '--test', default=None, help='Test id', action='append')
 parser.add_option('-x', '--xml', help='xml out', default='profile_%d.xml')
 options, values = parser.parse_args()
 
@@ -29,18 +30,19 @@ def cast(x) :
   except :
     return None
 
-ids = [cast(o) for o in options.regression if cast(o)]
+regressions = [cast(o) for o in options.regression if cast(o)]
+tests       = [cast(o) for o in options.test if cast(o)]
 
-if not ids :
-  message.fatal('No root ids provided')
+if not regressions and not tests :
+  message.fatal('No invocations provided')
 
-message.information('profiling begins on %(ids)s', ids=str(ids))
+message.information('profiling begins')
 
 ################################################################################
 
 coverage.messages.hush_creation()
 # profile by run coverage
-profile = database.cvgOrderedProfile(ids)
+profile = database.cvgOrderedProfile(regressions, tests)
 # do profile run
 xml = profile.run()
 # annotate optimized coverage result to this invocation
@@ -49,7 +51,7 @@ profile.insert(mdb_conn.log_id)
 ################################################################################
 
 if options.xml :
-  outfile = options.xml % int(profile.log_ids[0])
+  outfile = options.xml % (regressions[0] if regressions else tests[0])
   message.information('dumping profiling to ' + outfile)
   with open(outfile, 'w') as desc :
     xml.write(desc)
