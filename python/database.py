@@ -414,7 +414,7 @@ class profile :
     self.tests.execute('SELECT count(*) AS children FROM '+self.INVS)
     children = self.tests.fetchone().children
     if children :
-      message.information('%(log_ids)s %(has)s %(children)d children', log_ids=s_log_ids, children=children, has='have' if log_ids.len > 1 else 'has')
+      message.information('%(log_ids)s %(has)s %(children)d children', log_ids=s_log_ids, children=children, has='have' if len(log_ids) > 1 else 'has')
     # append individual runs as given by test_ids
     s_test_ids = ','.join(map(str, test_ids))
     self.tests.execute('INSERT INTO '+self.INVS+' SELECT log.*, goal_id AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) WHERE log.log_id IN ('+s_test_ids+');')
@@ -433,7 +433,7 @@ class profile :
     else :
       message.debug('md5 query returns %(rows)d', rows=self.cvg.rowcount)
     self.master = mdb.accessor(md5=md5[0])
-    self.cvg.execute("SELECT DISTINCT(md5_axes) AS md5, 'md5_axes' AS type, invs.master, invs.root FROM point JOIN "+self.INVS+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL);")
+    self.cvg.execute("SELECT DISTINCT(md5_axes) AS md5, 'md5_axes' AS type, invs.master, invs.root FROM point JOIN "+self.INVS+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
     md5 = self.cvg.fetchall()
     if len(md5) > 1 :
       message.fatal('md5 of multiple axis masters do not match')

@@ -89,7 +89,7 @@ class thistest(test.test) :
         enqueue(str(test))
       database.rgr().result(self.mdb.log_id, self.mdb.is_root()).summary().summary()
       # profile ...
-      profile = database.cvgOrderedProfile([self.mdb.log_id,])
+      profile = database.cvgOrderedProfile(log_ids=[self.mdb.log_id,])
       coverage.messages.hush_creation()
       # do profile run
       xml = profile.run()
@@ -111,7 +111,7 @@ class thistest(test.test) :
     self.success()
 
   def tests(self) :
-    args = dict(master_id=str(self.master_id or self.mdb.log_id), cvr_seed=str(self.cvr_seed))
+    args = dict(master_id=str(self.master_id or self.mdb.log_id), cvr_seed=str(self.cvr_seed), instances=str(self.instances))
     if test.plusargs().test_xml :
       return xmlList(test.plusargs().test_xml, **args)
     else :

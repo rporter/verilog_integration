@@ -183,9 +183,9 @@ class test :
   def plusarg_opt_int(self, name, default, fmt='08x') :
     'To get default/command line options'
     try :
-      result = int(plusargs().get(name, default))
+      result = int(plusargs().get(name, default), 0)
     except :
-      print sys.exc_info()
+      message.warning(str(sys.exc_info()))
       result = default
     message.information('Using %(result)'+fmt+' for option "%(name)s"', result=result, name=name)
     return result

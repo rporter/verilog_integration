@@ -8,8 +8,8 @@ import message
 ################################################################################
 
 parser = message.reportOptionParser()
-parser.add_option('-r', '--regression', default=None, help='Regression root id', action='append')
-parser.add_option('-t', '--test', default=None, help='Test id', action='append')
+parser.add_option('-r', '--regression', default=[], help='Regression root id', action='append')
+parser.add_option('-t', '--test', default=[], help='Test id', action='append')
 parser.add_option('-x', '--xml', help='xml out', default='profile_%d.xml')
 options, values = parser.parse_args()
 
