@@ -71,20 +71,27 @@ $coverage = function(){};
 
     function showDialog(event) {
       // create table of all hits in a dialog popup
-      var container = $('<div><div><table/></div></div>');
+      var container = $('<div><div><table/></div></div>').attr('title', name+'['+event.data.bucket_id+']').css("white-space", "nowrap");
       var table = $('table', container).dataTable({
         "bJQueryUI": true,
         "bFilter": false,
         "aoColumns": [
   	  { "sTitle": "log id" },
+  	  { "sTitle": "test" },
 	  { "sTitle": "hits" }
         ],
-        "aaData" : event.data.coverage.map(function(hit){return [hit.log_id, hit.hits]}),
-        "aaSorting": [[1, "desc"]], // sort hits descending
+        "aaData" : event.data.coverage.map(function(hit){return [hit.log_id, '<span title="'+hit.description+'">'+hit.test+'</span>', hit.hits]}),
+        "aaSorting": [[2, "desc"]], // sort hits descending
         "aLengthMenu": [[10, 25, 50, 100 , -1], [10, 25, 50, 100, "All"]],
         "iDisplayLength": 10,
         "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
-          $(nRow).addClass(coverageTable.classFromBucket([event.data.goal, aData[1]]));
+          $(nRow).addClass(coverageTable.classFromBucket([event.data.goal, aData[2]]));
+          $(nRow).bind('click.example', {log_id : aData[0], anchor : where.parents('div.ui-tabs:first')},
+            function(event) {
+              var log = new $report.openLog(event.data, undefined, nRow);
+              log.add(event.data.anchor);
+            }
+          );
         }
       });
       container.bind('mousewheel', function(event) {
@@ -103,7 +110,7 @@ $coverage = function(){};
         table.fnDraw();
         return false;
       });
-      container.dialog();
+      container.dialog({width:"auto"});
     }
 
     function showBucket(node) {
@@ -122,7 +129,7 @@ $coverage = function(){};
       $.getJSON(url, function(data) {
         $('span', node).html(function() {
           if (data.length) {
-            node.bind('click.coverage', {coverage:data, goal:goal}, showDialog);
+            node.bind('click.coverage', {coverage:data, goal:goal, bucket_id:bucket_id}, showDialog);
             return $('<table/>', {
               class : 'bucket',
               html : '<tbody>'+data.slice(0,10).map(function(it){
