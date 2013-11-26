@@ -195,7 +195,7 @@ $report = function(){
             var cvg = $('td.cvg', nRow).addClass('cvg-'+aData[8]);
             $report.testJSON.get_cvg(cvg, nRow, aData[0])(event);
           });
-          $(nRow).bind('click.example', {log_id : aData[0], children : aData[9], anchor : anchor},
+          $(nRow).bind('click.example', {log_id : aData[0], name : $(aData[2]).text(), children : aData[9], anchor : anchor},
             function(event) {
               var log;
               if (event.data.children) {
@@ -402,7 +402,7 @@ $report = function(){
       // firstly remove scrolling behaviour of parent tab
       this.div.removeClass('tab');
       this.log.addClass('tab');
-      this.div.prepend('<ul><li><a href="#log">Log</a></li><li><a href="#cvg">Coverage</a></li></ul>');
+      this.div.prepend('<ul><li><a href="#log">Log</a></li><li><a href="#cvg">Coverage</a></li><span style="float:right; margin:0.5em">'+data.name+'</span></ul>');
       this.cvg = $('<div/>', {class: "cvg-pane", id:"cvg"}).appendTo(this.div);
       this.tabs = this.div.tabs();
       function url() {
@@ -553,7 +553,8 @@ $report = function(){
     }
 
     this.add = function(tabs) {
-      tabs.tabs('add', '#'+self.id, data.log_id+' log');
+      var href='#'+self.id;
+      tabs.tabs('add', href, data.log_id+' log').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name)
     }
 
     function wrapif(cvg) {
@@ -673,7 +674,8 @@ $report = function(){
     }
 
     this.add = function(tabs) {
-      tabs.tabs('add', '#'+self.id, data.log_id+' hier');
+      var href='#'+self.id;
+      tabs.tabs('add', href, data.log_id+' hier').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name)
     };
 
     this.table = function(log_id) {
@@ -681,9 +683,13 @@ $report = function(){
     };
 
     this.pane = function() {
+      function name(log) {
+        if (log.hasOwnProperty('test')) return '<abbr title="'+log.description+'">'+log.test+'</span>'
+        return log.description;
+      }
       function hier(json, flat) {
         flat = flat || false;
-        return json.map(function(it){return {title : '<div><span class="' + it.status.status + ' ' + ((it.status.status=='PASS')?'ui-icon-check':'ui-icon-close') + ' ui-icon"></span>&nbsp;' + it.log.description + '(' + it.log.log_id + ')' + ((it.status.summary===undefined)?'':it.status.summary.html()) + '</div>' , isFolder : it.children.length, key : it.log.log_id, children : flat?[]:hier(it.children || [], flat)}});
+        return json.map(function(it){return {title : '<div><span class="' + it.status.status + ' ' + ((it.status.status=='PASS')?'ui-icon-check':'ui-icon-close') + ' ui-icon"></span>&nbsp;' + name(it.log) + '(' + it.log.log_id + ')' + ((it.status.summary===undefined)?'':it.status.summary.html()) + '</div>' , isFolder : it.children.length, key : it.log.log_id, children : flat?[]:hier(it.children || [], flat)}});
       }
       var tree = $('<div>').dynatree({
         children : [
@@ -698,7 +704,8 @@ $report = function(){
         onActivate: function(node) {
           var create = node.data.children.length?$report.openRegr:$report.openLog;
           // this will be a tab-within-tab
-          (new create({log_id : node.data.key, hier : [self.find(node.data.key),], anchor : anchor})).add(anchor);
+          var json = self.find(node.data.key); console.log(json);
+          (new create({log_id : node.data.key, name : json.log.test || json.log.descripion, hier : [json,], anchor : anchor})).add(anchor);
         },
       });
       this.explorer.append(tree);
@@ -735,16 +742,18 @@ $report = function(){
 
     this.add = function(tabs) {
       self.parent = tabs;
-      tabs.tabs('add', '#'+self.id, data.log_id+' regr');
+      var href='#'+self.id;
+      tabs.tabs('add', href, data.log_id+' regr').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name)
     };
     this.close = function() {
-      var index = $('li a[href="#'+self.id+'"]', self.parent).parent().index(); 
+      var index = $('li a[href="#'+self.id+'"]', self.parent).parent().index(); // broken?
       self.parent.tabs("remove", index);
     };
 
     this.div.appendTo(data.anchor);
     this.tabs = this.div.tabs();
     $report.formatTabs(this.tabs, this.close);
+    $('ul', this.tabs).append('<span style="float:right; margin:0.5em">'+data.name+'</span>');
 
     this.hier = new $report.openHier(data, this.tabs);
     this.hier.add(this.tabs);
