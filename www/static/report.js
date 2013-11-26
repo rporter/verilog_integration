@@ -1,5 +1,12 @@
 // Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
+// http://www.yelotofu.com/2008/08/jquery-outerhtml/
+jQuery.fn.outerHTML = function(s) {
+    return s
+        ? this.before(s).remove()
+        : jQuery("<p>").append(this.eq(0).clone()).html();
+};
+
 $report = function(){
 };
 
@@ -266,10 +273,10 @@ $report = function(){
 
     this.rows = function() {
       function popup(attr) {
-          return '<abbr title="'+attr.msg.replace('"', '&quot;')+'">'+attr.count+'</abbr>';
+          return $('<abbr>', {title:attr.msg, text:attr.count}).outerHTML();
       }
       return data.map(function(log){
-        return [log.log.log_id, log.log.user, log.log.description, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), log.log.children, log.status.status];
+        return [log.log.log_id, log.log.user, $('<abbr>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), log.log.children, log.status.status];
       });
     };
 
