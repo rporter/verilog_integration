@@ -1,11 +1,16 @@
 # Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
+import re
+
 import coverage
 import database
 import mdb
 import message
 
 ################################################################################
+
+# ids can be given in the form range-or-id,+
+# where range-or-id is [0-9]+(..[0-9]+)
 
 parser = message.reportOptionParser()
 parser.add_option('-r', '--regression', default=[], help='Regression root id', action='append')
@@ -20,18 +25,41 @@ mdb_conn=mdb.mdb('profile', activity='profiling')
 
 ################################################################################
 
+# generate lists
+def to_list(args, values=[]) :
+  def ignoring(arg) :
+    message.warning('Ignoring %(arg)s', arg=arg)
+  def cast(x) : 
+    try :
+      return int(x)
+    except :
+      ignoring(x)
+      return None
+  if isinstance(args, list) :
+    return to_list(args[1:], to_list(args[0], values)) if args else values
+  _args = args.split(',')
+  if len(_args) > 1 : 
+    return to_list(_args, values)
+  _match = re.match('(?P<from>\d+)\.{2,3}(?P<to>\d+)', args)
+  if _match :
+    _to, _from = cast(_match.group('to')), cast(_match.group('from'))
+    if _from > _to : _to, _from = _from, _to
+    if _to is not None and _from is not None :
+      return range(_from, _to + 1) + values
+    ignoring(args)
+    return values
+  if cast(args) :
+    return [cast(args), ] + values
+  return values
+
+################################################################################
+
 if options.regression is None :
   # presume leftover args are ids
   options.regression = values
 
-def cast(x) : 
-  try :
-    return int(x)
-  except :
-    return None
-
-regressions = [cast(o) for o in options.regression if cast(o)]
-tests       = [cast(o) for o in options.test if cast(o)]
+regressions = to_list(options.regression)
+tests       = to_list(options.test)
 
 if not regressions and not tests :
   message.fatal('No invocations provided')
