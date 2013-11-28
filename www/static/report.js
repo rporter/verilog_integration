@@ -684,7 +684,7 @@ $report = function(){
 
     this.pane = function() {
       function name(log) {
-        if (log.hasOwnProperty('test')) return '<abbr title="'+log.description+'">'+log.test+'</span>'
+        if (log.test) return '<abbr title="'+log.description+'">'+log.test+'</span>'
         return log.description;
       }
       function hier(json, flat) {
@@ -704,8 +704,8 @@ $report = function(){
         onActivate: function(node) {
           var create = node.data.children.length?$report.openRegr:$report.openLog;
           // this will be a tab-within-tab
-          var json = self.find(node.data.key); console.log(json);
-          (new create({log_id : node.data.key, name : json.log.test || json.log.descripion, hier : [json,], anchor : anchor})).add(anchor);
+          var json = self.find(node.data.key);
+          (new create({log_id : node.data.key, name : json.log.test || json.log.description || 'none given', hier : [json,], anchor : anchor})).add(anchor);
         },
       });
       this.explorer.append(tree);
