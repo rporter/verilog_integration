@@ -311,7 +311,6 @@ $coverage = function(){};
         hideSelected();
       })
       $('#unhide-all', cvg_point_menu).mouseup(function() {
-
         allVisible();
         resetBuckets();
         self.build();

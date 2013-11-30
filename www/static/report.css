@@ -44,7 +44,8 @@
 
    a.popup {position:relative;
 	z-index:24;
-	text-decoration:none}
+	text-decoration:none;
+        font-size : 10pt }
    a.popup:hover {z-index:25; background-color : #ddd}
    a.popup span  {display: none}
    a.popup:hover span { /*DISPLAYS ONLY ON HOVER*/
@@ -65,7 +66,7 @@
      text-align : center;
    }
    a.popup span p.file {
-     font-weight : italic;
+     font-style : italic;
    }
 
    p.show {
