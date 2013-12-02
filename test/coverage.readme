@@ -1,14 +1,14 @@
 // Copyright (c) 2013 Rich Porter - see LICENSE for further details
 
 # execute base line regression
-PYTHONPATH=../python python test_coverage_multiple.py +cvr_seed+0xdead +tst_seed+1 +master=1 +instances=20 +children=12
+./coverage test_coverage_multiple.py +cvr_seed+0xdead +tst_seed+1 +master=1 +instances=20 +children=12
 # add some more tests with different seed
-PYTHONPATH=../python python test_coverage_multiple.py +cvr_seed+0xdead +tst_seed+2 +master=1 +instances=20 +children=14
+./coverage test_coverage_multiple.py +cvr_seed+0xdead +tst_seed+2 +master=1 +instances=20 +children=14
 # see where that got us
 ./profile -r 1484 -r 1497
 # and a few more to hopefully close coverage
-PYTHONPATH=../python python test_coverage_multiple.py +cvr_seed+0xdead +tst_seed+3 +master=1 +instances=20 +children=18
+./coverage test_coverage_multiple.py +cvr_seed+0xdead +tst_seed+3 +master=1 +instances=20 +children=18
 # cherry pick 'best' runs
 ./profile -r 1484 -r 1497 -r 1515
 # replay the selected seeds to check we're still at 100%
-PYTHONPATH=../python python test_coverage_multiple.py +cvr_seed+0xdead +master=1 +instances=20 +test_xml=profile_1484.xml
+./coverage test_coverage_multiple.py +cvr_seed+0xdead +master=1 +instances=20 +test_xml=profile_1484.xml
