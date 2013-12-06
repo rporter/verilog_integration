@@ -12,3 +12,5 @@
 ./profile -r 1484 -r 1497 -r 1515
 # replay the selected seeds to check we're still at 100%
 ./coverage test_coverage_multiple.py +cvr_seed+0xdead +master=1 +instances=20 +test_xml=profile_1484.xml
+# rerun using multiple iterations
+./profile -r 1484 -r 1497 -r 1515 --order cvg --order rand --order pos --order rand --order cvg

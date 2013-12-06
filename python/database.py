@@ -3,6 +3,7 @@
 import collections
 from lxml import etree
 import pwd
+import random
 import time
 
 import coverage
@@ -403,28 +404,34 @@ class insert(upload) :
 
 class profile :
   INVS='invs'
-  STATUS='status'
-  def __init__(self, log_ids=[], test_ids=[]) :
+  COVG='covg'
+  SEQ=0
+  def __init__(self, log_ids=[], test_ids=[], xml=None) :
     'log_ids is a list of regression roots'
     self.log_ids = log_ids
     s_log_ids = ','.join(map(str, log_ids))
     self.tests = mdb.db.connection().row_cursor()
     # create table of individual runs, but not root node as this may have already summarised coverage
-    self.tests.execute('CREATE TEMPORARY TABLE '+self.INVS+' AS SELECT l1.*, goal_id AS master FROM log AS l0 JOIN log AS l1 ON (l0.log_id = l1.root) LEFT OUTER JOIN master ON (l1.log_id = master.log_id) WHERE l1.root IN ('+s_log_ids+');')
-    self.tests.execute('SELECT count(*) AS children FROM '+self.INVS)
+    self.tests.execute('CREATE TEMPORARY TABLE '+self.invs+' AS SELECT l1.*, goal_id AS master FROM log AS l0 JOIN log AS l1 ON (l0.log_id = l1.root) LEFT OUTER JOIN master ON (l1.log_id = master.log_id) WHERE l1.root IN ('+s_log_ids+');')
+    self.tests.execute('SELECT count(*) AS children FROM '+self.invs)
     children = self.tests.fetchone().children
     if children :
       message.information('%(log_ids)s %(has)s %(children)d children', log_ids=s_log_ids, children=children, has='have' if len(log_ids) > 1 else 'has')
     # append individual runs as given by test_ids
-    s_test_ids = ','.join(map(str, test_ids))
-    self.tests.execute('INSERT INTO '+self.INVS+' SELECT log.*, goal_id AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) WHERE log.log_id IN ('+s_test_ids+');')
-    self.tests.execute('SELECT count(*) AS tests FROM '+self.INVS)
+    if xml :
+      xml_ids = xml.xml.xpath('/profile/test/log_id/text()')
+    else :
+      xml_ids=[]
+    s_test_ids = ','.join(map(str, test_ids+xml_ids))
+    self.tests.execute('INSERT INTO '+self.invs+' SELECT log.*, goal_id AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) WHERE log.log_id IN ('+s_test_ids+');')
+    self.tests.execute('SELECT count(*) AS tests FROM '+self.invs)
     tests = self.tests.fetchone().tests
     if tests < 1 :
       message.fatal('no tests')
+    message.information('starting with %(count)d tests in table %(table)s', count=tests, table=self.invs)
     # check congruency
     self.cvg = mdb.db.connection().row_cursor()
-    self.cvg.execute("SELECT md5_self AS md5, 'md5_self' AS type, invs.master, invs.root FROM point JOIN "+self.INVS+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
+    self.cvg.execute("SELECT md5_self AS md5, 'md5_self' AS type, invs.master, invs.root FROM point JOIN "+self.invs+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
     md5 = self.cvg.fetchall()
     if not md5 :
       message.fatal('no master')
@@ -433,18 +440,18 @@ class profile :
     else :
       message.debug('md5 query returns %(rows)d', rows=self.cvg.rowcount)
     self.master = mdb.accessor(md5=md5[0])
-    self.cvg.execute("SELECT DISTINCT(md5_axes) AS md5, 'md5_axes' AS type, invs.master, invs.root FROM point JOIN "+self.INVS+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
+    self.cvg.execute("SELECT DISTINCT(md5_axes) AS md5, 'md5_axes' AS type, invs.master, invs.root FROM point JOIN "+self.invs+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
     md5 = self.cvg.fetchall()
     if len(md5) > 1 :
       message.fatal('md5 of multiple axis masters do not match')
     self.master.axes = md5[0]
     # create status table, collating goal & hits
-    self.cvg.execute('CREATE TEMPORARY TABLE '+self.STATUS+' (bucket_id INTEGER NOT NULL PRIMARY KEY, goal INTEGER, hits INTEGER, total_hits INTEGER, tests INTEGER);')
+    self.cvg.execute('CREATE TEMPORARY TABLE '+self.covg+' (bucket_id INTEGER NOT NULL PRIMARY KEY, goal INTEGER, hits INTEGER, total_hits INTEGER, tests INTEGER);')
 
   def __del__(self) :
-    self.tests.execute('DROP TABLE IF EXISTS '+self.INVS)
+    self.tests.execute('DROP TABLE IF EXISTS '+self.invs)
     self.tests.close()
-    self.cvg.execute('DROP TABLE IF EXISTS '+self.STATUS)
+    self.cvg.execute('DROP TABLE IF EXISTS '+self.covg)
     self.cvg.close()
 
   def __iter__(self) :
@@ -456,21 +463,32 @@ class profile :
       yield mdb.accessor(log=log, last=current, updates=updates, status=status, hits=status.hits-current.hits)
       current = status
 
+  @utils.lazyProperty
+  def seq(self) :
+    profile.SEQ += 1
+    return str(profile.SEQ)
+  @utils.lazyProperty
+  def invs(self) :
+    return self.INVS + self.seq
+  @utils.lazyProperty
+  def covg(self) :
+    return self.COVG + self.seq
+
   def increment(self, log_id) :
     # in e.g. mysql we can use a join in an update
-    # self.cvg.execute('update '+self.STATUS+' as status set hits = min(status.goal, status.hits + goal.hits), total_hits = status.total_hits + goal.total_hits join hits using (bucket_id) where hits.log_id = ?;', log_id)
+    # self.cvg.execute('update '+self.covg+' as status set hits = min(status.goal, status.hits + goal.hits), total_hits = status.total_hits + goal.total_hits join hits using (bucket_id) where hits.log_id = ?;', log_id)
     # but we need to resort to this for sqlite
-    self.cvg.execute('REPLACE INTO '+self.STATUS+' SELECT status.bucket_id, status.goal, CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE min(status.goal, status.hits + hits.hits) END AS hits, status.total_hits + hits.hits as total_hits, status.tests + 1 FROM '+self.STATUS+' AS status JOIN hits USING (bucket_id) WHERE hits.log_id = ?;', (log_id,))
+    self.cvg.execute('REPLACE INTO '+self.covg+' SELECT status.bucket_id, status.goal, CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE min(status.goal, status.hits + hits.hits) END AS hits, status.total_hits + hits.hits as total_hits, status.tests + 1 FROM '+self.covg+' AS status JOIN hits USING (bucket_id) WHERE hits.log_id = ?;', (log_id,))
     message.debug('update %(cnt)d rows', cnt=self.cvg.rowcount)
     return self.cvg.rowcount
 
   def reset(self) :
-    self.cvg.execute('REPLACE INTO '+self.STATUS+' SELECT bucket_id, goal, 0 AS hits, 0 AS total_hits, 0 AS tests FROM goal WHERE log_id=?;', (self.get_master(), ))
+    self.cvg.execute('REPLACE INTO '+self.covg+' SELECT bucket_id, goal, 0 AS hits, 0 AS total_hits, 0 AS tests FROM goal WHERE log_id=?;', (self.get_master(), ))
 
   def status(self) :
     'calculate & return current coverage'
     with mdb.db.connection().row_cursor() as db :
-      db.execute('SELECT SUM(MIN(goal, hits)) AS hits, SUM(goal) AS goal FROM '+self.STATUS+' WHERE goal > 0;')
+      db.execute('SELECT SUM(MIN(goal, hits)) AS hits, SUM(goal) AS goal FROM '+self.covg+' WHERE goal > 0;')
       return coverage.coverage(db.fetchone())
 
   def get_master(self) :
@@ -482,7 +500,7 @@ class profile :
 
   def dump(self) :
     with mdb.db.connection().row_cursor() as db :
-      db.execute('SELECT * FROM ' + self.STATUS)
+      db.execute('SELECT * FROM ' + self.covg)
       buckets = db.fetchall()
     def values() :
       for bucket in buckets : yield bucket
@@ -491,7 +509,7 @@ class profile :
   def insert(self, log_id) :
     insert.set_master(log_id, self.get_master())
     coverage.messages.CVG_120()
-    self.cvg.execute('REPLACE INTO hits SELECT %(log_id)s AS log_id, bucket_id, hits FROM %(status)s AS status;' % {'log_id' : log_id, 'status' : self.STATUS})
+    self.cvg.execute('REPLACE INTO hits SELECT %(log_id)s AS log_id, bucket_id, hits FROM %(status)s AS status;' % {'log_id' : log_id, 'status' : self.covg})
     self.cvg.commit()
 
   class xmlDump :
@@ -519,10 +537,10 @@ class profile :
         message.note('all coverage hit')
         break
     message.information('coverage : ' + self.status().description())
-    
+    message.information('tests : %(count)d', count=int(xml.xml.xpath('count(/profile/test/log_id)')))
+
     # now regenerate hierarchy and report coverage on point basis
     xml.append(self.hierarchy().xml())
-    #self.hierarchy().dump()
 
     return xml
 
@@ -531,7 +549,7 @@ class profile :
 class cvgOrderedProfile(profile) :
   'order tests in coverage order'
   def testlist(self) :
-    self.tests.execute('SELECT invs.*, IFNULL(sum(min(status.goal, hits.hits)), 0) AS hits FROM '+self.INVS+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.STATUS+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0) GROUP BY log_id ORDER BY hits DESC;')
+    self.tests.execute('SELECT invs.*, IFNULL(sum(min(status.goal, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0) GROUP BY log_id ORDER BY hits DESC;')
     return self.tests.fetchall()
 
 ################################################################################
@@ -539,7 +557,25 @@ class cvgOrderedProfile(profile) :
 class posOrderedProfile(profile) :
   'order tests in log order'
   def testlist(self) :
-    self.tests.execute('SELECT * FROM '+self.INVS+' ORDER BY log_id ASC;')
+    self.tests.execute('SELECT * FROM '+self.invs+' ORDER BY log_id ASC;')
     return self.tests.fetchall()
+
+################################################################################
+
+class randOrderedProfile(profile) :
+  'order tests in random order'
+  def testlist(self) :
+    self.tests.execute('SELECT * FROM '+self.invs+';')
+    result = self.tests.fetchall()
+    random.shuffle(result)
+    return result
+
+################################################################################
+
+profile.options = {
+  'cvg'  : cvgOrderedProfile,
+  'pos'  : posOrderedProfile,
+  'rand' : randOrderedProfile
+}
 
 ################################################################################

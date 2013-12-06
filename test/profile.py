@@ -13,6 +13,7 @@ import message
 # where range-or-id is [0-9]+(..[0-9]+)
 
 parser = message.reportOptionParser()
+parser.add_option('',   '--order', help='order sequence', default=[], action='append', choices=database.profile.options.keys())
 parser.add_option('-r', '--regression', default=[], help='Regression root id', action='append')
 parser.add_option('-t', '--test', default=[], help='Test id', action='append')
 parser.add_option('-x', '--xml', help='xml out', default='profile_%d.xml')
@@ -54,6 +55,9 @@ def to_list(args, values=[]) :
 
 ################################################################################
 
+if not options.order :
+  options.order = ['cvg', ]
+
 if options.regression is None :
   # presume leftover args are ids
   options.regression = values
@@ -69,10 +73,22 @@ message.information('profiling begins')
 ################################################################################
 
 coverage.messages.hush_creation()
-# profile by run coverage
-profile = database.cvgOrderedProfile(regressions, tests)
-# do profile run
-xml = profile.run()
+
+def iteration(ordering, iter_cnt=1, xml=None) :
+  # use current optimization group if this is not first iteration
+  order = ordering[0]
+  message.note('Iteration %(iter_cnt)d uses "%(order)s"', **locals())
+  if xml :
+    profile = database.profile.options[order](xml=xml)
+  else :
+    profile = database.profile.options[order](regressions, tests)
+  run = profile.run()
+  if len(ordering) > 1 :
+    return iteration(ordering[1:], iter_cnt+1, run)
+  # always return last optimization run
+  return profile, xml
+
+profile, xml = iteration(options.order)
 # annotate optimized coverage result to this invocation
 profile.insert(mdb_conn.log_id)
 
