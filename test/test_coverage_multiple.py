@@ -99,13 +99,18 @@ class thistest(test.test) :
     else :
       # set per run seed
       random.seed(self.tst_seed)
+      # pick axis values to not hit
+      misses = dict([(id(cursor), dict([(name, random.choice(axis.get_values())) for name, axis in cursor.point.axes()])) for cursor in self.cpts])
       # ignore illegal bucket hits
       coverage.messages.CVG_200.level = message.IGNORE
       # make some coverage
       for i in range(0, 9999) :
         with random.choice(self.cpts) as cursor :
           for name, axis in cursor.point.axes() :
-            cursor(**{name : random.choice(axis.get_values())})
+            while (1) :
+              value = random.choice(axis.get_values())
+              if value != misses[id(cursor)][name] : break
+            cursor(**{name : value})
           cursor.incr(random.randrange(10))
     # if everything else ok
     self.success()
