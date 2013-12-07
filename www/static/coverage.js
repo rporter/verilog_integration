@@ -23,13 +23,14 @@ $coverage = function(){};
 
 (function($coverage) {
 
-  $coverage.coverageTable = function coverageTable(log_id, where, name, coverpoint, options) {
+  $coverage.coverageTable = function coverageTable(log_id, where, title, coverpoint, options) {
     var self    = this;
     var buckets = coverpoint.buckets;
     var axes    = $.extend(true, [], coverpoint.axes);
     var offset  = coverpoint.offset;
     var table;
-    options = options || {hide_hits : false, hide_illegal : false, hide_dont_care : false, matrix : false};
+    options = options || {};
+    options = $.extend(options, {hide_hits : false, hide_illegal : false, hide_dont_care : false, matrix : false});
 
     function visible_axes() {
       return axes.reduce(function(sum, it, idx){
@@ -71,7 +72,7 @@ $coverage = function(){};
 
     function showDialog(event) {
       // create table of all hits in a dialog popup
-      var container = $('<div><div><table/></div></div>').attr('title', name+'['+event.data.bucket_id+']').css("white-space", "nowrap");
+      var container = $('<div><div><table/></div></div>').attr('title', title+'['+event.data.bucket_id+']').css("white-space", "nowrap");
       var table = $('table', container).dataTable({
         "bJQueryUI": true,
         "bFilter": false,
@@ -428,19 +429,48 @@ $coverage = function(){};
       }
     }
 
-    this.build = function() {
-      where.html($('<h3/>', {html: name}));
-      if (options.matrix) {
-        build_matrix(where);
+    this.coverage = function() {
+      var coverage = buckets.reduce(function(sum, it){if (it[0] > 0) {sum.goal += it[0]; sum.hits += Array.min(it.slice(0,2))}; return sum;}, {goal : 0, hits : 0});
+      if (coverage.goal < 0) {
+        coverage.status = 'error';
+        coverage.coverage = -1;
       } else {
-        build_table(where);
+        coverage.coverage = (100.0 * coverage.hits)/coverage.goal;
+        if (coverage.goal == coverage.hits) {
+          coverage.status = 'hit';
+        } else if (coverage.hits > 0) {
+          coverage.status = 'some';
+        } else {
+          coverage.status = 'unhit';
+        }
       }
-      $report.fit($('div.table', where));
+      coverage.description = coverage.hits + ' of ' + coverage.goal + ' is ' + coverage.coverage.toFixed(2);
+      return coverage;
+    }
+
+    this.build = function() {
+      where.html($('<h3/>', {html: title}));
+      setTimeout(function() {
+        if (options.matrix) {
+          build_matrix(where);
+        } else {
+          build_table(where);
+        }
+        $report.fit($('div.table', where));
+      }, 0);
     }
 
     // on construction
-    this.build();
+    if (options.hasOwnProperty('axis')) {
+      axes.map(function(it){it.visible = it.name == options.axis});
+      updateBuckets();
+    }
 
+    // on construction
+    if (options.build !== false) {
+      this.build();
+    }
+    options.build = true;
   };
 
   $coverage.coverageTable.classFromBucket = function classFromBucket(bucket) {
@@ -462,6 +492,10 @@ $coverage = function(){};
     var cvg_point_pane = $('<div class="cvg-point-pane"></div>').appendTo(pane);
     var cvg_tree_pane  = $('<div class="cvg-tree-pane"></div>' ).appendTo(pane);
 
+    function formatCoverage(coverage) {
+      return '<i class="' + coverage.status + '">' + coverage.description + '</i>';
+    }
+
     function generateCoverpointHierarchy(coverpoint) {
       coverpoint = coverpoint || data;
       var node = {key : coverpoint.id, expand : false, unselectable: true};
@@ -475,22 +509,24 @@ $coverage = function(){};
       	  node.children = coverpoint.children.map(function(child){return generateCoverpointHierarchy(child);});
         }
       } else {
-          title = coverpoint.coverpoint;
+        title = coverpoint.coverpoint;
+        node.isFolder = true;
+        node.children = coverpoint.axes.map(function(axis){return {title:'<b>' + axis.name + '</b>', key : axis.name, expand : false, unselectable: true}});
       }
       node.title = '<b>' + title + '</b> ' + coverpoint.description + ' '
       if (coverpoint.coverage) {
-        node.title += '<i class="' + coverpoint.coverage.status + '">' + coverpoint.coverage.description + '</i>'
+        node.title += formatCoverage(coverpoint.coverage);
       }
       return node;
     }
 
-    function findCoverpointJSON(id, coverpoint) {
+    function findCoverpointData(id, coverpoint) {
       coverpoint = coverpoint || data;
       if (coverpoint.id == id) {
         return coverpoint;
       }
       for (child in coverpoint.children) {
-        var found = findCoverpointJSON(id, coverpoint.children[child]);
+        var found = findCoverpointData(id, coverpoint.children[child]);
         if (found) {
           return found;
         }
@@ -515,9 +551,24 @@ $coverage = function(){};
     this.tree = cvg_tree_pane.dynatree({
       children : [generateCoverpointHierarchy(),],
       onClick: function(node, event) {
-        var json = findCoverpointJSON(node.data.key);
-        if (json !== false && json.hasOwnProperty('coverpoint')) {
-          this.coverageTable = new $coverage.coverageTable(log_id, cvg_point_pane, getCoverpointName(node.data.key), json);
+        function expand() {
+          node.parent.childList.forEach(function(sibling) {sibling.expand(node == sibling)});
+        }
+        if (node.hasOwnProperty('coverageTable')) {
+          node.coverageTable.build();
+          expand();
+          return false;
+        }
+        var cData = findCoverpointData(node.data.key);
+        if (cData !== false && cData.hasOwnProperty('coverpoint')) {
+          var title = getCoverpointName(node.data.key);
+          node.coverageTable = new $coverage.coverageTable(log_id, cvg_point_pane, title, cData);
+          expand();
+          node.childList.forEach(function(axis){
+            axis.coverageTable = new $coverage.coverageTable(log_id, cvg_point_pane, title + ' / ' + axis.data.key, cData, {build : false, axis : axis.data.key, lock : true});
+            axis.data.title += ' ' + formatCoverage(axis.coverageTable.coverage());
+            axis.render();
+          });
         } else {
           node.expand(!node.bExpanded);
         }
