@@ -565,7 +565,7 @@ $coverage = function(){};
           node.coverageTable = new $coverage.coverageTable(log_id, cvg_point_pane, title, cData);
           expand();
           node.childList.forEach(function(axis){
-            axis.coverageTable = new $coverage.coverageTable(log_id, cvg_point_pane, title + ' / ' + axis.data.key, cData, {build : false, axis : axis.data.key, lock : true});
+            axis.coverageTable = new $coverage.coverageTable(log_id, cvg_point_pane, title + ' : ' + axis.data.key, cData, {build : false, axis : axis.data.key, lock : true});
             axis.data.title += ' ' + formatCoverage(axis.coverageTable.coverage());
             axis.render();
           });
