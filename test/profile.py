@@ -86,7 +86,7 @@ def iteration(ordering, iter_cnt=1, xml=None) :
   if len(ordering) > 1 :
     return iteration(ordering[1:], iter_cnt+1, run)
   # always return last optimization run
-  return profile, xml
+  return profile, run
 
 profile, xml = iteration(options.order)
 # annotate optimized coverage result to this invocation
