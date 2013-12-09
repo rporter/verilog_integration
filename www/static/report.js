@@ -746,7 +746,8 @@ $report = function(){
       tabs.tabs('add', href, data.log_id+' regr').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name)
     };
     this.close = function() {
-      var index = $('li a[href="#'+self.id+'"]', self.parent).parent().index(); // broken?
+      var tab = $('li a[href="#'+self.id+'"]', self.parent).parent().parent();
+      var index = tab.prevAll('li').length;
       self.parent.tabs("remove", index);
     };
 
