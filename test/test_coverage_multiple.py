@@ -88,14 +88,14 @@ class thistest(test.test) :
       for test in self.tests() :
         enqueue(str(test))
       database.rgr().result(self.mdb.log_id, self.mdb.is_root()).summary().summary()
-      # profile ...
-      profile = database.cvgOrderedProfile(log_ids=[self.mdb.log_id,])
+      # optimize ...
+      optimize = database.cvgOrderedOptimize(log_ids=[self.mdb.log_id,])
       coverage.messages.hush_creation()
-      # do profile run
-      xml = profile.run()
+      # do optimize run
+      xml = optimize.run()
       # ... and annotate coverage summary
       if self.coverage :
-        self.coverage.load(profile.dump())
+        self.coverage.load(optimize.dump())
     else :
       # set per run seed
       random.seed(self.tst_seed)

@@ -13,16 +13,16 @@ import message
 # where range-or-id is [0-9]+(..[0-9]+)
 
 parser = message.reportOptionParser()
-parser.add_option('',   '--order', help='order sequence', default=[], action='append', choices=database.profile.options.keys())
+parser.add_option('',   '--order', help='order sequence', default=[], action='append', choices=database.optimize.options.keys())
 parser.add_option('-r', '--regression', default=[], help='Regression root id', action='append')
 parser.add_option('-t', '--test', default=[], help='Test id', action='append')
-parser.add_option('-x', '--xml', help='xml out', default='profile_%d.xml')
+parser.add_option('-x', '--xml', help='xml out', default='optimize_%d.xml')
 options, values = parser.parse_args()
 
 ################################################################################
 
 mdb.db.connection.set_default_db(db='../db/mdb.db')
-mdb_conn=mdb.mdb('profile', activity='profiling')
+mdb_conn=mdb.mdb('optimize', activity='optimizing')
 
 ################################################################################
 
@@ -68,7 +68,7 @@ tests       = to_list(options.test)
 if not regressions and not tests :
   message.fatal('No invocations provided')
 
-message.information('profiling begins')
+message.information('optimizing begins')
 
 ################################################################################
 
@@ -79,26 +79,26 @@ def iteration(ordering, iter_cnt=1, xml=None) :
   order = ordering[0]
   message.note('Iteration %(iter_cnt)d uses "%(order)s"', **locals())
   if xml :
-    profile = database.profile.options[order](xml=xml)
+    opt = database.optimize.options[order](xml=xml)
   else :
-    profile = database.profile.options[order](regressions, tests)
-  run = profile.run()
+    opt = database.optimize.options[order](regressions, tests)
+  run = opt.run()
   if len(ordering) > 1 :
     return iteration(ordering[1:], iter_cnt+1, run)
   # always return last optimization run
-  return profile, run
+  return opt, run
 
-profile, xml = iteration(options.order)
+opt, xml = iteration(options.order)
 # annotate optimized coverage result to this invocation
-profile.insert(mdb_conn.log_id)
+opt.insert(mdb_conn.log_id)
 
 ################################################################################
 
 if options.xml :
   outfile = options.xml % (regressions[0] if regressions else tests[0])
-  message.information('dumping profiling to ' + outfile)
+  message.information('dumping optimize to ' + outfile)
   with open(outfile, 'w') as desc :
     xml.write(desc)
 
-message.success('profiling ends')
+message.success('optimizing ends')
 mdb.finalize_all()

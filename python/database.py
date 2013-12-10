@@ -402,7 +402,7 @@ class insert(upload) :
 
 ################################################################################
 
-class profile :
+class optimize :
   INVS='invs'
   COVG='covg'
   SEQ=0
@@ -419,7 +419,7 @@ class profile :
       message.information('%(log_ids)s %(has)s %(children)d children', log_ids=s_log_ids, children=children, has='have' if len(log_ids) > 1 else 'has')
     # append individual runs as given by test_ids
     if xml :
-      xml_ids = xml.xml.xpath('/profile/test/log_id/text()')
+      xml_ids = xml.xml.xpath('/optimize/test/log_id/text()')
     else :
       xml_ids=[]
     s_test_ids = ','.join(map(str, test_ids+xml_ids))
@@ -465,8 +465,8 @@ class profile :
 
   @utils.lazyProperty
   def seq(self) :
-    profile.SEQ += 1
-    return str(profile.SEQ)
+    optimize.SEQ += 1
+    return str(optimize.SEQ)
   @utils.lazyProperty
   def invs(self) :
     return self.INVS + self.seq
@@ -514,7 +514,7 @@ class profile :
 
   class xmlDump :
     def __init__(self) :
-      self.root = etree.Element('profile')
+      self.root = etree.Element('optimize')
       self.xml  = etree.ElementTree(self.root)
     def add(self, test) :
       node = etree.SubElement(self.root, 'test')
@@ -537,7 +537,7 @@ class profile :
         message.note('all coverage hit')
         break
     message.information('coverage : ' + self.status().description())
-    message.information('tests : %(count)d', count=int(xml.xml.xpath('count(/profile/test/log_id)')))
+    message.information('tests : %(count)d', count=int(xml.xml.xpath('count(/optimize/test/log_id)')))
 
     # now regenerate hierarchy and report coverage on point basis
     xml.append(self.hierarchy().xml())
@@ -546,7 +546,7 @@ class profile :
 
 ################################################################################
 
-class cvgOrderedProfile(profile) :
+class cvgOrderedOptimize(optimize) :
   'order tests in coverage order'
   def testlist(self) :
     self.tests.execute('SELECT invs.*, IFNULL(sum(min(status.goal, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0) GROUP BY log_id ORDER BY hits DESC;')
@@ -554,7 +554,7 @@ class cvgOrderedProfile(profile) :
 
 ################################################################################
 
-class posOrderedProfile(profile) :
+class posOrderedOptimize(optimize) :
   'order tests in log order'
   def testlist(self) :
     self.tests.execute('SELECT * FROM '+self.invs+' ORDER BY log_id ASC;')
@@ -562,7 +562,7 @@ class posOrderedProfile(profile) :
 
 ################################################################################
 
-class randOrderedProfile(profile) :
+class randOrderedOptimize(optimize) :
   'order tests in random order'
   def testlist(self) :
     self.tests.execute('SELECT * FROM '+self.invs+';')
@@ -572,10 +572,10 @@ class randOrderedProfile(profile) :
 
 ################################################################################
 
-profile.options = {
-  'cvg'  : cvgOrderedProfile,
-  'pos'  : posOrderedProfile,
-  'rand' : randOrderedProfile
+optimize.options = {
+  'cvg'  : cvgOrderedOptimize,
+  'pos'  : posOrderedOptimize,
+  'rand' : randOrderedOptimize
 }
 
 ################################################################################
