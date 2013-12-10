@@ -533,11 +533,77 @@ $report = function(){
           return levels;
         }, {}));
       }
-  
+
+      function getByIdent() {
+        function label(it) {
+          var node;
+          if (it instanceof Array) {
+            node = $($(it[0]));
+          } else {
+            node = $($(it));
+          }
+          // http://viralpatel.net/blogs/jquery-get-text-element-without-child-element/
+          return node.clone().children().remove().end().text();
+        }
+        function groupBy(nodes, attr) {
+          return nodes.reduce (
+            function(list, node) {
+              var idx = $(node).attr(attr);
+              if (idx !== "null") {
+                if (!list.hasOwnProperty(idx)) {
+                  list[idx]=[];
+                }
+                list[idx].push(node);
+              }
+              return list;
+            }, {});
+        }
+        function sorted(nodes) {
+          function grandchildren(nodes) {
+            return nodes.map(
+              function(it){
+                return {
+                  "title"    : $(it).attr('subident'),
+                  "tooltip"  : label(it),
+                  "key"      : it.idx,
+                  "messages" : it
+                };
+              }
+            );
+          }
+          function children(nodes) {
+            return Object.keys(nodes).sort(function(x,y){return parseInt(x) > parseInt(y)}).map( 
+              function(it){
+                return {
+                  "title"    : '<b>' + it + '</b> <i>' + nodes[it].length + '</i>',
+                  "tooltip"  : label(nodes[it]),
+                  "key"      : nodes[it][0].idx,
+                  "messages" : nodes[it],
+                  "children" : grandchildren(nodes[it])
+                };
+              }
+            );
+          }
+          return Object.keys(nodes).sort().map(
+            function(it) {
+              return {
+                "title"    : it + ' <i>' + nodes[it].length + '</i>',
+                "tooltip"  : label(nodes[it]),
+                "key"      : nodes[it][0].idx,
+                "messages" : nodes[it],
+                "children" : children(groupBy(nodes[it], 'subident'))
+              }
+            }
+          );
+        };
+        return sorted(groupBy(nodes.toArray().map(function(node, idx){node.idx=idx; return node}), 'ident'));
+      }
+
       var msgIndex = $('<div/>').appendTo(widget);
       msgIndex.dynatree({
         children : [
-            {title : "Messages", isFolder : true, children : getBySeverity(nodes)},
+            {title : "Messages", isFolder : true, children : getBySeverity()},
+            {title : "Idents",   isFolder : true, children : getByIdent()},
         ],
         onActivate: function(node) {
             self.log.animate({scrollTop : $(nodes[node.data.key]).offset().top - self.log.offset().top + self.log.scrollTop() - self.log.height()/2});
