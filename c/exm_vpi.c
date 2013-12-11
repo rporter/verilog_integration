@@ -161,6 +161,7 @@ int exm_message(char* level, ...) {
 }
 
 static PLI_BYTE8 levels[] = {
+  example::IGNORE,
   example::INT_DEBUG,
   example::DEBUG,
   example::INFORMATION,
