@@ -236,6 +236,7 @@ class cvg :
         
   class single :
     cumulative=False
+    query='SELECT goal.bucket_id, goal.goal, IFNULL(hits.hits, 0) AS hits, goal < 0 as illegal, goal = 0 as dont_care FROM goal LEFT OUTER JOIN hits ON (goal.bucket_id = hits.bucket_id AND hits.log_id=%(log_id)s) WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;'
     def __init__(self, log_id, goal_id=None) :
       self.log_id = log_id
       self.goal_id = goal_id or log_id
@@ -244,7 +245,7 @@ class cvg :
       return coverage.hierarchy.get_root()
     def coverage(self) :
       with mdb.db.connection().row_cursor() as db :
-        db.execute('SELECT goal.bucket_id, goal.goal, IFNULL(hits.hits, 0) AS hits, goal < 0 as illegal, goal = 0 as dont_care FROM goal LEFT OUTER JOIN hits ON (goal.bucket_id = hits.bucket_id AND hits.log_id=%(log_id)s) WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;' % self.__dict__)
+        db.execute(self.query % self.__dict__)
         for result in db.fetchall() :
           yield result
         while (1) : 
@@ -253,14 +254,7 @@ class cvg :
 
   class cumulative(single) :
     cumulative=True
-    def coverage(self) :
-      with mdb.db.connection().row_cursor() as db :
-        db.execute('SELECT goal.goal, IFNULL(cumulative.hits, 0) AS hits FROM goal LEFT OUTER NATURAL JOIN (SELECT bucket_id, SUM(hits.hits) AS hits, COUNT(hits.hits) as tests FROM hits JOIN (SELECT log_id FROM log WHERE root=%(log_id)s AND parent is not NULL) AS runs USING (log_id) GROUP BY bucket_id) AS cumulative WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;' % self.__dict__)
-        for result in db.fetchall() :
-          yield result
-        while (1) : 
-          message.warning('missing bucket')
-          yield {}
+    query='SELECT goal.goal, IFNULL(cumulative.hits, 0) AS hits FROM goal LEFT OUTER NATURAL JOIN (SELECT bucket_id, SUM(hits.hits) AS hits, COUNT(hits.hits) as tests FROM hits JOIN (SELECT log_id FROM log WHERE root=%(log_id)s AND parent is not NULL) AS runs USING (log_id) GROUP BY bucket_id) AS cumulative WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;'
 
   def result(self, log_id, goal_id=None, cumulative=False) :
     return (self.cumulative if cumulative else self.single)(log_id, goal_id)
