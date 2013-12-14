@@ -555,8 +555,12 @@ $coverage = function(){};
           node.parent.childList.forEach(function(sibling) {sibling.expand(node == sibling)});
         }
         if (node.hasOwnProperty('coverageTable')) {
-          node.coverageTable.build();
-          expand();
+          if (node.bExpanded) {
+            node.expand(false);
+          } else {
+            node.coverageTable.build();
+            expand();
+          }
           return false;
         }
         var cData = findCoverpointData(node.data.key);
