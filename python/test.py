@@ -138,15 +138,19 @@ class test :
     message.warning('no epilogue defined')
 
   @classmethod
-  def pdb(self) :
+  def pdb(self, traceback=None) :
     message.note('entering pdb command line')
     try :
       import pdb
-      pdb.set_trace()
+      if traceback :
+        pdb.post_mortem(traceback)
+      else :
+        pdb.set_trace()
       pass
     except :
       pass
     message.note('leaving pdb command line')
+  debug = pdb # alias
 
   def fatal(self) :
     'Default fatal epilogue'

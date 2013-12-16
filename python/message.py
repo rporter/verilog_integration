@@ -224,7 +224,13 @@ def excepthook(type, value, traceback) :
   warning(' %(value)s', value=str(value))
   for detail in _traceback.extract_tb(traceback) :
     warning(detail[-1], file=detail[0], line=detail[1], formatted=True)
+  import test
+  if test.plusargs().debug :
+    warning('Exception encountered, entering pdb as requested')
+    test.test.pdb(traceback)
+    warning('Exception encountered, test will now exit')
   internal('Exception encountered')
+  # redundant exit
   sys.exit(1)
 
 sys.excepthook = excepthook
