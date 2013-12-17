@@ -64,6 +64,7 @@ class test :
     self.name = name or self.name
     self.test = test or self.test
     self.is_success = None
+    self.coverage = None
     activity = activity or self.activity
     block = block or self.block
     message.terminate_cbs.add(self.name, 10, self.terminate, self.check_success)
@@ -82,9 +83,11 @@ class test :
       message.error('prologue failed because ' + str(exc[0]))
       self.traceback(exc[2])
 
-    self.coverage = coverage.hierarchy.populated()
+    # self.coverage *may* be assigned to root node in prologue,
+    # if not check for one and use last one created if exists
+    if self.coverage is None and coverage.hierarchy.populated() :
+      self.coverage = coverage.hierarchy.last_root
     if self.coverage :
-      self.coverage = coverage.hierarchy.get_root()
       if getattr(self, 'master_id', False) :
         database.insert.set_master(self.mdb.log_id, self.master_id)
         if getattr(self, 'master_chk', False) :

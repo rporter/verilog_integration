@@ -221,19 +221,21 @@ class rgr(index) :
 class cvg : 
   class hierarchy :
     def __init__(self, goal_id, defaults, cumulative) :
-      coverage.hierarchy.reset()
+      self.all_nodes = dict()
       with mdb.db.connection().row_cursor() as db :
         db.execute('SELECT * FROM point LEFT OUTER JOIN axis USING (point_id) LEFT OUTER JOIN enum USING (axis_id) WHERE log_id=%(goal_id)s ORDER BY point_id ASC, axis_id ASC, enum_id ASC;' % locals())
         points = db.fetchall()
       for parent, children in index.groupby(points, lambda row : row.point_id) :
+        _parent = self.all_nodes.get(parent.parent, None)
         if parent.axis_id :
-          coverage.coverpoint(name=parent.point_name, description=parent.desc, id=parent.point_id, parent=parent.parent, axes=self.get_axes(children), defaults=defaults, cumulative=cumulative)
+          self.all_nodes[parent.point_id] = coverage.coverpoint(name=parent.point_name, description=parent.desc, id=parent.point_id, parent=_parent, axes=self.get_axes(children), defaults=defaults, cumulative=cumulative)
         else :
-          coverage.hierarchy(parent.point_name, parent.desc, id=parent.point_id, root=parent.root == None, parent=parent.parent)
+          self.all_nodes[parent.point_id] = coverage.hierarchy(parent.point_name, parent.desc, id=parent.point_id, root=parent.root == None, parent=_parent)
 
     def get_axes(self, nodes) :
       return collections.OrderedDict([(axis.axis_name, coverage.axis(axis.axis_name, **dict([(e.enum, e.enum_id) for e in enum]))) for axis, enum in index.groupby(nodes, lambda node : node.axis_id)])
-        
+    def get_root(self) :
+      return self.all_nodes.values()[0].root
   class single :
     cumulative=False
     query='SELECT goal.bucket_id, goal.goal, IFNULL(hits.hits, 0) AS hits, goal < 0 as illegal, goal = 0 as dont_care FROM goal LEFT OUTER JOIN hits ON (goal.bucket_id = hits.bucket_id AND hits.log_id=%(log_id)s) WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;'
@@ -241,8 +243,7 @@ class cvg :
       self.log_id = log_id
       self.goal_id = goal_id or log_id
     def points(self) :
-      cvg.hierarchy(self.goal_id, self.coverage(), self.cumulative)
-      return coverage.hierarchy.get_root()
+      return cvg.hierarchy(self.goal_id, self.coverage(), self.cumulative).get_root()
     def coverage(self) :
       with mdb.db.connection().row_cursor() as db :
         db.execute(self.query % self.__dict__)
@@ -489,8 +490,7 @@ class optimize :
     return int(self.master.md5.master or self.master.md5.root)
 
   def hierarchy(self) :
-    cvg.hierarchy(self.get_master(), self.dump(), False)
-    return coverage.hierarchy.get_root()
+    return cvg.hierarchy(self.get_master(), self.dump(), False).get_root()
 
   def dump(self) :
     with mdb.db.connection().row_cursor() as db :

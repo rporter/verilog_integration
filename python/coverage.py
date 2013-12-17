@@ -299,7 +299,6 @@ class hierarchy :
       self.next_id = self.id + 1
       self.offset = 0
       self.all_nodes = dict()
-      hierarchy.aroot = self.root # store latest root for backwards compatability
     def get_id(self) :
       value, self.next_id = self.next_id, self.next_id+1
       return value
@@ -312,13 +311,14 @@ class hierarchy :
       inst.__class__.__bases__ = (cls,) + inst.__class__.__bases__
       cls.__init__(inst, *args)
 
-  def __init__(self, name, description=None, parent=None, root=False, type=None, id=None) :
+  def __init__(self, name, description=None, parent=None, root=False, id=None) :
     if parent is None :
       if root :
         # this is the new root node
-        self.root = self
+        self.root = self.get_root(self)
       else :
         # default is root node
+        self.root = self.get_root()
         _parent = self.root
         message.debug("Hierarchy '%(name)s' given no parent id, defaulting to root", name=name)
     else :
@@ -328,7 +328,9 @@ class hierarchy :
         message.debug('Parent id given as integer %(parent)d', parent=int(parent))
       except :
         # must be hierarchy object
+        assert isinstance(parent, (hierarchy, coverpoint))
         _parent = parent
+      self.root = _parent.root
 
     self.name        = name
     self.description = description or 'None given'
@@ -420,17 +422,6 @@ class hierarchy :
     return md5.hexdigest()
 
   @utils.lazyProperty
-  def root(self) :
-    'If no root node exists, make one'
-    if getattr(self, 'parent', None) is None :
-      if self.aroot is None :
-        self.root = hierarchy(name=self.ROOTNAME, root=True)
-      else :
-        self.root = self.aroot
-      return self.root
-    return self.parent.root
-
-  @utils.lazyProperty
   def is_root(self) :
     return self.parent == None
 
@@ -439,28 +430,21 @@ class hierarchy :
     return self.root.all_nodes
 
   # The following are for backward compatability with singleton root model
-  aroot     = None
+  last_root = None
 
   @classmethod
-  def get_root(cls) :
-    return cls.aroot
+  def get_root(cls, root=None) :
+    cls.last_root = root or cls.last_root or hierarchy(name=cls.ROOTNAME, root=True)
+    return cls.last_root
 
   @classmethod
   def populated(cls) :
     'is there anything here?'
-    return cls.get_root() != None
-
-  @classmethod
-  def dump_all(cls, func=None, reference=False) :
-    total_cvg = cls.get_root().dump(func, reference)
-
-  @classmethod
-  def load_all(cls, func=None) :
-    cls.get_root().load(func)
+    return cls.last_root != None
 
   @classmethod
   def reset(cls) :
-    cls.aroot = None
+    cls.last_root = None
 
 ################################################################################
 
@@ -482,7 +466,7 @@ class coverpoint(hierarchy) :
   DUMP = DUMP_ALL
 
   def __init__(self, model=None, name=None, description=None, parent=None, id=None, axes={}, defaults=None, cumulative=False) :
-    self.name        = name or self.__doc__.strip()
+    hierarchy.__init__(self, name=name or self.__doc__.strip(), description=description or self.__doc__.strip(), parent=parent, root=False, id=id)
     self.model       = model
     # if given merge axes
     self.__dict__.update(axes)
@@ -505,7 +489,6 @@ class coverpoint(hierarchy) :
     messages.CVG_1(name=self.name)
     for name, axe in self.axes() :
       msg = messages.CVG_2(name=name)
-    hierarchy.__init__(self, name=self.name, description=description or self.__doc__.strip(), parent=parent, id=id)
 
   def __len__(self) :
     return len(self.buckets)
