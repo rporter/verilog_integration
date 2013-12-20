@@ -37,4 +37,8 @@ class thistest(test.test) :
 ################################################################################
 
 if __name__ == '__main__' :
-  thistest()
+  if test.plusargs().profile : 
+    import cProfile
+    cProfile.run('thistest()')
+  else :
+    thistest()
