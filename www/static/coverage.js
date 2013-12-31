@@ -23,6 +23,49 @@ $coverage = function(){};
 
 (function($coverage) {
 
+  $coverage.coverageSummaryTable = function coverageSummaryTable(tree, where, title, coverpoint) {
+    var self    = this;
+
+    function _default(it) {
+      return it || '<i>not given</i>';
+    }
+
+    function data() {
+      return coverpoint.children.map(function(it){return [_default(it.hierarchy), _default(it.description), it.coverage.hits, it.coverage.goal, it.coverage.coverage.toFixed(2)]});
+    }
+
+    this.build = function() {
+      where.html($('<h3/>', {html: title}));
+      $('<table/>').appendTo(where).dataTable({
+        "bJQueryUI": true,
+        "bFilter": false,
+        "aoColumns": [
+  	  { "sTitle": "name" },
+  	  { "sTitle": "description" },
+	  { "sTitle": "hits" },
+	  { "sTitle": "goal" },
+	  { "sTitle": "coverage %" }
+        ],
+        "aaData": data(),
+        "iDisplayLength": -1,
+        "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
+          var point = coverpoint.children[iDisplayIndex];
+          $(nRow).addClass(point.coverage.status);
+          $('td:last', nRow).attr('title', point.coverage.description);
+          $(nRow).bind('click.example',
+            function(event) {
+              tree.dynatree("getTree").getNodeByKey(String(point.id)).span.click();
+            }
+          );
+        }
+      });
+    }
+
+    this.build();
+
+    console.log(this);
+  }
+
   $coverage.coverageTable = function coverageTable(log_id, where, title, coverpoint, options) {
     var self    = this;
     var buckets = coverpoint.buckets;
@@ -471,6 +514,8 @@ $coverage = function(){};
       this.build();
     }
     options.build = true;
+
+    console.log(this);
   };
 
   $coverage.coverageTable.classFromBucket = function classFromBucket(bucket) {
@@ -564,8 +609,9 @@ $coverage = function(){};
           return false;
         }
         var cData = findCoverpointData(node.data.key);
-        if (cData !== false && cData.hasOwnProperty('coverpoint')) {
-          var title = getCoverpointName(node.data.key);
+        if (cData == false) return true;
+        var title = getCoverpointName(node.data.key);
+        if (cData.hasOwnProperty('coverpoint')) {
           node.coverageTable = new $coverage.coverageTable(log_id, cvg_point_pane, title, cData);
           expand();
           node.childList.forEach(function(axis){
@@ -575,6 +621,9 @@ $coverage = function(){};
           });
         } else {
           node.expand(!node.bExpanded);
+          if (node.bExpanded && cData !== false && cData.hasOwnProperty('hierarchy')) {
+            node.coverageTable = new $coverage.coverageSummaryTable(self.tree, cvg_point_pane, title, cData);
+          }
         }
         return false;
      }
