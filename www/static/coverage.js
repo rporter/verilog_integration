@@ -38,6 +38,7 @@ $coverage = function(){};
       where.html($('<h3/>', {html: title}));
       $('<table/>').appendTo(where).dataTable({
         "bJQueryUI": true,
+        "bInfo": false,
         "bFilter": false,
         "aoColumns": [
   	  { "sTitle": "name" },
@@ -47,7 +48,11 @@ $coverage = function(){};
 	  { "sTitle": "coverage %" }
         ],
         "aaData": data(),
+        "aaSorting" : [],
+        "bLengthChange" : false,
+        "bPaginate" : false,
         "iDisplayLength": -1,
+        "sScrollY" : 'auto',
         "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
           var point = coverpoint.children[iDisplayIndex];
           $(nRow).addClass(point.coverage.status);
@@ -58,7 +63,8 @@ $coverage = function(){};
             }
           );
         }
-      });
+      }).wrap('<div class="table"/>');
+      $report.fit($('div.table', where));
     }
 
     this.build();
