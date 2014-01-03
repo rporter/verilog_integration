@@ -106,3 +106,8 @@ class mixin(object) :
     with self.cursor() as db :
       db.execute('INSERT INTO log (uid, root, parent, activity, block, version, description, test, hostname) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);', (uid, root, parent, abv.activity, abv.block, abv.version, description, test, hostname))
       return db.lastrowid
+
+  def status(self) :
+    'update status at end'
+    with self.cursor() as cursor :
+      cursor.execute('UPDATE log SET status = ? WHERE log_id = ?;', (int(message.message.status().flag), self.log_id))

@@ -38,7 +38,7 @@ class message :
   @classmethod
   def status(cls) :
     'return test status'
-    return cls.instance.status().text
+    return cls.instance.status()
   @classmethod
   def verbosity(cls, verbosity=INFORMATION) :
     cls.instance.verbosity(verbosity)

@@ -76,6 +76,7 @@ class _mdb(object) :
       message.debug('... bye')
       self.timer.cancel()
     self.flush()
+    self.status()
 
   def add(self, cb_id, when, level, severity, tag, filename, line, msg) :
     # option to ignore certain messages
