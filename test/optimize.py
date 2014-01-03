@@ -95,7 +95,10 @@ opt.insert(mdb_conn.log_id)
 ################################################################################
 
 if options.xml :
-  outfile = options.xml % (regressions[0] if regressions else tests[0])
+  try :
+    outfile = options.xml % (regressions[0] if regressions else tests[0])
+  except :
+    outfile = options.xml
   message.information('dumping optimize to ' + outfile)
   with open(outfile, 'w') as desc :
     xml.write(desc)

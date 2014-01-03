@@ -566,10 +566,31 @@ class randOrderedOptimize(optimize) :
 
 ################################################################################
 
+class incrOrderedOptimize(cvgOrderedOptimize) :
+  'order tests in incremental coverage order'
+  def __iter__(self) :
+    self.reset()
+    current = self.status()
+    testlist = self.testlist()
+    while testlist :
+      log = testlist.pop(0)
+      updates = self.increment(log.log_id)
+      status  = self.status()
+      yield mdb.accessor(log=log, last=current, updates=updates, status=status, hits=status.hits-current.hits)
+      current = status
+      # calculate incremental coverage of remaining tests
+      with mdb.db.connection().row_cursor() as db :
+        db.execute('DELETE FROM '+self.invs+' WHERE log_id = ?;', (log.log_id,))
+        db.execute('SELECT invs.*, IFNULL(sum(min(status.goal-status.hits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < status.goal) GROUP BY log_id ORDER BY hits DESC;')
+        testlist = db.fetchall()
+
+################################################################################
+
 optimize.options = {
   'cvg'  : cvgOrderedOptimize,
   'pos'  : posOrderedOptimize,
-  'rand' : randOrderedOptimize
+  'rand' : randOrderedOptimize,
+  'incr' : incrOrderedOptimize
 }
 
 ################################################################################
