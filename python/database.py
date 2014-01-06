@@ -170,9 +170,9 @@ class index :
     if variant == 'sngl' :
       result = self.subquery('l0.*, null as children', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'], where='l1.log_id is null and l0.root is null')
     elif variant == 'rgr' :
-      result = self.subquery('l0.*, count(l1.log_id) as children', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'], having='l1.log_id is not null')
+      result = self.subquery('l0.*, count(l1.log_id) as children, sum(l1.status == 1) as passing', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'], having='l1.log_id is not null')
     else :
-      result = self.subquery('l0.*, count(l1.log_id) as children', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'])
+      result = self.subquery('l0.*, count(l1.log_id) as children, sum(l1.status == 1) as passing', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'])
     result.limit = self.limit(limit)
     if start :
       result.where_and('l0.log_id %c %d' % ('>' if order == 'up' else '<', start))

@@ -195,7 +195,7 @@ $report = function(){
             var cvg = $('td.cvg', nRow).addClass('cvg-'+aData[8]);
             $report.testJSON.get_cvg(cvg, nRow, aData[0])(event);
           });
-          $(nRow).bind('click.example', {log_id : aData[0], name : $(aData[2]).text(), children : aData[9], anchor : anchor},
+          $(nRow).bind('click.example', {log_id : data[iDisplayIndex].log.log_id, name : $(aData[2]).text(), children : data[iDisplayIndex].log.children, anchor : anchor},
             function(event) {
               var log;
               if (event.data.children) {
@@ -273,10 +273,19 @@ $report = function(){
 
     this.rows = function() {
       function popup(attr) {
-          return $('<abbr>', {title:attr.msg, text:attr.count}).outerHTML();
+        return $('<abbr>', {title:attr.msg, text:attr.count}).outerHTML();
+      }
+      function children(log) {
+        if (log.children === null) return;
+        result = String(log.children) + '<result>';
+        if (log.passing) result += ' <pass>' + log.passing + '</pass>';
+        var failing = log.children - log.passing;
+        if (failing) result += ' <fail>' + failing + '</fail>';
+        result += '</result>';
+        return result;
       }
       return data.map(function(log){
-        return [log.log.log_id, log.log.user, $('<abbr>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), log.log.children, log.status.status];
+        return [log.log.log_id, log.log.user, $('<abbr>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), children(log.log), log.status.status];
       });
     };
 
@@ -357,7 +366,7 @@ $report = function(){
     for (log in data) {
       data[log].get = get;
     }
-
+    console.log(this);
   };
 
   $report.testJSON.get_cvg = function(cvg, nRow, log_id, onsuccess) {
@@ -858,8 +867,7 @@ $report = function(){
     } else {
       addcvg();
     }
-
-
+    console.log(this);
   }
 
 })($report);

@@ -33,7 +33,7 @@ static void cb_terminate_summary(const cb_id& id) {
 }
 
 static void cb_terminate_default(const cb_id& id) {
-  exit(message::instance()->status().flag == 0);
+  exit(message::instance()->status().flag == true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
