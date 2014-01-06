@@ -158,4 +158,4 @@
    .some        { background-color : #ffc }
    .dont_care   { background-color : #dff }
    .illegal     { background-color : #eee }
-   .illegal_hit { background-color : #faa }
+   .illegal.hit { background-color : #faa }
