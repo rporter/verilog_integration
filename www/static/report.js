@@ -276,7 +276,7 @@ $report = function(){
         return $('<abbr>', {title:attr.msg, text:attr.count}).outerHTML();
       }
       function children(log) {
-        if (log.children === null) return;
+        if (log.children === null) return '';
         result = String(log.children) + '<result>';
         if (log.passing) result += ' <pass>' + log.passing + '</pass>';
         var failing = log.children - log.passing;
