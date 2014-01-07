@@ -576,6 +576,7 @@ class incrOrderedOptimize(cvgOrderedOptimize) :
   'order tests in incremental coverage order'
   def __iter__(self) :
     self.reset()
+    switched = False
     current = self.status()
     testlist = self.testlist()
     while testlist :
@@ -588,6 +589,9 @@ class incrOrderedOptimize(cvgOrderedOptimize) :
       with mdb.db.connection().row_cursor() as db :
         db.execute('DELETE FROM '+self.invs+' WHERE log_id = ?;', (log.log_id,))
         if status.coverage() > self.threshold :
+          if not switched :
+            switched = True
+            message.note('Switching to incremental selection at %(threshold)0.2f', threshold=self.threshold)
           # switch to incremental as coverage closes
           db.execute('SELECT invs.*, IFNULL(sum(min(status.goal-status.hits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < status.goal) GROUP BY log_id ORDER BY hits DESC;')
           testlist = db.fetchall()
