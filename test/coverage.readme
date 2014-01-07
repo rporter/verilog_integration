@@ -8,9 +8,9 @@
 ./optimize -r 1484 -r 1497
 # and a few more to hopefully close coverage
 ./coverage test_coverage_multiple.py +cvr_seed+0xdead +tst_seed+3 +master=1 +instances=20 +children=18
-# cherry pick 'best' runs
+# cherry pick 'best' runs using default order
 ./optimize -r 1484 -r 1497 -r 1515
 # replay the selected seeds to check we're still at 100%
 ./coverage test_coverage_multiple.py +cvr_seed+0xdead +master=1 +instances=20 +test_xml=optimize_1484.xml
-# rerun using multiple iterations
-./optimize -r 1484 -r 1497 -r 1515 --order cvg --order rand --order pos --order rand --order cvg
+# rerun using multiple iterations, the second and third random orders may reduce the set size slightly.
+./optimize -r 1484 -r 1497 -r 1515 --order cvg --order rand --order rand --order cvg
