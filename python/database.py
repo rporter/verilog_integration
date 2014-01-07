@@ -4,6 +4,7 @@ import collections
 from lxml import etree
 import pwd
 import random
+import sys
 import time
 
 import coverage
@@ -401,7 +402,7 @@ class optimize :
   INVS='invs'
   COVG='covg'
   SEQ=0
-  def __init__(self, log_ids=[], test_ids=[], xml=None) :
+  def __init__(self, log_ids=[], test_ids=[], xml=None, threshold=0) :
     'log_ids is a list of regression roots'
     self.log_ids = log_ids
     s_log_ids = ','.join(map(str, log_ids))
@@ -442,6 +443,11 @@ class optimize :
     self.master.axes = md5[0]
     # create status table, collating goal & hits
     self.cvg.execute('CREATE TEMPORARY TABLE '+self.covg+' (bucket_id INTEGER NOT NULL PRIMARY KEY, goal INTEGER, hits INTEGER, total_hits INTEGER, tests INTEGER);')
+    try :
+      self.threshold = float(threshold)
+    except :
+      self.threshold = 0.0
+      message.warning('cannot convert threshold value given "%(arg)s" to float because %(exception)s, using %(threshold)2.1f', arg=threshold, exception=sys.exc_info()[0], threshold=self.threshold)
 
   def __del__(self) :
     self.tests.execute('DROP TABLE IF EXISTS '+self.invs)
@@ -581,8 +587,10 @@ class incrOrderedOptimize(cvgOrderedOptimize) :
       # calculate incremental coverage of remaining tests
       with mdb.db.connection().row_cursor() as db :
         db.execute('DELETE FROM '+self.invs+' WHERE log_id = ?;', (log.log_id,))
-        db.execute('SELECT invs.*, IFNULL(sum(min(status.goal-status.hits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < status.goal) GROUP BY log_id ORDER BY hits DESC;')
-        testlist = db.fetchall()
+        if status.coverage() > self.threshold :
+          # switch to incremental as coverage closes
+          db.execute('SELECT invs.*, IFNULL(sum(min(status.goal-status.hits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < status.goal) GROUP BY log_id ORDER BY hits DESC;')
+          testlist = db.fetchall()
 
 ################################################################################
 

@@ -14,3 +14,6 @@
 ./coverage test_coverage_multiple.py +cvr_seed+0xdead +master=1 +instances=20 +test_xml=optimize_1484.xml
 # rerun using multiple iterations, the second and third random orders may reduce the set size slightly.
 ./optimize -r 1484 -r 1497 -r 1515 --order cvg --order rand --order rand --order cvg
+# use "incr" ordering; but only switch from cvg at 95%
+./optimize -r 1484 -r 1497 -r 1515 --order incr --threshold 95
+

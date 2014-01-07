@@ -16,6 +16,7 @@ parser = message.reportOptionParser()
 parser.add_option('',   '--order', help='order sequence', default=[], action='append', choices=database.optimize.options.keys())
 parser.add_option('-r', '--regression', default=[], help='Regression root id', action='append')
 parser.add_option('-t', '--test', default=[], help='Test id', action='append')
+parser.add_option('',   '--threshold', default=0, help='Coverage threshold for "incr" order')
 parser.add_option('-x', '--xml', help='xml out', default='optimize_%d.xml')
 options, values = parser.parse_args()
 
@@ -79,9 +80,9 @@ def iteration(ordering, iter_cnt=1, xml=None) :
   order = ordering[0]
   message.note('Iteration %(iter_cnt)d uses "%(order)s"', **locals())
   if xml :
-    opt = database.optimize.options[order](xml=xml)
+    opt = database.optimize.options[order](xml=xml, threshold=options.threshold)
   else :
-    opt = database.optimize.options[order](regressions, tests)
+    opt = database.optimize.options[order](regressions, tests, threshold=options.threshold)
   run = opt.run()
   if len(ordering) > 1 :
     return iteration(ordering[1:], iter_cnt+1, run)
