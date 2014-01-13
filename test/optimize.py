@@ -15,6 +15,7 @@ import message
 parser = message.reportOptionParser()
 parser.add_option('',   '--order', help='order sequence', default=[], action='append', choices=database.optimize.options.keys())
 parser.add_option('-r', '--regression', default=[], help='Regression root id', action='append')
+parser.add_option('',   '--robust', default=False, help='Attempt to make test set robust', action='store_true')
 parser.add_option('-t', '--test', default=[], help='Test id', action='append')
 parser.add_option('',   '--threshold', default=0, help='Coverage threshold for "incr" order')
 parser.add_option('-x', '--xml', help='xml out', default='optimize_%d.xml')
@@ -74,16 +75,18 @@ message.information('optimizing begins')
 ################################################################################
 
 coverage.messages.hush_creation()
+optimize_opts = {'threshold' : options.threshold, 'robust' : options.robust}
 
 def iteration(ordering, iter_cnt=1, xml=None) :
   # use current optimization group if this is not first iteration
   order = ordering[0]
   message.note('Iteration %(iter_cnt)d uses "%(order)s"', **locals())
   if xml :
-    opt = database.optimize.options[order](xml=xml, threshold=options.threshold)
+    opt = database.optimize.options[order](xml=xml, **optimize_opts)
   else :
-    opt = database.optimize.options[order](regressions, tests, threshold=options.threshold)
+    opt = database.optimize.options[order](regressions, tests, **optimize_opts)
   run = opt.run()
+  optimize_opts['previous'] = opt
   if len(ordering) > 1 :
     return iteration(ordering[1:], iter_cnt+1, run)
   # always return last optimization run

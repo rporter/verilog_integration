@@ -402,7 +402,7 @@ class optimize :
   INVS='invs'
   COVG='covg'
   SEQ=0
-  def __init__(self, log_ids=[], test_ids=[], xml=None, threshold=0) :
+  def __init__(self, log_ids=[], test_ids=[], xml=None, threshold=0, robust=False, previous=None) :
     'log_ids is a list of regression roots'
     self.log_ids = log_ids
     s_log_ids = ','.join(map(str, log_ids))
@@ -442,12 +442,14 @@ class optimize :
       message.fatal('md5 of multiple axis masters do not match')
     self.master.axes = md5[0]
     # create status table, collating goal & hits
-    self.cvg.execute('CREATE TEMPORARY TABLE '+self.covg+' (bucket_id INTEGER NOT NULL PRIMARY KEY, goal INTEGER, hits INTEGER, total_hits INTEGER, tests INTEGER);')
+    self.cvg.execute('CREATE TEMPORARY TABLE '+self.covg+' (bucket_id INTEGER NOT NULL PRIMARY KEY, goal INTEGER, hits INTEGER, total_hits INTEGER, rhits INTEGER, max_hits INTEGER, tests INTEGER);')
     try :
       self.threshold = float(threshold)
     except :
       self.threshold = 0.0
       message.warning('cannot convert threshold value given "%(arg)s" to float because %(exception)s, using %(threshold)2.1f', arg=threshold, exception=sys.exc_info()[0], threshold=self.threshold)
+    self.robust = robust
+    self.previous = previous
 
   def __del__(self) :
     self.tests.execute('DROP TABLE IF EXISTS '+self.invs)
@@ -461,7 +463,7 @@ class optimize :
     for log in self.testlist() :
       updates = self.increment(log.log_id)
       status  = self.status()
-      yield mdb.accessor(log=log, last=current, updates=updates, status=status, hits=status.hits-current.hits)
+      yield mdb.accessor(log=log, last=current, updates=updates, status=status, hits=status.metric().hits-current.metric().hits)
       current = status
 
   @utils.lazyProperty
@@ -479,18 +481,30 @@ class optimize :
     # in e.g. mysql we can use a join in an update
     # self.cvg.execute('update '+self.covg+' as status set hits = min(status.goal, status.hits + goal.hits), total_hits = status.total_hits + goal.total_hits join hits using (bucket_id) where hits.log_id = ?;', log_id)
     # but we need to resort to this for sqlite
-    self.cvg.execute('REPLACE INTO '+self.covg+' SELECT status.bucket_id, status.goal, CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE min(status.goal, status.hits + hits.hits) END AS hits, status.total_hits + hits.hits as total_hits, status.tests + 1 FROM '+self.covg+' AS status JOIN hits USING (bucket_id) WHERE hits.log_id = ?;', (log_id,))
+    self.cvg.execute('REPLACE INTO '+self.covg+' SELECT status.bucket_id, status.goal, CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal, status.hits + hits.hits) END AS hits, CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal + status.max_hits, status.rhits + MIN(hits.hits, status.goal)) END AS rhits, status.total_hits + hits.hits as total_hits, MIN(status.goal, MAX(max_hits, hits.hits)) as max_hits, status.tests + 1 FROM '+self.covg+' AS status JOIN hits USING (bucket_id) WHERE hits.log_id = ?;', (log_id,))
     message.debug('update %(cnt)d rows', cnt=self.cvg.rowcount)
     return self.cvg.rowcount
 
   def reset(self) :
-    self.cvg.execute('REPLACE INTO '+self.covg+' SELECT bucket_id, goal, 0 AS hits, 0 AS total_hits, 0 AS tests FROM goal WHERE log_id=?;', (self.get_master(), ))
+    if self.previous :
+      # incorporate previous max_hits into coverage accumulator used by robust generator
+      self.cvg.execute('REPLACE INTO '+self.covg+' SELECT goal.bucket_id, goal.goal, 0 AS hits, 0 AS total_hits, 0 AS rhits, previous.max_hits AS max_hits, 0 AS tests FROM goal JOIN ' + self.previous.covg + ' AS previous USING (bucket_id) WHERE goal.log_id=?;', (self.get_master(), ))
+      self.cvg.execute('SELECT SUM(goal) as goal, SUM(goal+max_hits) as robust from '+self.covg+';')
+      message.note('Incorporating previous max_hits into coverage accumulator. goal %(goal)d is now %(robust)d', **self.cvg.fetchone())
+    else :
+      self.cvg.execute('REPLACE INTO '+self.covg+' SELECT bucket_id, goal, 0 AS hits, 0 AS total_hits, 0 AS rhits, 0 AS max_hits, 0 AS tests FROM goal WHERE log_id=?;', (self.get_master(), ))
 
   def status(self) :
     'calculate & return current coverage'
-    with mdb.db.connection().row_cursor() as db :
-      db.execute('SELECT SUM(MIN(goal, hits)) AS hits, SUM(goal) AS goal FROM '+self.covg+' WHERE goal > 0;')
-      return coverage.coverage(db.fetchone())
+    with mdb.db.connection().cursor() as db :
+      db.execute('SELECT SUM(MIN(goal, hits)) AS hits, SUM(goal) AS goal, SUM(MIN(goal+max_hits, rhits)) AS rhits, SUM(goal+max_hits) AS rgoal FROM '+self.covg+' WHERE goal > 0;')
+      hits, goal, rhits, rgoal = db.fetchone()
+      covrge=coverage.coverage(hits=hits, goal=goal)
+      robust=coverage.coverage(hits=rhits, goal=rgoal)
+      def metric() :
+        'be clear instead of using lambda'
+        return robust if self.robust else covrge
+      return mdb.accessor(coverage=covrge, robust=robust, metric=metric)
 
   def get_master(self) :
     return int(self.master.md5.master or self.master.md5.root)
@@ -527,16 +541,21 @@ class optimize :
 
   def run(self) :
     xml = self.xmlDump()
-    
+    cnt = 0
     for incr in self :
-      message.information(' %(log_id)6d : %(rows)6d : %(hits)6d : %(cvg)s', log_id=incr.log.log_id, rows=incr.updates, hits=incr.hits, cvg=incr.status.description())
+      if cnt % 20 == 0 :
+        message.information(' log_id :   rows :   hits : coverage')
+      cnt+=1
+      message.information(' %(log_id)6d : %(rows)6d : %(hits)6d : %(cvg)s', log_id=incr.log.log_id, rows=incr.updates, hits=incr.hits, cvg=incr.status.coverage.description())
       if incr.hits :
         # this test contributed to overall coverage
         xml.add(incr)
-      if incr.status.is_hit() :
+      if incr.status.metric().is_hit() :
         message.note('all coverage hit')
         break
-    message.information('coverage : ' + self.status().description())
+    message.information('coverage : ' + self.status().coverage.description())
+    if self.robust :
+      message.information('robust : ' + self.status().robust.description())
     message.information('tests : %(count)d', count=int(xml.xml.xpath('count(/optimize/test/log_id)')))
 
     # now regenerate hierarchy and report coverage on point basis
@@ -549,7 +568,7 @@ class optimize :
 class cvgOrderedOptimize(optimize) :
   'order tests in coverage order'
   def testlist(self) :
-    self.tests.execute('SELECT invs.*, IFNULL(sum(min(status.goal, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0) GROUP BY log_id ORDER BY hits DESC;')
+    self.tests.execute('SELECT invs.*, IFNULL(SUM(MIN(status.goal, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0) GROUP BY log_id ORDER BY hits DESC;')
     return self.tests.fetchall()
 
 ################################################################################
@@ -583,17 +602,21 @@ class incrOrderedOptimize(cvgOrderedOptimize) :
       log = testlist.pop(0)
       updates = self.increment(log.log_id)
       status  = self.status()
-      yield mdb.accessor(log=log, last=current, updates=updates, status=status, hits=status.hits-current.hits)
+      yield mdb.accessor(log=log, last=current, updates=updates, status=status, hits=status.metric().hits-current.metric().hits)
       current = status
       # calculate incremental coverage of remaining tests
       with mdb.db.connection().row_cursor() as db :
         db.execute('DELETE FROM '+self.invs+' WHERE log_id = ?;', (log.log_id,))
-        if status.coverage() > self.threshold :
+        if status.metric().coverage() > self.threshold :
           if not switched :
             switched = True
             message.note('Switching to incremental selection at %(threshold)0.2f', threshold=self.threshold)
           # switch to incremental as coverage closes
-          db.execute('SELECT invs.*, IFNULL(sum(min(status.goal-status.hits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < status.goal) GROUP BY log_id ORDER BY hits DESC;')
+          minexpr = '(status.goal+status.max_hits)-status.rhits' if self.robust else 'status.goal-status.hits'
+          if self.robust :
+            db.execute('SELECT invs.*, IFNULL(SUM(MIN((status.goal+status.max_hits)-status.rhits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < (status.goal+status.max_hits)) GROUP BY log_id ORDER BY hits DESC;')
+          else :
+            db.execute('SELECT invs.*, IFNULL(SUM(MIN(status.goal-status.hits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < status.goal) GROUP BY log_id ORDER BY hits DESC;')
           testlist = db.fetchall()
 
 ################################################################################
