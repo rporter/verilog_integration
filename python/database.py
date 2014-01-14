@@ -486,7 +486,7 @@ class optimize :
     return self.cvg.rowcount
 
   def reset(self) :
-    if self.previous :
+    if self.previous and self.robust :
       # incorporate previous max_hits into coverage accumulator used by robust generator
       self.cvg.execute('REPLACE INTO '+self.covg+' SELECT goal.bucket_id, goal.goal, 0 AS hits, 0 AS total_hits, 0 AS rhits, previous.max_hits AS max_hits, 0 AS tests FROM goal JOIN ' + self.previous.covg + ' AS previous USING (bucket_id) WHERE goal.log_id=?;', (self.get_master(), ))
       self.cvg.execute('SELECT SUM(goal) as goal, SUM(goal+max_hits) as robust from '+self.covg+';')
