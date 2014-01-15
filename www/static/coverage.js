@@ -538,13 +538,32 @@ $coverage = function(){};
     }
   }
 
+  $coverage.coverageTable.RGBFromCoverage = function RGBFromCoverage(coverage) {
+    // start at red, fade to yellow then to green
+    if (Math.floor(coverage) == 100) {
+      return '#cfc';
+    }
+    var lo, hi, mix;
+    lo = [255, 160 , 160];
+    hi = [255, 255, 192];
+    mix = coverage;
+    mix /= parseFloat(100);
+    var result = lo.map(function(it, idx) {
+      var val = lo[idx]*(1-mix) + hi[idx]*mix;
+      if (val < 0) val = 0;
+      if (val > 255) val = 255;
+      return val.toFixed();
+    });
+    return 'rgb(' + result.join(', ') + ')';
+  }
+
   $coverage.coverage = function(pane, log_id, data) {
     var self = this;
     var cvg_point_pane = $('<div class="cvg-point-pane"></div>').appendTo(pane);
     var cvg_tree_pane  = $('<div class="cvg-tree-pane"></div>' ).appendTo(pane);
 
     function formatCoverage(coverage) {
-      return '<i class="' + coverage.status + '">' + coverage.description + '</i>';
+      return '<i class="' + coverage.status + '" coverage="' + coverage.coverage.toFixed(2) + '">' + coverage.description + '</i>';
     }
 
     function generateCoverpointHierarchy(coverpoint) {
@@ -562,9 +581,9 @@ $coverage = function(){};
       } else {
         title = coverpoint.coverpoint;
         node.isFolder = true;
-        node.children = coverpoint.axes.map(function(axis){return {title:'<b>' + axis.name + '</b>', key : axis.name, expand : false, unselectable: true}});
+        node.children = coverpoint.axes.map(function(axis){return {title:'<em style="white-space:pre">' + axis.name + ' </em>', key : axis.name, expand : false, unselectable: true}});
       }
-      node.title = '<b>' + title + '</b> ' + coverpoint.description + ' '
+      node.title = '<b>' + title + '</b><em style="white-space:pre"> ' + coverpoint.description + ' </em>'
       if (coverpoint.coverage) {
         node.title += formatCoverage(coverpoint.coverage);
       }
@@ -632,8 +651,30 @@ $coverage = function(){};
           }
         }
         return false;
+     },
+     onCreate : function(node, nodeSpan) {
+       setTimeout(function() {
+         $('i', nodeSpan).each(function() {
+           var i = $(this),
+               height = $(nodeSpan).height(),
+               width = 100,
+               cvg = i.attr('coverage'),
+               coverage = parseFloat(cvg),
+               canvas = $('<canvas>', {style:'z-index:1; position:relative; float:right', height:height, width:width, title:cvg+'%'}).insertBefore(nodeSpan);
+           $(nodeSpan).css('position', 'relative').css('width', '100%');
+           canvas[0].width = width;
+           canvas[0].height = height;
+           var ctx = canvas[0].getContext('2d');
+           ctx.fillStyle = $coverage.coverageTable.RGBFromCoverage(coverage);
+           ctx.fillRect(0, 0, width, height);
+           var clr = (width-1)*coverage/100;
+           ctx.clearRect(1+clr, 1, width-clr-1, height-2);
+           ctx.fillRect(width-1, 0, width-1, height); // fill that pesky end bit in
+         })
+       }, 0);
      }
     });
+
     // add scrollbar if necessary
     $report.fit(cvg_tree_pane, false);
   };

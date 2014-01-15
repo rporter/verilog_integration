@@ -134,8 +134,8 @@
    div.cvg-pane h5 a        { font-size : 1em }
    div.cvg-pane h5 a:hover  { color : #00f }
    div.cvg-pane a.hierarchy { font-family : monospace }
-   div.cvg-tree-pane        { float : left ; width : 30% }
-   div.cvg-point-pane       { float : right; width : 70%; background : #eee }
+   div.cvg-tree-pane        { float : left ; width : 40% }
+   div.cvg-point-pane       { float : right; width : 60%; background : #eee }
    div.cvg-point-pane div.table  { overflow-y : scroll }
    div.cvg-point-pane table { table-layout: fixed }
    div.cvg-point-pane th.bkt{ width : 6em; }
