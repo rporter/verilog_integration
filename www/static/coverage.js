@@ -23,9 +23,16 @@ $coverage = function(){};
 
 (function($coverage) {
 
+  $coverage.chart_id = function(root) {
+    var id = 0;
+    return function() {
+      id+=1;
+      return root+id;
+    };
+  }('chart-');
+
   $coverage.coverageSummaryTable = function coverageSummaryTable(tree, where, title, coverpoint) {
     var self    = this;
-
     function _default(it) {
       return it || '<i>not given</i>';
     }
@@ -73,13 +80,14 @@ $coverage = function(){};
   }
 
   $coverage.coverageTable = function coverageTable(log_id, where, title, coverpoint, options) {
+    var matrix  = {table:'table', matrix:'matrix', graph:'graph'};
     var self    = this;
     var buckets = coverpoint.buckets;
     var axes    = $.extend(true, [], coverpoint.axes);
     var offset  = coverpoint.offset;
     var table;
     options = options || {};
-    options = $.extend(options, {hide_hits : false, hide_illegal : false, hide_dont_care : false, matrix : false});
+    options = $.extend(options, {hide_hits : false, hide_illegal : false, hide_dont_care : false, matrix : matrix.table});
 
     function visible_axes() {
       return axes.reduce(function(sum, it, idx){
@@ -88,6 +96,9 @@ $coverage = function(){};
         }
         return sum;
       }, Array());
+    }
+    function one_axis() {
+      return visible_axes().length == 1;
     }
     function two_axes() {
       return visible_axes().length == 2;
@@ -279,12 +290,18 @@ $coverage = function(){};
         $('#hide-illegal span.ui-icon', cvg_point_menu).addClass('check');
       }
       if (two_axes()) {
-        if (options.matrix) {
+        if (options.matrix == matrix.matrix ) {
           $('#matrix span.ui-icon', cvg_point_menu).addClass('check');
         }
-      } else {
-        options.matrix = false;
+        $('#graph', cvg_point_menu).addClass('grey');
+      } else if (one_axis()) {
+        if (options.matrix == matrix.graph ) {
+          $('#graph span.ui-icon', cvg_point_menu).addClass('check');
+        }
         $('#matrix', cvg_point_menu).addClass('grey');
+      } else {
+        options.matrix = options.table;
+        $('#matrix, #graph', cvg_point_menu).addClass('grey');
       }
 
       var elapsed, source;
@@ -412,7 +429,12 @@ $coverage = function(){};
       // ----------------------------------------
       $('#matrix', cvg_point_menu).mouseup(function() {
         if (!two_axes()) return true;
-        options.matrix = $('span.ui-icon', this).toggleClass('check').hasClass('check');
+        options.matrix = $('span.ui-icon', this).toggleClass('check').hasClass('check')?matrix.matrix:matrix.table;
+        self.build();
+      })
+      $('#graph', cvg_point_menu).mouseup(function() {
+        if (!one_axis()) return true;
+        options.matrix = $('span.ui-icon', this).toggleClass('check').hasClass('check')?matrix.graph:matrix.table;
         self.build();
       })
     }
@@ -455,6 +477,28 @@ $coverage = function(){};
       }
     }
 
+    function build_graph() {
+      // add a graph of hits vs axis
+      var axis = visible_axes()[0];
+      var id =  $coverage.chart_id();
+ 
+      $('<div>', {id:id, style:'margin:auto', height:500, width:750}).appendTo(where);
+      $.jqplot(id, [buckets.map(function(it, idx ){return [axis.values[idx], it[1]]})], {
+        series:[{renderer:$.jqplot.BarRenderer}],
+        axes: {
+          xaxis: {
+            renderer: $.jqplot.CategoryAxisRenderer
+          },
+          yaxis: {
+            min: 0
+          }
+        }
+      });
+      // navigate back
+      where.append($('<h5><a>Back to table view</a></h5>').click(function(){options.matrix=matrix.table; self.build()}));
+
+    }
+
     function build_matrix() {
       var _axes = visible_axes();
       // Use jqote & template in index to create matrix table
@@ -466,7 +510,7 @@ $coverage = function(){};
       // easiest way to place title in 1st data row
       $('tr:nth(2)', where).prepend($('<th/>', {class : 'title rotated', rowspan : _axes[0].values.length, text : _axes[0].name}))
       // navigate back
-      $('div.table', where).append($('<h5><a>Back to table view</a></h5>').click(function(){options.matrix=false; self.build()}));
+      $('div.table', where).append($('<h5><a>Back to table view</a></h5>').click(function(){options.matrix=matrix.table; self.build()}));
 
       var cells = $('th,td', where).not('.title');
       var width = Array.max(cells.map(function(idx,it){return $(it).width()}));
@@ -500,12 +544,15 @@ $coverage = function(){};
     this.build = function() {
       where.html($('<h3/>', {html: title}));
       setTimeout(function() {
-        if (options.matrix) {
-          build_matrix(where);
+        if (options.matrix == matrix.matrix) {
+          build_matrix();
+        } else if (options.matrix == matrix.graph) {
+          build_graph();
         } else {
-          build_table(where);
+          build_table();
         }
-        $report.fit($('div.table', where));
+        var table = $('div.table', where);
+        if (table.length) $report.fit(table);
       }, 0);
     }
 

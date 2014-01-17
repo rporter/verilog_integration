@@ -2,6 +2,7 @@
 
 import os
 import random
+import re
 import subprocess
 import xml.etree.ElementTree as etree
 
@@ -48,10 +49,10 @@ class baseList :
       yield str(test)
 
 class randomList(baseList) :
-  def __init__(self, count, seed, testname, **args) :
+  def __init__(self, count, seed, testnames, **args) :
     # set per run seed
     random.seed(seed)
-    self.tests = [self.test(testname, tst_seed=str(random.randint(0,1<<30)), idx=idx, **args) for idx in range(0, count)]
+    self.tests = [self.test(random.choice(testnames), tst_seed=str(random.randint(0,1<<30)), idx=idx, **args) for idx in range(0, count)]
 
 class xmlList(baseList) :
   def __init__(self, xmlfile, **args) :
@@ -99,32 +100,36 @@ class thistest(test.test) :
     else :
       # set per run seed
       random.seed(self.tst_seed)
-      # pick axis values to not hit
-      misses = dict([(id(cursor), dict([(name, random.choice(axis.get_values())) for name, axis in cursor.point.axes()])) for cursor in self.cpts])
       # ignore illegal bucket hits
       coverage.messages.CVG_200.level = message.IGNORE
       # make some coverage
       for i in range(0, 9999) :
         with random.choice(self.cpts) as cursor :
           for name, axis in cursor.point.axes() :
-            while (1) :
-              value = random.choice(axis.get_values())
-              if value != misses[id(cursor)][name] : break
-            cursor(**{name : value})
+            cursor(**{name : self.choice(self.choices[id(cursor)][name])})
           cursor.incr(random.randrange(10))
     # if everything else ok
     self.success()
+
+  @utils.lazyProperty
+  def choices(self) :
+    'pick axis values to hit'
+    def sample(values) : return sorted(random.sample(values, len(values)-1))
+    return dict([(id(cursor), dict([(name, sample(axis.get_values())) for name, axis in cursor.point.axes()])) for cursor in self.cpts])
+
+  def choice(self, opts) :
+    return random.choice(opts)
 
   def tests(self) :
     args = dict(master_id=str(self.master_id or self.mdb.log_id), cvr_seed=str(self.cvr_seed), instances=str(self.instances))
     if test.plusargs().test_xml :
       return xmlList(test.plusargs().test_xml, **args)
     else :
-      return randomList(self.children, self.tst_seed, __file__, **args)
+      return randomList(self.children, self.tst_seed, self.testnames, **args)
 
   @property
   def test(self) :
-    return thistest.filename()+'-'+str(hex(self.tst_seed))
+    return self.filename()+'-'+str(hex(self.tst_seed))
   @utils.lazyProperty
   def is_master(self) :
     try :
@@ -144,6 +149,9 @@ class thistest(test.test) :
   @utils.lazyProperty
   def instances(self) :
     return self.plusarg_opt_int('instances', 20, 'd')
+  @utils.lazyProperty
+  def testnames(self) :
+    return re.split(r'[+:,]', test.plusargs().get('tests', self.filename()))
 
 ################################################################################
 

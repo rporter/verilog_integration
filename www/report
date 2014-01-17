@@ -19,7 +19,11 @@ urlget $root/static/jquery.dataTables.js http://www.datatables.net/download/buil
 urlget $root/static/jquery.jqote2.js     https://raw.github.com/aefxx/jQote2/master/jquery.jqote2.js
 urlget $root/static/jquery.tablesorter.js \
                                          https://raw.github.com/Mottie/tablesorter/master/js/jquery.tablesorter.js
-
+urlget $root/static/jquery.jqplot.min.js http://www.jqplot.com/src/jquery.jqplot.min.js
+urlget $root/static/jquery.jqplot.min.css \
+                                         http://www.jqplot.com/src/jquery.jqplot.min.js
+urlget $root/static/jqplot.categoryAxisRenderer.min.js \
+                                         http://www.jqplot.com/src/plugins/jqplot.categoryAxisRenderer.min.js
 LD_LIBRARY_PATH=$root/../python:$LD_LIBRARY_PATH \
 PYTHONPATH=.:$root/../python:$PYTHONPATH \
 exec python $0.py --root=$root "$@"
