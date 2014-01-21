@@ -19,6 +19,41 @@ Array.has = function( array, fn ) {
    return false;
 };
 
+if (Array.prototype.findIndex === undefined) {
+    Array.prototype.findIndex = function (predicate, thisValue) {
+        var arr = Object(this);
+        if (typeof predicate !== 'function') {
+            throw new TypeError();
+        }
+        for(var i=0; i < arr.length; i++) {
+            if (i in arr) {  // skip holes
+                var elem = arr[i];
+                if (predicate.call(thisValue, elem, i, arr)) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+}
+if (Array.prototype.find === undefined) {
+    Array.prototype.find = function (predicate, thisValue) {
+        var arr = Object(this);
+        if (typeof predicate !== 'function') {
+            throw new TypeError();
+        }
+        for(var i=0; i < arr.length; i++) {
+            if (i in arr) {  // skip holes
+                var elem = arr[i];
+                if (predicate.call(thisValue, elem, i, arr)) {
+                    return elem;
+                }
+            }
+        }
+        return undefined;
+    }
+}
+
 $coverage = function(){};
 
 (function($coverage) {
@@ -103,6 +138,9 @@ $coverage = function(){};
     function two_axes() {
       return visible_axes().length == 2;
     }
+    function all_visible() {
+      return visible_axes().length == axes.length;
+    }
 
     function permsFromBucket(axes, bucket) {
       if (axes.length == 0) return ""; // terminal case
@@ -179,10 +217,10 @@ $coverage = function(){};
       var bucket    = buckets[bucket_id];
       var goal      = bucket[0];
       var url       = '/bkt/' + log_id + '/';
-      if (bucket.length < 3) {
-        url += (bucket_id + offset);
+      if (buckets.hasOwnProperty('aliases')) {
+        url += buckets.aliases[bucket_id].map(function(bkt){return bkt+offset}).join(',');
       } else {
-        url += bucket[2].map(function(bkt){return bkt+offset}).join(',');
+        url += (bucket_id + offset);
       }
       node.html(function(){
         return '<a class="popup">' + $(this).text() + '<span id="hits-' + bucket_id + '" title="hit details for ' + log_id + '/' + bucket_id + '"></span></a>';
@@ -222,27 +260,61 @@ $coverage = function(){};
       return true;
     }
 
+    function add_heat(other) {
+      if (other === undefined) return;
+      // add those with same test index copy those without
+      other.forEach(function(value) {
+        var idx = this.findIndex(function(it){return it.testname == value.testname});
+        if (idx < 0) {
+          // not found, copy this
+          this.push($.extend({}, value));
+        } else {
+          // accumulate this to existing
+          this[idx].hits += value.hits;
+          this[idx].tests += value.tests;
+        }
+      }, this);
+    }
+
     function updateBuckets() {
       if (!checkBuckets()) {
         return false;
       }
+      var has_heat_map = coverpoint.hasOwnProperty('heat_map');
       // reduce buckets
       buckets = [];
+      buckets.aliases = [];
+      if (has_heat_map) {
+        buckets.heat_map = [];
+      }
       for (var bucket=0; bucket<coverpoint.buckets.length; bucket++) {
         var idx = bucketIdx(axisIdxs(bucket));
         if (buckets[idx] === undefined) {
-          buckets[idx] = coverpoint.buckets[bucket].concat([[bucket,]]);
+          buckets[idx] = coverpoint.buckets[bucket].slice(); // copy
+          buckets.aliases[idx] = [bucket,];
+          if (has_heat_map) {
+            buckets.heat_map[idx] = $.extend(true, [], coverpoint.heat_map[bucket]); // copy
+            buckets.heat_map[idx].add = add_heat;
+          }
         } else {
+          // calculate goal
           if (coverpoint.buckets[bucket][0] > 0) {
             if (buckets[idx][0] < 0) {
-              // previously marked as illegal
+              // previously marked as illegal, so now make hittable
               buckets[idx][0] = coverpoint.buckets[bucket][0];
             } else {
               buckets[idx][0] += coverpoint.buckets[bucket][0];
             }
           }
+          // calculate hits
+          // don't care if source bucket uninteresting, hence no qualification on goal
           buckets[idx][1] += coverpoint.buckets[bucket][1];
-          buckets[idx][2].push(bucket)
+          // store alias list
+          buckets.aliases[idx].push(bucket)
+          // accumulate heat data
+          if (has_heat_map) {
+            buckets.heat_map[idx].add(coverpoint.buckets.heat_map[bucket]);
+          }
         }
       }
       return true;
@@ -250,6 +322,8 @@ $coverage = function(){};
 
     function resetBuckets() {
       buckets = coverpoint.buckets;
+      delete buckets.aliases;
+      delete buckets.heat_map;
     }
 
     function hideSelected() {
@@ -302,6 +376,16 @@ $coverage = function(){};
       } else {
         options.matrix = options.table;
         $('#matrix, #graph', cvg_point_menu).addClass('grey');
+      }
+      if (coverpoint.cumulative === true) {
+        if (coverpoint.hasOwnProperty('heat_map')) {
+          $('#heat span.ui-icon', cvg_point_menu).addClass('check');
+          if (options.heat_map !== true) {
+            $('#heat', cvg_point_menu).addClass('grey');
+          }
+        }
+      } else {
+        $('#heat', cvg_point_menu).addClass('grey');
       }
 
       var elapsed, source;
@@ -427,16 +511,47 @@ $coverage = function(){};
         }
       })
       // ----------------------------------------
-      $('#matrix', cvg_point_menu).mouseup(function() {
-        if (!two_axes()) return true;
-        options.matrix = $('span.ui-icon', this).toggleClass('check').hasClass('check')?matrix.matrix:matrix.table;
-        self.build();
-      })
-      $('#graph', cvg_point_menu).mouseup(function() {
-        if (!one_axis()) return true;
-        options.matrix = $('span.ui-icon', this).toggleClass('check').hasClass('check')?matrix.graph:matrix.table;
-        self.build();
-      })
+      if (two_axes()) {
+        $('#matrix', cvg_point_menu).mouseup(function() {
+          options.matrix = $('span.ui-icon', this).toggleClass('check').hasClass('check')?matrix.matrix:matrix.table;
+          self.build();
+        })
+      }
+      if (one_axis()) {
+        $('#graph', cvg_point_menu).mouseup(function() {
+          options.matrix = $('span.ui-icon', this).toggleClass('check').hasClass('check')?matrix.graph:matrix.table;
+          self.build();
+        })
+      }
+      // ----------------------------------------
+      if (coverpoint.cumulative === true) {
+        $('#heat', cvg_point_menu).mouseup(function() {
+          if (coverpoint.hasOwnProperty('heat_map')) {
+            $(this).toggleClass('grey');
+            options.heat_map = !$(this).hasClass('grey');
+            if (options.heat_map && !buckets.hasOwnProperty('heat_map')) {
+              // derived axis may not have computed heat map; redo
+              updateBuckets();
+            }
+          } else {
+            var url = '/hm/' + log_id + '/' + coverpoint.offset + '/' + coverpoint.buckets.length;
+            var span = $('span.ui-icon', this);
+            $.getJSON(url, function(data) {
+              coverpoint.heat_map = data;
+              coverpoint.buckets.heat_map = [];
+              data.data.forEach(function(bucket){
+                coverpoint.buckets.heat_map[bucket[0].bucket_id - coverpoint.offset] = bucket;
+              });
+              span.addClass('check');
+              options.heat_map = true;
+              if (!all_visible()) {
+                // redo the aggregation computation to include heat data
+                updateBuckets();
+              }
+            });
+          }
+        })
+      }
     }
 
     function build_table() {
@@ -451,11 +566,12 @@ $coverage = function(){};
       for (var bucket=0; bucket<buckets.length; bucket++) {
         var bkt = buckets[bucket];
         var title = offset + bucket;
-        if (bkt.length > 2) {
-          if (bkt[2].length > 10) {
-            title = bkt[2].slice(0,5).join(',') + ',...,' + bkt[2].slice(-5).join(',');
+        if (buckets.hasOwnProperty('aliases')) {
+          var aliases = buckets.aliases[bucket];
+          if (aliases.length > 10) {
+            title = aliases.slice(0,5).join(',') + ',...,' + aliases.slice(-5).join(',');
           } else {
-            title = bkt[2].join(',');
+            title = aliases.join(',');
           }
         }
         body.append('<tr class="' + coverageTable.classFromBucket(bkt) + '"><td title="' + title + '">' + bucket + '</td>' + permsFromBucket(axes, bucket) + '<td>' + bkt[0] + '</td><td class="hits" bkt="' + bucket + '">' + bkt[1] + '</td></tr>');
@@ -481,19 +597,62 @@ $coverage = function(){};
       // add a graph of hits vs axis
       var axis = visible_axes()[0];
       var id =  $coverage.chart_id();
- 
+
       $('<div>', {id:id, style:'margin:auto', height:500, width:750}).appendTo(where);
-      $.jqplot(id, [buckets.map(function(it, idx ){return [axis.values[idx], it[1]]})], {
-        series:[{renderer:$.jqplot.BarRenderer}],
-        axes: {
-          xaxis: {
-            renderer: $.jqplot.CategoryAxisRenderer
+      if (options.heat_map) {
+        var tests = coverpoint.heat_map.testnames.sort(function(l,r){return l.hits < r.hits});
+        // return list of (hits per test) list
+        var data = tests.map(function(test){
+          // for each test return list of hits
+          return buckets.map(function(bkt, idx) {
+            var heat = buckets.heat_map[idx].find(function(it){return it.testname == test.idx});
+            if (heat !== undefined) return heat.hits;
+            return 0; // 0 if none
+          });
+        });
+
+        $.jqplot(id, data,
+          {
+          stackSeries: true,
+          seriesDefaults: {
+            renderer: $.jqplot.BarRenderer,
           },
-          yaxis: {
-            min: 0
+          axes: {
+            xaxis: {
+              renderer: $.jqplot.CategoryAxisRenderer,
+              ticks: axis.values
+            },
+            yaxis: {
+              min: 0
+            }
           }
-        }
-      });
+        });
+        var info = $('<div>', {class:'popup'}).appendTo(where);
+        function popup(ev, seriesIndex, pointIndex, data) {
+          info.show();
+          info.html('<p><b>'+tests[seriesIndex].testname+'<b></p><p>value: '+axis.values[pointIndex]+'</p><p><i>'+data[1]+' hits, '+ ((data[1]*parseFloat(100))/buckets[pointIndex][1]).toFixed(2) +'%</i></p>');
+        };
+        $('#'+id, where).bind('jqplotMouseMove', function(ev, gridpos, datapos, neighbor, plot){
+          if (neighbor === null) {
+            info.hide();
+            return;
+          }
+          info.offset({ top: ev.pageY - info.height() - 1, left: ev.pageX + 1 });
+        });
+        $('#'+id, where).bind('jqplotDataMouseOver', popup);
+        $('#'+id, where).bind('jqplotMouseLeave', function(){info.hide()});
+      } else {
+        $.jqplot(id, [buckets.map(function(it, idx){return [axis.values[idx], it[1]]})], {
+          axes: {
+            xaxis: {
+              renderer: $.jqplot.CategoryAxisRenderer
+            },
+            yaxis: {
+              min: 0
+            }
+          }
+        });
+      }
       // navigate back
       where.append($('<h5><a>Back to table view</a></h5>').click(function(){options.matrix=matrix.table; self.build()}));
 
@@ -509,8 +668,6 @@ $coverage = function(){};
       });
       // easiest way to place title in 1st data row
       $('tr:nth(2)', where).prepend($('<th/>', {class : 'title rotated', rowspan : _axes[0].values.length, text : _axes[0].name}))
-      // navigate back
-      $('div.table', where).append($('<h5><a>Back to table view</a></h5>').click(function(){options.matrix=matrix.table; self.build()}));
 
       var cells = $('th,td', where).not('.title');
       var width = Array.max(cells.map(function(idx,it){return $(it).width()}));
@@ -519,7 +676,32 @@ $coverage = function(){};
         $('td.hits', where).bind('mouseenter.coverage', function() {
           showBucket($(this));
  	});
+        if (coverpoint.hasOwnProperty('heat_map')) {
+          var tests = coverpoint.heat_map.testnames.sort(function(l,r){return l.hits < r.hits});
+          var sel = $('<div class="heat-map"><table><tr/></table></div>').css('width', 40*tests.length);
+          var cells = $('td[bkt]', where);
+          $('div.table', where).append(sel);
+          tests.forEach(function(test, idx){
+            var color = $.jqplot.config.defaultColors[idx], r = parseInt(color.slice(1,3), 16), g = parseInt(color.slice(3, 5), 16), b = parseInt(color.slice(5, 7), 16);
+            var cell = $('<td>', {title:test.testname, height:40}).css('background-color', color).appendTo($('tr', sel));
+            cell.tooltip({track:true});
+            cell.bind('mouseenter.example', function() {
+              // colour cells with hits
+              cells.each(function(id, it) {
+                var bkt = $(this).attr('bkt');
+                var detail = buckets.heat_map[parseInt(bkt)].find(function(it){return it.testname == test.idx}) || {hits:0};
+                $(this).css('background-color', 'rgba('+r+','+g+','+b+','+(detail.hits/parseFloat(buckets[bkt][1]))+')');
+              });
+            });
+          });
+          sel.bind('mouseleave.example', function() {
+            // remove colouring
+            cells.css('background-color', '');
+          });
+        }
       }
+      // navigate back
+      $('div.table', where).append($('<h5><a>Back to table view</a></h5>').click(function(){options.matrix=matrix.table; self.build()}));
     }
 
     this.coverage = function() {

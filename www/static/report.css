@@ -85,6 +85,12 @@
    ul.popup li span.uncheck {
      display:none;
    }
+   div.popup {
+     position: absolute;
+     background-color: #ccc;
+     font-size: 8pt;
+     line-height: 2pt;
+   }
 
    time       { display : none }
    time.rel   { width : 6em; }
@@ -151,6 +157,9 @@
 
    div.rgr div.left         { float : left ; width : 30%; height : 100%; overflow-y : scroll; }
    div.rgr div.right        { float : right; width : 70%; height : 100%; overflow-y : scroll; background : #eee }
+
+   div.heat-map             { margin-left : auto; margin-right : auto; margin-top : 20px }
+   div.heat-map table       { border : none }
 
    .hit         { background-color : #cfc }
    .error       { background-color : #faa }

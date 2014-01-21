@@ -281,6 +281,37 @@ class cvr :
 
 ################################################################################
 
+class hm :
+  'heat map - classify bucket hits by testname'
+  class compress :
+    def __init__(self) :
+      self.values = dict()
+    def __call__(self, grp) :
+      row = grp.currvalue
+      if row.testname in self.values :
+        self.values[row.testname].hits += row.hits
+      else :
+        self.values[row.testname] = mdb.accessor(idx=len(self.values), hits=row.hits)
+      row.testname = self.values[row.testname].idx
+      return row
+    def tests(self) :
+      return [test + dict(testname=testname) for testname, test in self.values.iteritems()]
+
+  def result(self, log_id, offset, size) :
+    '''
+      log_id : regression id
+      offset : first bucket index
+      size   : number of buckets
+    '''
+    with mdb.db.connection().row_cursor() as db :
+      message.debug('calculating %(log_id)s coverage heat map [%(offset)s+:%(size)s]', log_id=log_id, offset=offset, size=size)
+      db.execute('SELECT bucket_id, SUM(hits) AS hits, count(hits) AS tests, rtrim(test, "-x0123456789abcdef") AS testname FROM hits JOIN log USING (log_id) WHERE log.root = ? AND hits.bucket_id >= ? AND hits.bucket_id < ? GROUP BY bucket_id, testname ORDER BY bucket_id ASC, hits DESC;', (log_id, offset, offset+size))
+      testnames = self.compress()
+      data = list(index.groupby(db, lambda row : row.bucket_id, keyfact=lambda s : list(s._grouper(s.tgtkey)), grpfact=testnames))
+      return dict(testnames=testnames.tests(), data=data)
+
+################################################################################
+
 class upload :
   REFERENCE=True
   RESULT=False

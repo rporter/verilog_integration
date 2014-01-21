@@ -131,6 +131,15 @@ class bkt(serve_something, database.bkt) :
 
 ################################################################################
 
+class hm(serve_something, database.hm) :
+  CONTENTTYPE='application/json'
+  encapsulate=False
+
+  def doit(self, **kwargs):
+    json.dump(self.result(**kwargs), self.page)
+
+################################################################################
+
 @bottle.get('/static/<filename:path>')
 def server_static(filename):
     return bottle.static_file(filename, root=static)
@@ -154,6 +163,7 @@ urls = (
   ('/cvg/<log_id:int>/<goal_id:int>/<cumulative:re:(cumulative)>', cvg,),
   ('/cvr/<log_id:int>', cvr,),
   ('/bkt/<log_id:int>/<buckets>', bkt,),
+  ('/hm/<log_id:int>/<offset:int>/<size:int>', hm,),
 )
 
 for path, cls in urls:
