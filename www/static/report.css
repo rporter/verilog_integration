@@ -44,10 +44,9 @@
 
    a.popup {position:relative;
 	z-index:24;
-	text-decoration:none;
-        font-size : 10pt }
+	text-decoration:none }
    a.popup:hover {z-index:25; background-color : #ddd}
-   a.popup span  {display: none}
+   a.popup span  {display: none; font-size : 10pt}
    a.popup:hover span { /*DISPLAYS ONLY ON HOVER*/
 	display:block;
 	position:absolute;
@@ -154,12 +153,12 @@
    }
    table.bucket td          { width : 4em; }
    div.cvg-point-pane a.popup span {width : 8em; }
+   div.cvg-point-pane table.heat-map { border : none; width : auto; margin-left : auto; margin-right : auto; margin-top : 20px }
+   div.cvg-point-pane table.heat-map tr:hover { background-color : none }
 
    div.rgr div.left         { float : left ; width : 30%; height : 100%; overflow-y : scroll; }
    div.rgr div.right        { float : right; width : 70%; height : 100%; overflow-y : scroll; background : #eee }
 
-   div.heat-map             { margin-left : auto; margin-right : auto; margin-top : 20px }
-   div.heat-map table       { border : none }
 
    .hit         { background-color : #cfc }
    .error       { background-color : #faa }
