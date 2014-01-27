@@ -9,5 +9,6 @@ ui.dynatree.css
 vline-rtl.gif
 vline.gif
 jqplot.categoryAxisRenderer.min.js
+jqplot.barRenderer.min.js
 jquery.jqplot.min.css
 jquery.jqplot.min.js
