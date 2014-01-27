@@ -216,11 +216,12 @@ $coverage = function(){};
       } else {
         url += (bucket_id + offset);
       }
+      node.removeAttr('title');
       node.html(function(){
-        return '<a class="popup">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="hit details for ' + log_id + '/' + bucket_id + '"></span></a>';
+        return '<a class="popup">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="hit details for ' + log_id + '/' + bucket_id + '"><h5 style="margin:0">goal : '+bucket[0]+'</h5></span></a>';
       });
       $.getJSON(url, function(data) {
-        $('span', node).html(function() {
+        $('span', node).append(function() {
           if (data.length) {
             node.bind('click.coverage', {coverage:data, goal:goal, bucket_id:bucket_id}, showDialog);
             return $('<table/>', {
