@@ -848,6 +848,11 @@ $report = function(){
             $('<td>', {text : test.log.log_id}).appendTo(row);
             $('<td>', {text : test.status.reason}).appendTo(row);
             $('<td>', {text : test.status.status, class : test.status.status}).appendTo(row);
+            row.bind('click.example',
+              function() {
+                (new $report.openLog({log_id : test.log.log_id, name : test.log.description}, anchor, row)).add(anchor);
+              }
+            );
           });
         } else {
           build(tests, depth+1);
