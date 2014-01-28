@@ -161,7 +161,7 @@ class index :
 
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  order = 'log_id, msg_id, level ASC'
+  order = 'log_id ASC, level DESC, msg_id ASC'
 
   def result(self, subquery) :
     return self.summary([self.log(log, msgs) for log, msgs in self.groupby(self.execute(subquery), lambda x : x.log_id, self.keyfact, self.grpfact)])
@@ -196,7 +196,7 @@ class index :
   @staticmethod
   def grpfact(self) :
     'group factory for grouping'
-    return mdb.accessor(level=self.currvalue.level, severity=self.currvalue.severity, msg=self.currvalue.msg, count=self.currvalue.count)
+    return mdb.accessor(level=self.currvalue.level, severity=self.currvalue.severity, count=self.currvalue.count, msg=self.currvalue.msg, ident=self.currvalue.ident, subident=self.currvalue.subident, filename=self.currvalue.filename, line=self.currvalue.line)
 
 ################################################################################
 
@@ -210,7 +210,7 @@ class msgs :
 ################################################################################
 
 class rgr(index) :
-  order = 'parent ASC, log_id, msg_id, level ASC'
+  order = 'parent ASC, log_id ASC, level DESC, msg_id ASC'
   
   def result(self, log_id, root=True):
     relationship = 'root' if root else 'parent'

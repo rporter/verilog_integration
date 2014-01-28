@@ -750,7 +750,7 @@ $report = function(){
 
     this.add = function(tabs) {
       var href='#'+self.id;
-      tabs.tabs('add', href, data.log_id+' hier').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name)
+      tabs.tabs('add', href, data.log_id+' hier').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name);
     };
 
     this.table = function(log_id) {
@@ -796,11 +796,13 @@ $report = function(){
       $.ajax({
         url : 'rgr/'+data.log_id,
         dataType : 'json',
-        success : function(data) {
-          self.json = data;
+        success : function(json) {
+          self.json = json;
           self.tree = self.build(null);
           self.summarise(self.tree[0]);
           self.pane();
+          self.triage = new $report.openTriage(data, anchor, json);
+          self.triage.add(anchor);
         },
         error : function(xhr, status, index) {
           console.log(xhr, status, index);
@@ -808,6 +810,54 @@ $report = function(){
       });
     }
   }
+
+  $report.openTriage = function(data, anchor, json) {
+    var self = this;
+    this.id  = $report.tab_id();
+    this.div = $('<div>', {id: this.id});
+
+    this.has_fail = _.some(json, function(it){return it.status.status==='FAIL'});
+
+    this.add = function(tabs) {
+      var href='#'+self.id;
+      tabs.tabs('add', href, data.log_id+' triage');
+    };
+
+    this.div.appendTo(anchor);
+    this.div.html('<div><table><thead><tr><th rowspan=2>severity</th><th rowspan=2>filename</th><th rowspan=2>line</th><th rowspan=2>ident</th><th rowspan=2>subident</th><th rowspan=2>message</th><th rowspan=2>description</th><th rowspan=2>log_id</th><th colspan="2">status</th></tr><tr><th>message</th><th>status</th></th></thead><tbody/></table></div>');
+    $report.fit($('div', this.div));
+    var tbody = $('tbody', this.div);
+
+    function ifnull(value, repl) {
+      return (value === null)?repl:value;
+    }
+
+    function build(tests, depth) {
+      if (depth === undefined) depth = 0;
+      var name = $report.openTriage.attributes[depth];
+      _.each(_.groupBy(tests, function(test){return ifnull(test.log[name], '-')}), function(tests, attr) {
+        var row = $('tr:last', tbody);
+        // if the last cell of the last row does not have previous attribute make new row
+        if (!$('td:last', row).hasClass($report.openTriage.attributes[depth-1])) {
+          row = $('<tr>').appendTo(tbody);
+        }
+        $('<td>', {class:name, rowspan : tests.length, text : name=='level'?tests[0].log.severity:attr}).appendTo(row);
+        if (depth == $report.openTriage.attributes.length-1) {
+          tests.forEach(function(test, idx) {
+            if (idx > 0) row = $('<tr>').appendTo(tbody);
+            $('<td>', {text : test.log.log_id}).appendTo(row);
+            $('<td>', {text : test.status.reason}).appendTo(row);
+            $('<td>', {text : test.status.status, class : test.status.status}).appendTo(row);
+          });
+        } else {
+          build(tests, depth+1);
+        }
+      });
+    }
+
+    build(json);
+  }
+  $report.openTriage.attributes = ['level', 'filename', 'line' , 'ident', 'subident', 'msg', 'description'];
 
   $report.openRegr = function(data, node) {
     var self = this;

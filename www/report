@@ -26,6 +26,8 @@ urlget $root/static/jqplot.categoryAxisRenderer.min.js \
                                          http://www.jqplot.com/src/plugins/jqplot.categoryAxisRenderer.min.js
 urlget $root/static/jqplot.barRenderer.min.js \
                                          http://www.jqplot.com/src/plugins/jqplot.barRenderer.min.js
+urlget $root/static/underscore.js        http://underscorejs.org/underscore.js
+
 LD_LIBRARY_PATH=$root/../python:$LD_LIBRARY_PATH \
 PYTHONPATH=.:$root/../python:$PYTHONPATH \
 exec python $0.py --root=$root "$@"
