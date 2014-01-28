@@ -718,7 +718,7 @@ $coverage = function(){};
               var max = parseFloat(Math.max.apply(null, buckets.heat_map.map(function(it) { // the maximum is constant of bkt
                 return it.hits(test.idx);
               })));
-              cell.tooltip({track:true});
+              cell.tooltip({position:{at:'middle bottom-15px', my:'middle bottom-15px'}, track:true});
               cell.bind('mouseenter.example', function() {
                 // colour cells with hits
                 cells.each(function(id, it) {
