@@ -8,6 +8,10 @@ to run vpi put/get tests
 
 to run all
 
+% make -C test regress
+
+or if targets already built 
+
 % test/regress
 
 to start server (defaults to localhost:8080)

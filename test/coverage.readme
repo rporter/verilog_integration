@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Rich Porter - see LICENSE for further details
+# Copyright (c) 2013 Rich Porter - see LICENSE for further details
 
 # execute base line regression
 ./coverage test_coverage_multiple.py +cvr_seed+0xdead +tst_seed+1 +master=1 +instances=20 +children=12
@@ -17,3 +17,16 @@
 # use "incr" ordering; but only switch from cvg at 95%
 ./optimize -r 1484 -r 1497 -r 1515 --order incr --threshold 95
 
+# 
+# Heat map demonstration
+# 
+
+# uses random mixture of given tests
+# use web app "heat map" to look at hits in graph & matrix views
+./coverage test_coverage_multiple.py \
+  +tst_seed=8129 \
+  +cvr_seed+0xcdead \
+  +master=1 \
+  +instances=20 \
+  +tests=test_coverage_skew_high.py,test_coverage_skew_low.py,test_coverage_multiple.py,test_coverage_skew_middle.py \
+  +children=10
