@@ -156,6 +156,8 @@
    div.cvg-point-pane table.heat-map { border : none; width : auto; margin-left : auto; margin-right : auto; margin-top : 20px }
    div.cvg-point-pane table.heat-map tr:hover { background-color : none }
 
+   cvg-tooltip { background-image : none }
+
    div.rgr div.left         { float : left ; width : 30%; height : 100%; overflow-y : scroll; }
    div.rgr div.right        { float : right; width : 70%; height : 100%; overflow-y : scroll; background : #eee }
 

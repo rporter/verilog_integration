@@ -927,16 +927,18 @@ $coverage = function(){};
                width = 100,
                cvg = i.attr('coverage'),
                coverage = parseFloat(cvg),
-               canvas = $('<canvas>', {style:'z-index:1; position:relative; float:right', height:height, width:width, title:cvg+'%'}).insertBefore(nodeSpan);
+               canvas = $('<canvas>', {style:'z-index:1; position:relative; float:right', height:height, width:width, title:cvg+'%'}).insertBefore(nodeSpan),
+               color = $coverage.coverageTable.RGBFromCoverage(coverage);
            $(nodeSpan).css('position', 'relative').css('width', '100%');
            canvas[0].width = width;
            canvas[0].height = height;
            var ctx = canvas[0].getContext('2d');
-           ctx.fillStyle = $coverage.coverageTable.RGBFromCoverage(coverage);
+           ctx.fillStyle = color;
            ctx.fillRect(0, 0, width, height);
            var clr = (width-1)*coverage/100;
            ctx.clearRect(1+clr, 1, width-clr-1, height-2);
            ctx.fillRect(width-1, 0, width-1, height); // fill that pesky end bit in
+           canvas.tooltip({content:'<a style="background-color:'+color+'">'+cvg+'%</a>', tooltipClass: "cvg-tooltip",});
          })
        }, 0);
      }
