@@ -4,6 +4,7 @@ import collections
 from lxml import etree
 import pwd
 import random
+import re
 import sys
 import time
 
@@ -189,10 +190,18 @@ class index :
       db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER BY %s;' % (str(subquery), self.order))
       return db.fetchall()
 
+  testseed = re.compile(r'-(?P<seed>(0x)?[0-9a-fA-F]+)$')
   @staticmethod
   def keyfact(self) :
     'key factory for grouping'
-    return [mdb.accessor(user=pwd.getpwuid(self.currvalue.uid).pw_name, **self.currvalue), self._grouper(self.tgtkey)]
+    testname = self.currvalue.test
+    seed = None
+    if self.currvalue.test :
+      seed = index.testseed.search(self.currvalue.test)
+      if seed :
+        testname = self.currvalue.test[:seed.start()]
+        seed = seed.group('seed')
+    return [mdb.accessor(testname=testname, seed=seed, user=pwd.getpwuid(self.currvalue.uid).pw_name, **self.currvalue), self._grouper(self.tgtkey)]
   @staticmethod
   def grpfact(self) :
     'group factory for grouping'

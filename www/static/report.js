@@ -824,7 +824,7 @@ $report = function(){
     };
 
     this.div.appendTo(anchor);
-    this.div.html('<div><table><thead title="click to hide PASSes"><tr><th rowspan=2>severity</th><th rowspan=2>filename</th><th rowspan=2>line</th><th rowspan=2>ident</th><th rowspan=2>subident</th><th rowspan=2>message</th><th rowspan=2>description</th><th rowspan=2>log_id</th><th colspan="2">status</th></tr><tr><th>message</th><th>status</th></th></thead><tbody/></table></div>');
+    this.div.html('<div><table><thead title="click to hide PASSes"><tr><th rowspan=2>severity</th><th rowspan=2>filename</th><th rowspan=2>line</th><th rowspan=2>ident</th><th rowspan=2>subident</th><th rowspan=2>message</th><th rowspan=2>description</th><th rowspan=2>testname</th><th rowspan=2>log_id</th><th colspan="2">status</th></tr><tr><th>message</th><th>status</th></th></thead><tbody/></table></div>');
     $report.fit($('div', this.div));
     var tbody = $('tbody', this.div);
 
@@ -863,7 +863,7 @@ $report = function(){
     build(json);
     $('thead', this.div).bind('click.example', function(){$('tr:has(td.PASS)', this.div).toggle()});
   }
-  $report.openTriage.attributes = ['level', 'filename', 'line' , 'ident', 'subident', 'msg', 'description'];
+  $report.openTriage.attributes = ['level', 'filename', 'line' , 'ident', 'subident', 'msg', 'description', 'testname'];
 
   $report.openRegr = function(data, node) {
     var self = this;
