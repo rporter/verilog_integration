@@ -23,10 +23,10 @@ choices = (False,)*10 + (True,)
 
 class coverpoint(coverage.coverpoint) :
   'stuff'
+  NAMES='abcxyz'
   def __init__(self, name) :
-    self.x   = self.add_axis('x', values=range(0, random.randrange(5, 10)))
-    self.y   = self.add_axis('y', values=range(0, random.randrange(5, 10)))
-    self.z   = self.add_axis('z', values=range(0, random.randrange(5, 10)))
+    for axis in random.sample(self.NAMES, random.randrange(2, len(self.NAMES))) :
+      self.add_axis(axis, values=range(0, random.randrange(5, 10)))
     coverage.coverpoint.__init__(self, name=name)
 
   def define(self, bucket) :

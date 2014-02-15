@@ -126,6 +126,14 @@ $coverage = function(){};
         return sum;
       }, Array());
     }
+    function invisible_axes() {
+      return axes.reduce(function(sum, it, idx){
+        if (it.visible === false) {
+          sum.push(it);
+        }
+        return sum;
+      }, Array());
+    }
     function one_axis() {
       return visible_axes().length == 1;
     }
@@ -162,6 +170,26 @@ $coverage = function(){};
       }, 0);
     }
 
+    function scrollWheel(table) {
+      table.bind('wheel mousewheel', function(event) {
+        var oSettings = table.fnSettings();
+        var delta = event.originalEvent.wheelDelta || event.originalEvent.deltaY;
+        if (delta/120 > 0) {
+          if (oSettings._iDisplayStart >= (oSettings.aoData.length - oSettings._iDisplayLength)) {
+            return false;
+          }
+          oSettings.iInitDisplayStart = oSettings._iDisplayStart + 1;
+        } else {
+          if (oSettings._iDisplayStart < 1) {
+            return false;
+          }
+          oSettings.iInitDisplayStart = oSettings._iDisplayStart - 1;
+        }
+        table.fnDraw();
+        return false;
+      });
+    }
+
     function showDialog(event) {
       // create table of all hits in a dialog popup
       var container = $('<div><div><table/></div></div>').attr('title', title+'['+event.data.bucket_id+']').css("white-space", "nowrap");
@@ -187,22 +215,7 @@ $coverage = function(){};
           );
         }
       });
-      container.bind('mousewheel', function(event) {
-        var oSettings = table.fnSettings();
-        if (event.originalEvent.wheelDelta/120 < 0) {
-          if (oSettings._iDisplayStart >= (oSettings.aoData.length - oSettings._iDisplayLength)) {
-            return false;
-          }
-          oSettings.iInitDisplayStart = oSettings._iDisplayStart + 1;
-        } else {
-          if (oSettings._iDisplayStart < 1) {
-            return false;
-          }
-          oSettings.iInitDisplayStart = oSettings._iDisplayStart - 1;
-        }
-        table.fnDraw();
-        return false;
-      });
+      scrollWheel(table);
       container.dialog({width:"auto"});
     }
 
@@ -235,6 +248,58 @@ $coverage = function(){};
           }
   	});
       });
+      node.unbind('mouseenter.coverage'); // don't do again
+    }
+
+    function showAliases(node) {
+
+      function permsFromBucket(axes, bucket, values) {
+        if (axes.length == 0) return values; // terminal case
+        values = values || [];
+        var last = axes.slice(-1)[0];
+        if (last.visible === false) {
+          values.push(last.values[bucket % last.values.length]+"</td>");
+        }
+        return permsFromBucket(axes.slice(0, -1), Math.floor(bucket/last.values.length), values);
+      }
+
+      var bucket_id = parseInt(node.attr('bkt'));
+      var bucket    = buckets[bucket_id];
+      var goal      = bucket[0];
+      var title     = 'alias details for ' + log_id + '/' + bucket_id;
+      node.removeAttr('title');
+      node.html(function(){
+        return '<a class="popup">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="'+title+'"><h5 style="margin-bottom:0.2em;margin-top:0;text-align: center">goal : '+bucket[0]+'</h5></span></a>';
+      });
+      if (!all_visible()) {
+        var
+          table = $('<table><thead><tr>' + invisible_axes().reduce(function(p, c){return p+'<th>'+c.name+'</th>'}, '') + '<th>goal</th><th>hits</th></tr></thead><tbody/></table>').appendTo($('span', node)),
+          tbody = $('tbody', table);
+        buckets.aliases[bucket_id].forEach(function(it){
+          var bkt = coverpoint.buckets[it];
+          $('<tr>'+permsFromBucket(axes, it).reduce(function(p, c){return p+'<td>'+c+'</td>'}, '')+'<td>'+bkt[0]+'</td><td>'+bkt[1]+'</td></tr>').addClass(coverageTable.classFromBucket(bkt)).appendTo(tbody);
+        });
+        node.bind('click.coverage', function() {
+          var container = $('<div><div><table/></div></div>').attr('title', title).css("white-space", "nowrap");
+          var table = $('table', container).dataTable({
+            "bJQueryUI": true,
+            "bFilter": false,
+            "aoColumns": Array.prototype.concat([{ "sTitle": "bucket", "bVisible": true },], invisible_axes().map(function(it){return { "sTitle": it.name }}), [
+              { "sTitle": "goal" },
+              { "sTitle": "hits" }
+            ]),
+            "aaData" : buckets.aliases[bucket_id].map(function(it){return Array.prototype.concat([it,], permsFromBucket(axes, it), coverpoint.buckets[it])}),
+            "aaSorting": [[0, "asc"]], // sort on bkt id
+            "aLengthMenu": [[10, 25, 50, 100 , -1], [10, 25, 50, 100, "All"]],
+            "iDisplayLength": 10,
+            "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
+              $(nRow).addClass(coverageTable.classFromBucket(coverpoint.buckets[aData[0]]));
+            }
+          });
+          scrollWheel(table);
+          container.dialog({width:"auto"});
+        });
+      }
       node.unbind('mouseenter.coverage'); // don't do again
     }
 
@@ -598,6 +663,10 @@ $coverage = function(){};
         $('td.hits', body).bind('mouseenter.coverage', function() {
           showBucket($(this));
  	});
+      } else if (!all_visible()) {
+        $('td.hits', body).bind('mouseenter.coverage', function() {
+          showAliases($(this));
+ 	});
       }
       if (options.hide_hits) {
         $('tr.hit', where).hide();
@@ -687,10 +756,14 @@ $coverage = function(){};
       var cells = $('th,td', where).not('.title');
       var width = Array.max(cells.map(function(idx,it){return $(it).width()}));
       cells.css('height', width).css('width', width);
-      if (coverpoint.cumulative === true) {
-        $('td.hits', where).bind('mouseenter.coverage', function() {
+      $('td.hits', where).bind('mouseenter.coverage', function() {
+        if (coverpoint.cumulative === true) {
           showBucket($(this));
-        });
+        } else {
+          showAliases($(this));
+        }
+      });
+      if (coverpoint.cumulative === true) {
         if (options.heat_map) {
           var tests = coverpoint.heat_map.testnames.sort(function(l,r){return l.hits < r.hits});
           var cells = $('td[bkt]', where);
