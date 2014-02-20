@@ -69,7 +69,7 @@ class test :
     block = block or self.block
     message.terminate_cbs.add(self.name, 10, self.terminate, self.check_success)
     try :
-      mdb.db.connection.set_default_db(db=self.get_db())
+      mdb.connection.set_default_db(db=self.get_db())
       self.mdb = mdb.mdb(self.name, activity=activity, block=block, test=self.test)
     except :
       message.note('Not using mdb because ' + str(sys.exc_info()))

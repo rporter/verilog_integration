@@ -185,7 +185,7 @@ class index :
     return result
 
   def execute(self, subquery) :
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       message.debug('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER BY %s;' % (str(subquery), self.order))
       db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER BY %s;' % (str(subquery), self.order))
       return db.fetchall()
@@ -211,7 +211,7 @@ class index :
 
 class msgs :
   def result(self, log_id):
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       message.debug('retrieving %(log_id)s messages', log_id=log_id)
       db.execute('SELECT * FROM message WHERE log_id = %(log_id)s;' % locals())
       return db.fetchall()
@@ -232,7 +232,7 @@ class cvg :
   class hierarchy :
     def __init__(self, goal_id, defaults, cumulative) :
       self.all_nodes = dict()
-      with mdb.db.connection().row_cursor() as db :
+      with mdb.connection().row_cursor() as db :
         db.execute('SELECT * FROM point LEFT OUTER JOIN axis USING (point_id) LEFT OUTER JOIN enum USING (axis_id) WHERE log_id=%(goal_id)s ORDER BY point_id ASC, axis_id ASC, enum_id ASC;' % locals())
         points = db.fetchall()
       for parent, children in index.groupby(points, lambda row : row.point_id) :
@@ -255,7 +255,7 @@ class cvg :
     def points(self) :
       return cvg.hierarchy(self.goal_id, self.coverage(), self.cumulative).get_root()
     def coverage(self) :
-      with mdb.db.connection().row_cursor() as db :
+      with mdb.connection().row_cursor() as db :
         db.execute(self.query % self.__dict__)
         for result in db.fetchall() :
           yield result
@@ -274,7 +274,7 @@ class cvg :
 
 class bkt :
   def result(self, log_id, buckets) :
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       message.debug('retrieving %(log_id)s bucket coverage', log_id=log_id)
       db.execute('SELECT hits.log_id, log.test, log.description, SUM(hits.hits) AS hits FROM hits NATURAL JOIN log WHERE log.root = %(log_id)s AND bucket_id IN (%(buckets)s) GROUP BY hits.log_id ORDER BY hits DESC;' % locals())
       return db.fetchall()
@@ -283,7 +283,7 @@ class bkt :
 
 class cvr :
   def result(self, log_id) :
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       message.debug('retrieving %(log_id)s coverage information', log_id=log_id)
       db.execute('SELECT %(log_id)s as log_id, (SELECT log_id FROM goal WHERE log_id = %(log_id)s LIMIT 1) AS goal, (SELECT log_id FROM hits WHERE log_id = %(log_id)s LIMIT 1) AS coverage, (SELECT goal_id FROM master WHERE log_id = %(log_id)s LIMIT 1) AS master, (SELECT goal.log_id FROM goal JOIN log ON (log.root = goal.log_id) WHERE log.log_id = %(log_id)s LIMIT 1) AS root;' % locals())
       return db.fetchone()
@@ -312,7 +312,7 @@ class hm :
       offset : first bucket index
       size   : number of buckets
     '''
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       message.debug('calculating %(log_id)s coverage heat map [%(offset)s+:%(size)s]', log_id=log_id, offset=offset, size=size)
       db.execute('SELECT bucket_id, SUM(hits) AS hits, count(hits) AS tests, rtrim(test, "-x0123456789abcdef") AS testname FROM hits JOIN log USING (log_id) WHERE log.root = ? AND hits.bucket_id >= ? AND hits.bucket_id < ? GROUP BY bucket_id, testname ORDER BY bucket_id ASC, hits DESC;', (log_id, offset, offset+size))
       testnames = self.compress()
@@ -446,7 +446,7 @@ class optimize :
     'log_ids is a list of regression roots'
     self.log_ids = log_ids
     s_log_ids = ','.join(map(str, log_ids))
-    self.tests = mdb.db.connection().row_cursor()
+    self.tests = mdb.connection().row_cursor()
     # create table of individual runs, but not root node as this may have already summarised coverage
     self.tests.execute('CREATE TEMPORARY TABLE '+self.invs+' AS SELECT l1.*, goal_id AS master FROM log AS l0 JOIN log AS l1 ON (l0.log_id = l1.root) LEFT OUTER JOIN master ON (l1.log_id = master.log_id) WHERE l1.root IN ('+s_log_ids+');')
     self.tests.execute('SELECT count(*) AS children FROM '+self.invs)
@@ -466,7 +466,7 @@ class optimize :
       message.fatal('no tests')
     message.information('starting with %(count)d tests in table %(table)s', count=tests, table=self.invs)
     # check congruency
-    self.cvg = mdb.db.connection().row_cursor()
+    self.cvg = mdb.connection().row_cursor()
     self.cvg.execute("SELECT md5_self AS md5, 'md5_self' AS type, invs.master, invs.root FROM point JOIN "+self.invs+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
     md5 = self.cvg.fetchall()
     if not md5 :
@@ -536,7 +536,7 @@ class optimize :
 
   def status(self) :
     'calculate & return current coverage'
-    with mdb.db.connection().cursor() as db :
+    with mdb.connection().cursor() as db :
       db.execute('SELECT SUM(MIN(goal, hits)) AS hits, SUM(goal) AS goal, SUM(MIN(goal+max_hits, rhits)) AS rhits, SUM(goal+max_hits) AS rgoal FROM '+self.covg+' WHERE goal > 0;')
       hits, goal, rhits, rgoal = db.fetchone()
       covrge=coverage.coverage(hits=hits, goal=goal)
@@ -553,7 +553,7 @@ class optimize :
     return cvg.hierarchy(self.get_master(), self.dump(), False).get_root()
 
   def dump(self) :
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       db.execute('SELECT * FROM ' + self.covg)
       buckets = db.fetchall()
     def values() :
@@ -645,7 +645,7 @@ class incrOrderedOptimize(cvgOrderedOptimize) :
       yield mdb.accessor(log=log, last=current, updates=updates, status=status, hits=status.metric().hits-current.metric().hits)
       current = status
       # calculate incremental coverage of remaining tests
-      with mdb.db.connection().row_cursor() as db :
+      with mdb.connection().row_cursor() as db :
         db.execute('DELETE FROM '+self.invs+' WHERE log_id = ?;', (log.log_id,))
         if status.metric().coverage() > self.threshold :
           if not switched :

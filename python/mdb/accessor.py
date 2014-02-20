@@ -27,7 +27,3 @@ class accessor(dict) :
   def __add__(self, other) :
     return self.__class__(self.items() + other.items())
   
-def accessor_factory(cursor, row) :
-  'Horrible, horrible hack here. Reverse list as when there are duplicates for fields we want use to 1st'
-  return accessor(reversed([(name[0], row[idx]) for idx, name in enumerate(cursor.description)]))
-
