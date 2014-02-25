@@ -26,7 +26,7 @@ verilator verilate : verilog
 	$(MAKE) -C ../c $(notdir $@)
 
 regress : all
-       ./regress
+	./regress
 
 build :
 	$(MAKE) -C ../c
