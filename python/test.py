@@ -141,7 +141,7 @@ class test :
     message.warning('no epilogue defined')
 
   @classmethod
-  def pdb(self, traceback=None) :
+  def pdb(cls, traceback=None) :
     message.note('entering pdb command line')
     try :
       import pdb
@@ -187,10 +187,11 @@ class test :
       for detail in details.strip('\n').split('\n') :
         message.warning(detail)
 
-  def plusarg_opt_int(self, name, default, fmt='08x') :
+  @classmethod
+  def plusarg_opt_int(cls, name, default, fmt='08x') :
     'To get default/command line options'
     try :
-      result = int(plusargs().get(name, default), 0)
+      result = int(plusargs().get(name, str(default)), 0)
     except :
       message.warning(str(sys.exc_info()))
       result = default

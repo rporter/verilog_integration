@@ -28,5 +28,6 @@
   +cvr_seed+0xcdead \
   +master=1 \
   +instances=20 \
+  +max_axes=5 \
   +tests=test_coverage_skew_high.py,test_coverage_skew_low.py,test_coverage_multiple.py,test_coverage_skew_middle.py \
   +children=100
