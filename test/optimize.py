@@ -13,7 +13,7 @@ import message
 # where range-or-id is [0-9]+(..[0-9]+)
 
 parser = message.reportOptionParser()
-parser.add_option('',   '--order', help='order sequence', default=[], action='append', choices=database.optimize.options.keys())
+parser.add_option('',   '--order', help='order sequence '+str(database.optimize.options.keys()), default=[], action='append', choices=database.optimize.options.keys())
 parser.add_option('-r', '--regression', default=[], help='Regression root id', action='append')
 parser.add_option('',   '--robust', default=False, help='Attempt to make test set robust', action='store_true')
 parser.add_option('-t', '--test', default=[], help='Test id', action='append')

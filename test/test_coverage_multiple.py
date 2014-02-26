@@ -24,9 +24,9 @@ choices = (False,)*10 + (True,)
 
 class coverpoint(coverage.coverpoint) :
   'stuff'
-  NAMES='abcxyz'
+  NAMES='abcdefghijklmnopqrstuvwxyz'
   def __init__(self, name) :
-    for axis in random.sample(self.NAMES, random.randrange(2, len(self.NAMES))) :
+    for axis in random.sample(self.NAMES, random.randrange(2, self.number_of_axes)) :
       self.add_axis(axis, values=range(0, random.randrange(5, 10)))
     coverage.coverpoint.__init__(self, name=name)
 
@@ -34,6 +34,17 @@ class coverpoint(coverage.coverpoint) :
     'set goal'
     # no dont cares or illegals
     bucket.default(goal=random.randrange(1, 100), dont_care=random.choice(choices), illegal=random.choice(choices))
+  
+  @utils.lazyProperty
+  def number_of_axes(self) :
+    limit = len(self.NAMES)
+    result = test.test.plusarg_opt_int('max_axes', 3, 'd')
+    if result < 1 :
+      result = 1
+    if result > limit : 
+      result = limit
+      message.warning('limit of %(limit)d axes', limit=limit)
+    return result+1
 
 ################################################################################
 
