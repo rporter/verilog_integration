@@ -8,8 +8,14 @@ import sys
 import threading
 
 class cursor(object) :
+  LAST_SQL='SELECT last_insert_rowid() AS rowid;'
   def __init__(self, connection, factory) :
     connection.row_factory = factory
+    self.db = self.connection.cursor()
+  def formatter(self, fmt) :
+    return str(fmt).replace('%s', '?')
+  def split(self, field) :
+    return 'RTRIM('+field+', "-x0123456789abcdef")'
 
 def accessor_factory(cursor, row) :
   'Horrible, horrible hack here. Reverse list as when there are duplicates for fields we want use to 1st'

@@ -227,7 +227,7 @@ class axis :
         raise axisValueError
       self.values = enums
     # make sure enum indices are integers
-    non_int = filter(lambda x : not(isinstance(x, int)), self.values.values())
+    non_int = filter(lambda x : not(isinstance(x, (long, int))), self.values.values())
     if non_int :
       message.error('axis %(name)s has non integer indices %(non_int)s', name=self.name, non_int=non_int)
       raise axisValueError

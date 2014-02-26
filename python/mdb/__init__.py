@@ -39,34 +39,48 @@ class mdbDefault(dict) :
 class _cursor(object) :
   ident=0
   debug=False
+  HAS_UPDATE=False
   def __init__(self, connection, factory) :
     self.connection = connection
-    self.db = self.connection.cursor()
     self.dump = open(self.filename(), 'w') if self.debug else None
     if self.dump :
       import inspect, pprint
       pprint.pprint(inspect.stack(), stream=self.dump)
 
-  def commit(self) :
-    self.connection.commit()
-
   def execute(self, *args) :
     if self.dump :
       self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
-    return self.db.execute(*args)
+    return self.db.execute(self.formatter(args[0]), *args[1:])
+
+  def commit(self) :
+    self.connection.commit()
+
+  def last_id(self) :
+    self.execute(self.LAST_SQL)
+    row = self.fetchone()
+    try :
+      return row['rowid']
+    except :
+      return row[0]
 
   def __getattr__(self, attr) :
     return getattr(self.db, attr)
 
   def __iter__(self) :
-    return self.db
+    try :
+      return iter(self.db)
+    except :
+      return self
 
   def __enter__(self) :
-    return self.db
+    return self
 
-  def __exit__(self, type, value, traceback): 
-    self.connection.commit()
-    self.db.close()
+  def __exit__(self, type, value, traceback):
+    try :
+      self.db.__exit__(type, value, traceback)
+    except :
+      self.commit()
+      self.db.close()
 
   def __del__(self) :
     if self.dump :
@@ -82,6 +96,12 @@ class _connection(object) :
 
   def __init__(self, *args, **kwargs) :
     'pools connections on per thread basis'
+    if kwargs.get('reconnect', False) :
+      try :
+        self.instance[threading.current_thread()].close()
+      except :
+        pass
+      del self.instance[threading.current_thread()]
     if threading.current_thread() not in self.instance :
       self.connect(*args, **kwargs)
 
@@ -93,7 +113,7 @@ try :
 except ImportError :
   import _sqlite as db
 
-class cursor(_cursor, db.cursor) :
+class cursor(db.cursor, _cursor) :
   impl = db
   def __init__(self, connection, factory=None) :
     db.cursor.__init__(self, connection, factory)
@@ -110,6 +130,7 @@ class mdb(object) :
   atexit = False
   class repeatingTimer(threading._Timer) :
     def run(self):
+      message.debug('Timer thread is ' + threading.current_thread().name)
       while not self.finished.is_set():
         self.finished.wait(self.interval)
         self.function(*self.args, **self.kwargs)
@@ -126,6 +147,8 @@ class mdb(object) :
     self.parent = parent or mdbDefault().parent
     # create log entry for this run
     self.log_id = self.log(os.getuid(), socket.gethostname(), self.abv, self.root, self.parent, description, test)
+    # create semaphore
+    self.semaphore = threading.Semaphore()
     # install callbacks
     message.emit_cbs.add('mdb emit', 1, self.add, None)
     message.terminate_cbs.add('mdb terminate', 20, self.finalize, self.finalize)
@@ -172,34 +195,28 @@ class mdb(object) :
   def cursor(cls) :
     return connection().cursor()
 
-  def get_sema(self) :
-    if not hasattr(self, 'semaphore') :
-      self.semaphore = threading.Semaphore()
-    return self.semaphore
-
   def flush(self) :
-    semaphore = self.get_sema()
-    semaphore.acquire()
+    self.semaphore.acquire()
     with self.cursor() as cursor :
       def insert(cb_id, when, level, severity, ident, subident, filename, line, msg) :
-        cursor.execute('INSERT INTO message (log_id, level, severity, date, ident, subident, filename, line, msg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);', (self.log_id, level, severity, when.tv_sec, ident, subident, filename, line, msg))
+        cursor.execute('INSERT INTO message (log_id, level, severity, date, ident, subident, filename, line, msg) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);', (self.log_id, level, severity, when.tv_sec, ident, subident, filename, line, msg))
       try :
         while (1) :
           insert(*self.queue.get(False))
       except Queue.Empty :
         pass # done
-    semaphore.release()
+    self.semaphore.release()
 
   def log(self, uid, hostname, abv, root, parent, description, test) :
     'create entry in log table'
     with self.cursor() as db :
-      db.execute('INSERT INTO log (uid, root, parent, activity, block, version, description, test, hostname) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);', (uid, root, parent, abv.activity, abv.block, abv.version, description, test, hostname))
+      db.execute('INSERT INTO log (uid, root, parent, activity, block, version, description, test, hostname) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);', (uid, root, parent, abv.activity, abv.block, abv.version, description, test, hostname))
       return db.lastrowid
 
   def status(self) :
     'update status at end'
     with self.cursor() as cursor :
-      cursor.execute('UPDATE log SET status = ? WHERE log_id = ?;', (int(message.message.status().flag), self.log_id))
+      cursor.execute('UPDATE log SET status = %s WHERE log_id = %s;', (int(message.message.status().flag), self.log_id))
 
 # short cut
 finalize_all = mdb.finalize_all
