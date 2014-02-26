@@ -624,6 +624,8 @@ $coverage = function(){};
               data.data.forEach(function(bucket){
                 coverpoint.heat_map.buckets[bucket[0].bucket_id - coverpoint.offset] = new heat_bkt(bucket);
               });
+              // this is where data is used from
+              buckets.heat_map = coverpoint.heat_map.buckets;
               span.addClass('check');
               options.heat_map = true;
               if (!all_visible()) {
