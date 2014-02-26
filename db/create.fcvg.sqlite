@@ -2,7 +2,7 @@ CREATE TABLE point (
   point_id   INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, -- unique point id
   log_id     INTEGER NOT NULL,                           -- log id of declaration
   point_name TEXT,                                       -- name of this point
-  desc       TEXT,                                       -- description of this point
+  description TEXT,                                       -- description of this point
   root       INTEGER,                                    -- root point or NULL if root
                                                          --  means we don't need recursive select or function
   parent     INTEGER,                                    -- parent point or NULL if root
