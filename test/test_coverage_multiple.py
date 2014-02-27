@@ -28,7 +28,7 @@ class coverpoint(coverage.coverpoint) :
   def __init__(self, name) :
     for axis in random.sample(self.NAMES, random.randrange(2, self.number_of_axes)) :
       self.add_axis(axis, values=range(0, random.randrange(5, 10)))
-    coverage.coverpoint.__init__(self, name=name)
+    coverage.coverpoint.__init__(self, name=name, description='random coverpoint')
 
   def define(self, bucket) :
     'set goal'

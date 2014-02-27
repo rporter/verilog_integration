@@ -31,9 +31,9 @@ class cursor(object) :
     for attempt in range(0, connection.RETRIES) :
       try :
         return self.db.execute(self.formatter(args[0]), *args[1:])
-      except MySQLdb._mysql_exceptions.OperationalError :
+      except MySQLdb.OperationalError(2006, 'MySQL server has gone away') :
         message.warning('MySQL connection lost; retrying')
-        self.connection = connection(reconnect=True)
+        self.reconnect()
         self.create()
 
   def formatter(self, fmt) :

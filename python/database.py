@@ -453,12 +453,13 @@ class optimize :
     self.log_ids = log_ids
     s_log_ids = ','.join(map(str, log_ids))
     self.tests = mdb.connection().row_cursor()
-    # create table of individual runs, but not root node as this may have already summarised coverage
-    self.tests.execute('CREATE TEMPORARY TABLE '+self.invs+' AS SELECT l1.*, goal_id AS master FROM log AS l0 JOIN log AS l1 ON (l0.log_id = l1.root) LEFT OUTER JOIN master ON (l1.log_id = master.log_id) WHERE l1.root IN ('+s_log_ids+');')
-    self.tests.execute('SELECT count(*) AS children FROM '+self.invs)
-    children = self.tests.fetchone().children
-    if children :
-      message.information('%(log_ids)s %(has)s %(children)d children', log_ids=s_log_ids, children=children, has='have' if len(log_ids) > 1 else 'has')
+    if log_ids :
+      # create table of individual runs, but not root node as this may have already summarised coverage
+      self.tests.execute('CREATE TEMPORARY TABLE '+self.invs+' AS SELECT l1.*, goal_id AS master FROM log AS l0 JOIN log AS l1 ON (l0.log_id = l1.root) LEFT OUTER JOIN master ON (l1.log_id = master.log_id) WHERE l1.root IN ('+s_log_ids+');')
+      self.tests.execute('SELECT count(*) AS children FROM '+self.invs)
+      children = self.tests.fetchone().children
+      if children :
+        message.information('%(log_ids)s %(has)s %(children)d children', log_ids=s_log_ids, children=children, has='have' if len(log_ids) > 1 else 'has')
     # append individual runs as given by test_ids
     if xml :
       xml_ids = xml.xml.xpath('/optimize/test/log_id/text()')
@@ -466,8 +467,8 @@ class optimize :
       xml_ids=[]
     if test_ids or xml_ids :
       s_test_ids = ','.join(map(str, test_ids+xml_ids))
-      message.debug('INSERT INTO '+self.invs+' SELECT log.*, goal_id AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) WHERE log.log_id IN ('+s_test_ids+');')
-      self.tests.execute('INSERT INTO '+self.invs+' SELECT log.*, goal_id AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) WHERE log.log_id IN ('+s_test_ids+');')
+      create = ('INSERT INTO '+self.invs) if log_ids else ('CREATE TEMPORARY TABLE '+self.invs+' AS')
+      self.tests.execute(create+' SELECT log.*, goal_id AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) WHERE log.log_id IN ('+s_test_ids+');')
     self.tests.execute('SELECT count(*) AS tests FROM '+self.invs)
     tests = self.tests.fetchone().tests
     if tests < 1 :
@@ -678,9 +679,9 @@ class incrOrderedOptimize(cvgOrderedOptimize) :
           # switch to incremental as coverage closes
           minexpr = '(status.goal+status.max_hits)-status.rhits' if self.robust else 'status.goal-status.hits'
           if self.robust :
-            db.execute('SELECT invs.*, IFNULL(SUM(MIN((status.goal+status.max_hits)-status.rhits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < (status.goal+status.max_hits)) GROUP BY log_id ORDER BY hits DESC;')
+            db.execute('SELECT invs.*, IFNULL(SUM(MIN((status.goal+status.max_hits)-status.rhits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER JOIN hits USING (log_id) JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < (status.goal+status.max_hits)) GROUP BY log_id ORDER BY hits DESC;')
           else :
-            db.execute('SELECT invs.*, IFNULL(SUM(MIN(status.goal-status.hits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < status.goal) GROUP BY log_id ORDER BY hits DESC;')
+            db.execute('SELECT invs.*, IFNULL(SUM(MIN(status.goal-status.hits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER JOIN hits USING (log_id) JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < status.goal) GROUP BY log_id ORDER BY hits DESC;')
           testlist = db.fetchall()
 
 ################################################################################

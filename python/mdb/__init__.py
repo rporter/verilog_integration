@@ -63,6 +63,9 @@ class _cursor(object) :
     except :
       return row[0]
 
+  def reconnect(self) :
+    self.connection = connection(reconnect=True)
+
   def __getattr__(self, attr) :
     return getattr(self.db, attr)
 
@@ -196,7 +199,10 @@ class mdb(object) :
     return connection().cursor()
 
   def flush(self) :
-    self.semaphore.acquire()
+    if not self.semaphore.acquire(False) :
+      # if we can't get the semaphore somebody is already doing this
+      # But there is a race when the other thread is just finishing
+      return
     with self.cursor() as cursor :
       def insert(cb_id, when, level, severity, ident, subident, filename, line, msg) :
         cursor.execute('INSERT INTO message (log_id, level, severity, date, ident, subident, filename, line, msg) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);', (self.log_id, level, severity, when.tv_sec, ident, subident, filename, line, msg))
