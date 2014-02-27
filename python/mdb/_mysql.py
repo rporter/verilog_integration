@@ -9,6 +9,15 @@ import socket
 import sys
 import threading
 
+################################################################################
+
+# monkey patch converters
+import MySQLdb.converters
+MySQLdb.converters.conversions[MySQLdb.converters.FIELD_TYPE.DECIMAL]=float
+MySQLdb.converters.conversions[MySQLdb.converters.FIELD_TYPE.NEWDECIMAL]=float
+
+################################################################################
+
 CURSOR=MySQLdb.cursors.Cursor # this is the default
 DICT_CURSOR=MySQLdb.cursors.DictCursor
 host = socket.gethostname()

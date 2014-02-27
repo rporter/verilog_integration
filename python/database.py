@@ -15,12 +15,6 @@ import utils
 
 ################################################################################
 
-import MySQLdb.converters
-MySQLdb.converters.conversions[MySQLdb.converters.FIELD_TYPE.DECIMAL]=float
-MySQLdb.converters.conversions[MySQLdb.converters.FIELD_TYPE.NEWDECIMAL]=float
-
-################################################################################
-
 class index :
   # stolen from python website
   # and mashed around a bit

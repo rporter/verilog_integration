@@ -51,6 +51,10 @@ class _cursor(object) :
     if self.dump :
       self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
     return self.db.execute(self.formatter(args[0]), *args[1:])
+  def executemany(self, *args) :
+    if self.dump :
+      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+    return self.db.executemany(self.formatter(args[0]), *args[1:])
 
   def commit(self) :
     self.connection.commit()

@@ -11,7 +11,7 @@ class cursor(object) :
   LAST_SQL='SELECT last_insert_rowid() AS rowid;'
   def __init__(self, connection, factory) :
     connection.row_factory = factory
-    self.db = self.connection.cursor()
+    self.db = connection.cursor()
   def formatter(self, fmt) :
     return str(fmt).replace('%s', '?')
   def split(self, field) :
