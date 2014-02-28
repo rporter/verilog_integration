@@ -29,24 +29,37 @@ class cursor(object) :
     self.factory = factory
     self.connection = connection
     self.create()
+
+  def retry(self, fn0, fn1=None) :
+    for attempt in range(0, connection.RETRIES) :
+      try :
+        return fn0()
+      except MySQLdb.OperationalError :
+        if sys.exc_info()[1].args == (2006, 'MySQL server has gone away') :
+          message.warning('MySQL connection lost; retrying')
+          self.reconnect()
+          if fn1 :
+            fn1()
+        else :
+          raise
+    message.warning('retried %(n)d times', n=connection.RETRIES)
+    raise
+
+  def _create(self) :
+    self.db = self.connection.cursor(self.factory) if self.factory else self.connection.cursor()
   def create(self) :
-    if self.factory :
-      self.db = self.connection.cursor(self.factory)
-    else :
-      self.db = self.connection.cursor() # default
+    self.retry(self._create) 
+
   def execute(self, *args) :
     if self.dump :
       self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
-    for attempt in range(0, connection.RETRIES) :
-      try :
-        return self.db.execute(self.formatter(args[0]), *args[1:])
-      except MySQLdb.OperationalError(2006, 'MySQL server has gone away') :
-        message.warning('MySQL connection lost; retrying')
-        self.reconnect()
-        self.create()
+    def exe() :
+      return self.db.execute(self.formatter(args[0]), *args[1:])
+    self.retry(exe, self._create) # don't retry the create
 
   def formatter(self, fmt) :
     return str(fmt).replace('MIN(', 'LEAST(').replace('MAX(', 'GREATEST(')
+
   def split(self, field) :
     return 'SUBSTRING_INDEX('+field+', "-", 1)'
 
@@ -103,6 +116,7 @@ class connection(object) :
         user=self.default_user,
         passwd=self.default_passwd
       )
+      instance.autocommit(False)
     except :
       message.warning('Unable to connect to mysql db %(db)s at %(host)s:%(port)d because %(exc)s', db=self.db, host=self.default_host, port=self.default_port, exc=sys.exc_info()[0])
       return
