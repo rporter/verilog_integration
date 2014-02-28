@@ -5,6 +5,7 @@ import os
 import Queue
 import socket
 import threading
+import utils
 from accessor import *
 
 class activityBlockVersion :
@@ -116,7 +117,7 @@ class _connection(object) :
     return cursor(self.instance[threading.current_thread()], *args)
 
 try :
-  import _mysql as db
+  import _mysqlx as db
 except ImportError :
   import _sqlite as db
 
@@ -202,19 +203,35 @@ class mdb(object) :
   def cursor(cls) :
     return connection().cursor()
 
+  class proxy :
+    'proxy for cursor in flush method. do not open cursor unless something to insert'
+    def __init__(self, parent) :
+      self.parent = parent
+      self.used = False
+    def __enter__(self) :
+      return self
+    def __exit__(self, type, value, traceback) :
+      if type != Queue.Empty :
+        # not what we were looking for
+        return False
+      if self.used :
+        self.cursor.__exit__(type, value, traceback)
+      return True # suppress the Queue.Empty exception
+    @utils.lazyProperty
+    def cursor(self) :
+      self.used = True
+      return self.parent.cursor()
+    def insert(self, cb_id, when, level, severity, ident, subident, filename, line, msg) :
+      self.cursor.execute('INSERT INTO message (log_id, level, severity, date, ident, subident, filename, line, msg) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);', (self.parent.log_id, level, severity, when.tv_sec, ident, subident, filename, line, msg))
+
   def flush(self) :
     if not self.semaphore.acquire(False) :
       # if we can't get the semaphore somebody is already doing this
       # But there is a race when the other thread is just finishing
       return
-    with self.cursor() as cursor :
-      def insert(cb_id, when, level, severity, ident, subident, filename, line, msg) :
-        cursor.execute('INSERT INTO message (log_id, level, severity, date, ident, subident, filename, line, msg) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);', (self.log_id, level, severity, when.tv_sec, ident, subident, filename, line, msg))
-      try :
-        while (1) :
-          insert(*self.queue.get(False))
-      except Queue.Empty :
-        pass # done
+    with self.proxy(self) as insert :
+      while (1) :
+        insert.insert(*self.queue.get(False))
     self.semaphore.release()
 
   def log(self, uid, hostname, abv, root, parent, description, test) :
