@@ -158,7 +158,7 @@ $report = function(){
     this.url = url && url.replace(/\/\d.*$/,'');
     this.order = order || 'down';
     this.options = $report.data(this.url, {view:20, view_coverage:false});
-    this.container = $('<div><table class="display"></table></div>');
+    this.container = $('<div><table class="report"></table></div>');
 
     var get = function(severity, attr) {
       var result = this.msgs.filter(function(a){return a.severity === severity})[0];
@@ -377,7 +377,7 @@ $report = function(){
         success : function(json) {
           var result = coverage_cls(json);
           if (cvg) {
-            $(cvg).addClass('cvg-'+result).html('<a class="popup">'+result+'<span title="'+result+'"><table>' + Object.keys(json).reduce(function(p, c){return p + '<tr><td>'+c+'</td><td>'+json[c]+'</td></tr>'}, '') + '</table></span></a>');
+            $(cvg).addClass('cvg-'+result).html('<a class="popup">'+result+'<span title="'+result+'"><table class="report">' + Object.keys(json).reduce(function(p, c){return p + '<tr><td>'+c+'</td><td>'+json[c]+'</td></tr>'}, '') + '</table></span></a>');
             $(cvg).unbind(event.type+'.'+event.namespace); // no need to do again
           }
           if (nRow) {
@@ -824,7 +824,7 @@ $report = function(){
     };
 
     this.div.appendTo(anchor);
-    this.div.html('<div><table><thead title="click to hide PASSes"><tr><th rowspan=2>severity</th><th rowspan=2>filename</th><th rowspan=2>line</th><th rowspan=2>ident</th><th rowspan=2>subident</th><th rowspan=2>message</th><th rowspan=2>description</th><th rowspan=2>testname</th><th rowspan=2>log_id</th><th colspan="2">status</th></tr><tr><th>message</th><th>status</th></th></thead><tbody/></table></div>');
+    this.div.html('<div><table class="report"><thead title="click to hide PASSes"><tr><th rowspan=2>severity</th><th rowspan=2>filename</th><th rowspan=2>line</th><th rowspan=2>ident</th><th rowspan=2>subident</th><th rowspan=2>message</th><th rowspan=2>description</th><th rowspan=2>testname</th><th rowspan=2>log_id</th><th colspan="2">status</th></tr><tr><th>message</th><th>status</th></th></thead><tbody/></table></div>');
     $report.fit($('div', this.div));
     var tbody = $('tbody', this.div);
 

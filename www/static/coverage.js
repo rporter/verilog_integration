@@ -72,7 +72,7 @@ $coverage = function(){};
 
     this.build = function() {
       where.html($('<h3/>', {html: title}));
-      $('<table/>').appendTo(where).dataTable({
+      $('<table class="report"/>').appendTo(where).dataTable({
         "bJQueryUI": true,
         "bInfo": false,
         "bFilter": false,
@@ -190,9 +190,9 @@ $coverage = function(){};
       });
     }
 
-    function showDialog(event) {
+    function showDialog(coverage, goal, bucket_id) {
       // create table of all hits in a dialog popup
-      var container = $('<div><div><table/></div></div>').attr('title', title+'['+event.data.bucket_id+']').css("white-space", "nowrap");
+      var container = $('<div><div><table class="report"/></div></div>').attr('title', title+'['+bucket_id+']').css("white-space", "nowrap");
       var table = $('table', container).dataTable({
         "bJQueryUI": true,
         "bFilter": false,
@@ -201,12 +201,12 @@ $coverage = function(){};
   	  { "sTitle": "test" },
 	  { "sTitle": "hits" }
         ],
-        "aaData" : event.data.coverage.map(function(hit){return [hit.log_id, '<span title="'+hit.description+'">'+hit.test+'</span>', hit.hits]}),
+        "aaData" : coverage.map(function(hit){return [hit.log_id, '<span title="'+hit.description+'">'+hit.test+'</span>', hit.hits]}),
         "aaSorting": [[2, "desc"]], // sort hits descending
         "aLengthMenu": [[10, 25, 50, 100 , -1], [10, 25, 50, 100, "All"]],
         "iDisplayLength": 10,
         "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
-          $(nRow).addClass(coverageTable.classFromBucket([event.data.goal, aData[2]]));
+          $(nRow).addClass(coverageTable.classFromBucket([goal, aData[2]]));
           $(nRow).bind('click.example', {log_id : aData[0], anchor : where.parents('div.ui-tabs:first')},
             function(event) {
               var log = new $report.openLog(event.data, undefined, nRow);
@@ -236,13 +236,51 @@ $coverage = function(){};
       $.getJSON(url, function(data) {
         $('span', node).append(function() {
           if (data.length) {
-            node.bind('click.coverage', {coverage:data, goal:goal, bucket_id:bucket_id}, showDialog);
-            return $('<table/>', {
-              class : 'bucket',
+            var elapsed, source;
+            var div = $('<div>');
+            var pie, table = $('<table/>', {
+              class : 'report bucket',
               html : '<tbody>'+data.slice(0,10).map(function(it){
                 return '<tr class="'+coverageTable.classFromBucket([goal, it.hits])+'"><td>'+it.log_id+'</td><td>'+it.hits+'</td></tr>';
               })+'</tbody>'
+            }).appendTo(div);
+            node.bind('mousedown.coverage', function(event) {
+              event.preventDefault();
+              source = $(this);
+              elapsed = false;
+              this.downTimer = setTimeout(function() {
+                elapsed = true;
+                if (pie === undefined) {
+                  var id = $coverage.chart_id();
+                  table.hide();
+                  pie = $('<div>', {id:id, style:'margin:auto', height:400, width:300}).appendTo(div);
+                  console.log($.jqplot(id, [_.pairs(_.countBy(data, function(item){return item.test.substr(0,item.test.lastIndexOf('-'))}))],
+                    { 
+                      seriesDefaults: {
+                        // Make this a pie chart.
+                        renderer: $.jqplot.PieRenderer, 
+                        rendererOptions: {
+                          // Put data labels on the pie slices.
+                          // By default, labels show the percentage of the slice.
+                          showDataLabels: true
+                        }
+                      }, 
+                      legend: { show: true, location: 's' }
+                    }
+                  ));
+                } else {
+                  div.children().toggle();
+                }
+              }, 300);
+            }).bind('mouseup.coverage', function(event) {
+              clearTimeout(this.downTimer);
+              if (elapsed == false) {
+                showDialog(data, goal, bucket_id);
+              } else {
+                div.children().toggle();
+              }
             });
+            return div;
           } else {
             return $('<i/>', {html : 'no hits'});
           }
@@ -273,14 +311,14 @@ $coverage = function(){};
       });
       if (!all_visible()) {
         var
-          table = $('<table><thead><tr>' + invisible_axes().reduce(function(p, c){return p+'<th>'+c.name+'</th>'}, '') + '<th>goal</th><th>hits</th></tr></thead><tbody/></table>').appendTo($('span', node)),
+          table = $('<table class="report"><thead><tr>' + invisible_axes().reduce(function(p, c){return p+'<th>'+c.name+'</th>'}, '') + '<th>goal</th><th>hits</th></tr></thead><tbody/></table>').appendTo($('span', node)),
           tbody = $('tbody', table);
         buckets.aliases[bucket_id].forEach(function(it){
           var bkt = coverpoint.buckets[it];
           $('<tr>'+permsFromBucket(axes, it).reduce(function(p, c){return p+'<td>'+c+'</td>'}, '')+'<td>'+bkt[0]+'</td><td>'+bkt[1]+'</td></tr>').addClass(coverageTable.classFromBucket(bkt)).appendTo(tbody);
         });
         node.bind('click.coverage', function() {
-          var container = $('<div><div><table/></div></div>').attr('title', title).css("white-space", "nowrap");
+          var container = $('<div><div><table class="report"/></div></div>').attr('title', title).css("white-space", "nowrap");
           var table = $('table', container).dataTable({
             "bJQueryUI": true,
             "bFilter": false,
@@ -639,7 +677,7 @@ $coverage = function(){};
     }
 
     function build_table() {
-      where.append('<div class="table"><table><thead><tr><th class="bkt">bucket</th>' +
+      where.append('<div class="table"><table class="report"><thead><tr><th class="bkt">bucket</th>' +
         axes.reduce(function(p, c, idx){
           return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))},
           ''
@@ -769,7 +807,7 @@ $coverage = function(){};
         if (options.heat_map) {
           var tests = coverpoint.heat_map.testnames.sort(function(l,r){return l.hits < r.hits});
           var cells = $('td[bkt]', where);
-          var container = $('<table class="heat-map"><tbody><tr><td rowspan=99>Heat Map</td></tr></tbody></table>');
+          var container = $('<table class="report heat-map"><tbody><tr><td rowspan=99>Heat Map</td></tr></tbody></table>');
           $('div.table', where).append(container);
           [
             {name:'%total', description : 'total', metric : function(cell, test, bkt) {

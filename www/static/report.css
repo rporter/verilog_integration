@@ -5,15 +5,15 @@
 
    img.loading { position : absolute; top : 50%; left : 50% }
 
-   table       { width : 100%; border-collapse : collapse ; border: 2px solid black ; font-family : sans-serif ; font-size : 12px }
-   thead       { background-color: #999 ; padding : 0 ; border: 2px solid black ; font-weight: bold; text-transform: capitalize ; text-align : center }
-   tfoot       { background-color: #ddd ; padding : 0 ; border: 2px solid black ; font-weight: bold; text-transform: capitalize }
-   th          { border: 2px solid black }
-   tr:hover    { background-color : #ddd }
-   td          { border: 1px solid black ; text-align : center }
-   td.PASS     { background-color : #8f8 }
-   td.FAIL     { background-color : #f88 }
-   td.RUNNING  { background-color : #88f }
+   table.report             { width : 100%; border-collapse : collapse ; border: 2px solid black ; font-family : sans-serif ; font-size : 12px }
+   table.report > thead     { background-color: #999 ; padding : 0 ; border: 2px solid black ; font-weight: bold; text-transform: capitalize ; text-align : center }
+   table.report > tfoot     { background-color: #ddd ; padding : 0 ; border: 2px solid black ; font-weight: bold; text-transform: capitalize }
+   table.report th          { border: 2px solid black }
+   table.report > tbody > tr:hover { background-color : #ddd }
+   table.report > tbody > tr > td  { border: 1px solid black ; text-align : center }
+   table.report td.PASS     { background-color : #8f8 }
+   table.report td.FAIL     { background-color : #f88 }
+   table.report td.RUNNING  { background-color : #88f }
 
    td.cvg-cvg    { background-color: #9cf }
    td.cvg-goal   { background-color: #ff9 }
@@ -145,7 +145,8 @@
    div.cvg-point-pane table { table-layout: fixed }
    div.cvg-point-pane th.bkt{ width : 6em; }
    div.cvg-point-pane th.selected { background : #66d }
-   div.cvg-point-pane th.rotated  { 
+   div.cvg-point-pane th.rotated  {
+                padding: 0.5em;
               transform: rotate(-90.0deg);
          -moz-transform: rotate(-90.0deg);  /* FF3.5+ */
            -o-transform: rotate(-90.0deg);  /* Opera 10.5 */
@@ -161,6 +162,8 @@
    div.rgr div.left         { float : left ; width : 30%; height : 100%; overflow-y : scroll; }
    div.rgr div.right        { float : right; width : 70%; height : 100%; overflow-y : scroll; background : #eee }
 
+   div.jqplot-table-legend-swatch { width : 10px; height : 10px }
+   td.jqplot-table-legend         { text-align : left }
 
    .hit         { background-color : #cfc }
    .error       { background-color : #faa }
