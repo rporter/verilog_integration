@@ -231,10 +231,10 @@ $coverage = function(){};
       }
       node.removeAttr('title');
       node.html(function(){
-        return '<a class="popup">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="hit details for ' + log_id + '/' + bucket_id + '"><h5 style="margin:0">goal : '+bucket[0]+'</h5></span></a>';
+        return '<a class="popup">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="hit details for ' + log_id + '/' + bucket_id + '"><h5 style="margin:0">goal : '+bucket[0]+'</h5><p>loading ...</p></span></a>';
       });
       $.getJSON(url, function(data) {
-        $('span', node).append(function() {
+        $('span p', node).replaceWith(function() {
           if (data.length) {
             var elapsed, source;
             var div = $('<div>');
@@ -311,7 +311,7 @@ $coverage = function(){};
       });
       if (!all_visible()) {
         var
-          table = $('<table class="report"><thead><tr>' + invisible_axes().reduce(function(p, c){return p+'<th>'+c.name+'</th>'}, '') + '<th>goal</th><th>hits</th></tr></thead><tbody/></table>').appendTo($('span', node)),
+          table = $('<table class="report alias"><thead><tr>' + invisible_axes().reduce(function(p, c){return p+'<th>'+c.name+'</th>'}, '') + '<th>goal</th><th>hits</th></tr></thead><tbody/></table>').appendTo($('span', node)),
           tbody = $('tbody', table);
         buckets.aliases[bucket_id].forEach(function(it){
           var bkt = coverpoint.buckets[it];
