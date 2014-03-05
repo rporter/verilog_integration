@@ -197,9 +197,9 @@ $coverage = function(){};
         "bJQueryUI": true,
         "bFilter": false,
         "aoColumns": [
-  	  { "sTitle": "log id" },
-  	  { "sTitle": "test" },
-	  { "sTitle": "hits" }
+          { "sTitle": "log id" },
+          { "sTitle": "test" },
+          { "sTitle": "hits" }
         ],
         "aaData" : coverage.map(function(hit){return [hit.log_id, '<span title="'+hit.description+'">'+hit.test+'</span>', hit.hits]}),
         "aaSorting": [[2, "desc"]], // sort hits descending
@@ -219,7 +219,14 @@ $coverage = function(){};
       container.dialog({width:"auto"});
     }
 
+    function posBucketPopup(node) {
+      setTimeout(function() {
+        $('a.popup span', node).position({of: node, within: node.parents('div.table'), my:"center top+10", at:"center bottom", collision: "fit flip"});
+      });
+    }
+
     function showBucket(node) {
+      if (node.attr('title') === undefined) return;
       var bucket_id = parseInt(node.attr('bkt'));
       var bucket    = buckets[bucket_id];
       var goal      = bucket[0];
@@ -244,6 +251,7 @@ $coverage = function(){};
                 return '<tr class="'+coverageTable.classFromBucket([goal, it.hits])+'"><td>'+it.log_id+'</td><td>'+it.hits+'</td></tr>';
               })+'</tbody>'
             }).appendTo(div);
+            posBucketPopup(node);
             node.bind('mousedown.coverage', function(event) {
               event.preventDefault();
               source = $(this);
@@ -271,6 +279,7 @@ $coverage = function(){};
                 } else {
                   div.children().toggle();
                 }
+                posBucketPopup(node);
               }, 300);
             }).bind('mouseup.coverage', function(event) {
               clearTimeout(this.downTimer);
@@ -278,15 +287,15 @@ $coverage = function(){};
                 showDialog(data, goal, bucket_id);
               } else {
                 div.children().toggle();
+                posBucketPopup(node);
               }
             });
             return div;
           } else {
             return $('<i/>', {html : 'no hits'});
           }
-  	});
+    	  });
       });
-      node.unbind('mouseenter.coverage'); // don't do again
     }
 
     function showAliases(node) {
@@ -307,7 +316,7 @@ $coverage = function(){};
       var title     = 'alias details for ' + log_id + '/' + bucket_id;
       node.removeAttr('title');
       node.html(function(){
-        return '<a class="popup">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="'+title+'"><h5 style="margin-bottom:0.2em;margin-top:0;text-align: center">goal : '+bucket[0]+'</h5></span></a>';
+        return '<a class="popup onhover">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="'+title+'"><h5 style="margin-bottom:0.2em;margin-top:0;text-align: center">goal : '+bucket[0]+'</h5></span></a>';
       });
       if (!all_visible()) {
         var
@@ -700,9 +709,14 @@ $coverage = function(){};
       }
       table = $('table', where).tablesorter();
       if (coverpoint.cumulative === true) {
-        $('td.hits', body).bind('mouseenter.coverage', function() {
-          showBucket($(this));
- 	});
+        $('td.hits', body).attr('title', 'loading...').hover(
+          function(event){
+            showBucket($(this));
+            $('a.popup', this).addClass('active');
+            posBucketPopup($(this));
+          },
+          function(){$('a.popup', this).removeClass('active')}
+        );
       } else if (!all_visible()) {
         $('td.hits', body).bind('mouseenter.coverage', function() {
           showAliases($(this));
@@ -796,13 +810,20 @@ $coverage = function(){};
       var cells = $('th,td', where).not('.title');
       var width = Array.max(cells.map(function(idx,it){return $(it).width()}));
       cells.css('height', width).css('width', width);
-      $('td.hits', where).bind('mouseenter.coverage', function() {
-        if (coverpoint.cumulative === true) {
-          showBucket($(this));
-        } else {
+      if (coverpoint.cumulative === true) {
+        $('td.hits', where).attr('title', 'loading...').hover(
+          function(event){
+            showBucket($(this));
+            $('a.popup', this).addClass('active');
+            posBucketPopup($(this));
+          },
+          function(){$('a.popup', this).removeClass('active')}
+        );
+      } else {
+        $('td.hits', where).bind('mouseenter.coverage', function() {
           showAliases($(this));
-        }
-      });
+        });
+      }
       if (coverpoint.cumulative === true) {
         if (options.heat_map) {
           var tests = coverpoint.heat_map.testnames.sort(function(l,r){return l.hits < r.hits});

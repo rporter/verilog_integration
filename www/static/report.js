@@ -377,7 +377,7 @@ $report = function(){
         success : function(json) {
           var result = coverage_cls(json);
           if (cvg) {
-            $(cvg).addClass('cvg-'+result).html('<a class="popup">'+result+'<span title="'+result+'"><table class="report">' + Object.keys(json).reduce(function(p, c){return p + '<tr><td>'+c+'</td><td>'+json[c]+'</td></tr>'}, '') + '</table></span></a>');
+            $(cvg).addClass('cvg-'+result).html('<a class="popup onhover">'+result+'<span title="'+result+'"><table class="report">' + Object.keys(json).reduce(function(p, c){return p + '<tr><td>'+c+'</td><td>'+json[c]+'</td></tr>'}, '') + '</table></span></a>');
             $(cvg).unbind(event.type+'.'+event.namespace); // no need to do again
           }
           if (nRow) {

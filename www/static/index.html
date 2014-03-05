@@ -45,7 +45,7 @@
     var id = this.ident?(this.ident+'-'+this.subident):'';
         %>
       <![CDATA[
-        <a class="popup">
+        <a class="popup onhover">
           <code class="<%= this.severity %>" level="<%= this.level %>" ident="<%= this.ident %>" subident="<%= this.subident %>">(<%= $report.openLog.justify(this.severity) %><time class="abs"> <%= date.toLocaleTimeString() %></time><time class="rel"> <%= $report.openLog.justify(parseInt(this.seconds).toString(), 6) %></time><ident><%= $report.openLog.justify(id, 10) %></ident>) <%= $report.openLog.msg(this.msg) %></code>
           <span title="x">
             <% if (this.ident) out += '<p class="id">'+id+'</p>'; %>

@@ -45,9 +45,9 @@
    a.popup {position:relative;
 	z-index:24;
 	text-decoration:none }
-   a.popup:hover {z-index:25; background-color : #ddd}
    a.popup span  {display: none; font-size : 10pt}
-   a.popup:hover span {
+   a.popup.onhover:hover, a.popup.active {z-index:25; background-color : #ddd}
+   a.popup.onhover:hover span, a.popup.active span {
 	display:block;
 	position:absolute;
 	top:2em; left:0; width : inherit;
@@ -141,7 +141,7 @@
    div.cvg-pane a.hierarchy { font-family : monospace }
    div.cvg-tree-pane        { float : left ; width : 40% }
    div.cvg-point-pane       { float : right; width : 60%; background : #eee }
-   div.cvg-point-pane div.table  { overflow-y : scroll }
+   div.cvg-point-pane div.table  { overflow-y : scroll; overflow-x : hidden }
    div.cvg-point-pane table { table-layout: fixed }
    div.cvg-point-pane th.bkt{ width : 6em; }
    div.cvg-point-pane th.selected { background : #66d }
@@ -153,9 +153,8 @@
       -webkit-transform: rotate(-90.0deg);  /* Saf3.1+, Chrome */
    }
    table.bucket td          { width : 4em; }
-   table.alias th, td       { width : 4em; }
+   table.alias th, table.alias td { width : 4em; }
    div.cvg-point-pane table.heat-map { border : none; width : auto; margin-left : auto; margin-right : auto; margin-top : 20px }
-   div.cvg-point-pane table.heat-map tr:hover { background-color : none }
 
    cvg-tooltip { background-image : none }
 
