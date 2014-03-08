@@ -1,0 +1,115 @@
+module load mariadb
+MYSQL_HOST=`hostname`
+
+mkdir log
+${MYSQL_HOME}/scripts/mysql_install_db --defaults-file=mdb.${MYSQL_HOST}.cnf --basedir=${MYSQL_HOME} --ldata=$PWD/data
+${MYSQL_HOME}/bin/mysqld_safe --defaults-file=mdb.${MYSQL_HOST}.cnf &
+
+# remove default database until created
+${MYSQL_HOME}/bin/mysql --defaults-file=mdb.${MYSQL_HOST}.cnf --database= --user root
+# then later
+${MYSQL_HOME}/bin/mysql --defaults-file=mdb.${MYSQL_HOST}.cnf --user root
+
+${MYSQL_HOME}/bin/mysqladmin --defaults-file=mdb.${MYSQL_HOST}.cnf --user=root shutdown
+
+create user 'mdb'@'mbox2' identified by 'mdb';
+create database mdb;
+grant all privileges on mdb.* to 'mdb'@'%' identified by 'mdb';
+grant all privileges on mdb.* to 'mdb'@'localhost' identified by 'mdb';
+
+INSTALL SONAME 'ha_tokudb';
+
+CREATE TABLE mdb.log (
+  log_id      INTEGER UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  uid         INTEGER UNSIGNED,
+  root        INTEGER UNSIGNED,
+  parent      INTEGER UNSIGNED,
+  activity    TEXT,
+  block       TEXT,
+  version     TEXT,
+  test        TEXT,
+  description TEXT,
+  hostname    TEXT,
+  status      INTEGER,
+  FOREIGN KEY (root) REFERENCES log(log_id) ON DELETE CASCADE,
+  FOREIGN KEY (parent) REFERENCES log(log_id) ON DELETE CASCADE,
+  INDEX       (uid)
+) ENGINE=TokuDB;
+
+CREATE TABLE mdb.message (
+  msg_id   INTEGER UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  log_id   INTEGER UNSIGNED NOT NULL,
+  level    INTEGER NOT NULL,
+  severity TEXT,
+  date     DATETIME,
+  ident    CHAR(4),
+  subident INTEGER UNSIGNED,
+  filename TEXT,
+  line     INTEGER UNSIGNED,
+  msg      TEXT,
+  FOREIGN KEY (log_id) REFERENCES log (log_id) ON DELETE CASCADE,
+  INDEX    (ident, subident)
+) ENGINE=TokuDB;
+
+CREATE TABLE mdb.point (
+  point_id    INTEGER UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT, -- unique point id
+  log_id      INTEGER UNSIGNED NOT NULL,                           -- log id of declaration
+  point_name  TEXT,                                       -- name of this point
+  description TEXT,                                       -- description of this point
+  root        INTEGER UNSIGNED,                           -- root point or NULL if root
+                                                         --  means we don't need recursive select or function
+  parent      INTEGER UNSIGNED,                           -- parent point or NULL if root
+  offset      INTEGER UNSIGNED,                           -- 1st bucket index
+  size        INTEGER UNSIGNED,                           -- number of buckets for convenience
+  md5_self    CHAR(32),                                   -- for congruency checking of name & description
+  md5_axes    CHAR(32),                                   -- for congruency checking of axis & enum data 
+  md5_goal    CHAR(32),                                   -- for congruency checking of goal data 
+  FOREIGN KEY (log_id) REFERENCES log   (log_id),
+  FOREIGN KEY (root)   REFERENCES point (point_id),
+  FOREIGN KEY (parent) REFERENCES point (point_id),
+  FOREIGN KEY (offset) REFERENCES goal  (bucket_id)
+) ENGINE=TokuDB;
+
+CREATE TABLE mdb.axis (
+  axis_id   INTEGER UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT, -- unique axis identifier
+  point_id  INTEGER,                                    -- parent point
+  axis_name TEXT,                                       -- name of this axis
+  FOREIGN KEY (point_id) REFERENCES point (point_id)
+) ENGINE=TokuDB;
+
+CREATE TABLE mdb.enum (
+  enum_id  INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, -- unique enumeration identifier
+  axis_id  INTEGER UNSIGNED,                           -- parent axis
+  enum     TEXT,                                       -- enumeration
+  value    INTEGER,                                    -- value
+  FOREIGN KEY (axis_id) REFERENCES axis (axis_id)
+) ENGINE=TokuDB;
+
+CREATE TABLE mdb.goal (
+  log_id    INTEGER UNSIGNED NOT NULL, -- reference run
+  bucket_id INTEGER UNSIGNED NOT NULL, -- unique bucket id
+  goal      INTEGER,                   -- use -1 as illegal, 0 as don't care
+  FOREIGN KEY (log_id) REFERENCES log (log_id),
+  INDEX     (log_id, bucket_id),
+  INDEX     (log_id)
+) ENGINE=TokuDB;
+
+CREATE TABLE mdb.master (
+  log_id    INTEGER UNSIGNED NOT NULL,     -- log id of run
+  goal_id   INTEGER UNSIGNED NOT NULL,     -- log id of goal data
+  -- root_id   INTEGER NOT NULL,      -- point_id of root node
+  -- FOREIGN KEY (root_id)    REFERENCES point (point_id),
+  FOREIGN KEY (log_id)    REFERENCES log (log_id),
+  FOREIGN KEY (goal_id)   REFERENCES log (log_id)
+) ENGINE=TokuDB;
+
+CREATE TABLE mdb.hits (
+  log_id    INTEGER UNSIGNED NOT NULL,
+  bucket_id INTEGER UNSIGNED NOT NULL,
+  hits      INTEGER,
+  FOREIGN KEY (log_id)    REFERENCES log (log_id),
+  FOREIGN KEY (bucket_id) REFERENCES goal (bucket_id),
+  INDEX     (log_id, bucket_id),
+  INDEX     (log_id)
+) ENGINE=TokuDB;
+

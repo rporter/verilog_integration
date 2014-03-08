@@ -33,7 +33,10 @@ class message :
   def formatted(self) :
     if self.args.get('formatted', False) :
       return str(self.msg) # cast from possible unicode
-    return str(self.msg % self.args) # cast from possible unicode
+    try :
+      return str(self.msg % self.args) # cast from possible unicode
+    except :
+      return 'format error: ' + str(self.msg) # cast from possible unicode
 
   @classmethod
   def status(cls) :
@@ -185,7 +188,8 @@ class reportOptionParser(OptionParser):
     def increase_verbosity(option, opt, value, parser) :
       parser.values.verbosity -= 1
     def debug_sql(option, opt, value, parser) :
-      mdb._sqlite.connection._cursor.debug = True
+      import mdb
+      mdb.cursor.debug = True
 
     self.add_option('', '--root', help='root directory')
     self.add_option('', '--verbosity', help='set absolute verbosity', default=INFORMATION)

@@ -162,7 +162,7 @@ class index :
 
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  order = 'log_id ASC, level DESC, msg_id ASC'
+  order = 'log.log_id ASC, level DESC, msg_id ASC'
 
   def result(self, subquery) :
     return self.summary([self.log(log, msgs) for log, msgs in self.groupby(self.execute(subquery), lambda x : x.log_id, self.keyfact, self.grpfact)])
@@ -170,24 +170,24 @@ class index :
   def where(self, variant, limit, start, order='down', coverage=False) :
     'Note that asking for coverage here slows the query significantly'
     if variant == 'sngl' :
-      result = self.subquery('l0.*, null as children', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'], where='l1.log_id is null and l0.root is null')
+      result = self.subquery('l0.*, null AS children', frm='log AS l0 LEFT JOIN log AS l1 ON (l0.log_id = l1.root)', group=['l0.log_id'], where='l1.log_id IS NULL AND l0.root IS NULL')
     elif variant == 'rgr' :
-      result = self.subquery('l0.*, count(l1.log_id) as children, sum(l1.status == 1) as passing', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'], having='l1.log_id is not null')
+      result = self.subquery('l0.*, COUNT(l1.log_id) AS children, SUM(l1.status = 1) AS passing', frm='log AS l0 LEFT JOIN log AS l1 ON (l0.log_id = l1.root)', group=['l0.log_id'], where='l1.log_id IS NOT NULL')
     else :
-      result = self.subquery('l0.*, count(l1.log_id) as children, sum(l1.status == 1) as passing', frm='log as l0 left join log as l1 on (l0.log_id = l1.root)', group=['l0.log_id'])
+      result = self.subquery('l0.*, COUNT(l1.log_id) AS children, SUM(l1.status = 1) AS passing', frm='log AS l0 LEFT JOIN log AS l1 ON (l0.log_id = l1.root)', group=['l0.log_id'])
     result.limit = self.limit(limit)
     if start :
       result.where_and('l0.log_id %c %d' % ('>' if order == 'up' else '<', start))
     if coverage :
-      result.select += ', goal.log_id as goal, hits.log_id as coverage, master.goal_id AS master'
-      result.frm    += ' left outer join goal using (log_id) left outer join hits using (log_id) left outer join master using (log_id)'
+      result.select += ', goal.log_id AS goal, hits.log_id AS coverage, master.goal_id AS master'
+      result.frm    += ' LEFT OUTER JOIN goal USING (log_id) LEFT OUTER JOIN hits USING (log_id) LEFT OUTER JOIN master USING (log_id)'
     result.update(order=order)
     return result
 
   def execute(self, subquery) :
-    with mdb.db.connection().row_cursor() as db :
-      message.debug('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER BY %s;' % (str(subquery), self.order))
-      db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log_id, level ORDER BY %s;' % (str(subquery), self.order))
+    with mdb.connection().row_cursor() as db :
+      message.debug('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log.log_id, level ORDER BY %s;' % (str(subquery), self.order))
+      db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log.log_id, level ORDER BY %s;' % (str(subquery), self.order))
       return db.fetchall()
 
   testseed = re.compile(r'-(?P<seed>(0x)?[0-9a-fA-F]+)$')
@@ -211,7 +211,7 @@ class index :
 
 class msgs :
   def result(self, log_id):
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       message.debug('retrieving %(log_id)s messages', log_id=log_id)
       db.execute('SELECT * FROM message WHERE log_id = %(log_id)s;' % locals())
       return db.fetchall()
@@ -219,7 +219,7 @@ class msgs :
 ################################################################################
 
 class rgr(index) :
-  order = 'parent ASC, log_id ASC, level DESC, msg_id ASC'
+  order = 'parent ASC, log.log_id ASC, level DESC, msg_id ASC'
   
   def result(self, log_id, root=True):
     relationship = 'root' if root else 'parent'
@@ -232,7 +232,7 @@ class cvg :
   class hierarchy :
     def __init__(self, goal_id, defaults, cumulative) :
       self.all_nodes = dict()
-      with mdb.db.connection().row_cursor() as db :
+      with mdb.connection().row_cursor() as db :
         db.execute('SELECT * FROM point LEFT OUTER JOIN axis USING (point_id) LEFT OUTER JOIN enum USING (axis_id) WHERE log_id=%(goal_id)s ORDER BY point_id ASC, axis_id ASC, enum_id ASC;' % locals())
         points = db.fetchall()
       for parent, children in index.groupby(points, lambda row : row.point_id) :
@@ -248,14 +248,15 @@ class cvg :
       return self.all_nodes.values()[0].root
   class single :
     cumulative=False
-    query='SELECT goal.bucket_id, goal.goal, IFNULL(hits.hits, 0) AS hits, goal < 0 as illegal, goal = 0 as dont_care FROM goal LEFT OUTER JOIN hits ON (goal.bucket_id = hits.bucket_id AND hits.log_id=%(log_id)s) WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;'
+    query='SELECT goal.bucket_id, goal.goal, IFNULL(hits.hits, 0) AS hits, goal < 0 as illegal, goal = 0 as dont_care FROM goal LEFT JOIN hits ON (goal.bucket_id = hits.bucket_id AND hits.log_id=%(log_id)s) WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;'
     def __init__(self, log_id, goal_id=None) :
       self.log_id = log_id
       self.goal_id = goal_id or log_id
     def points(self) :
       return cvg.hierarchy(self.goal_id, self.coverage(), self.cumulative).get_root()
     def coverage(self) :
-      with mdb.db.connection().row_cursor() as db :
+      with mdb.connection().row_cursor() as db :
+        message.debug(self.query % self.__dict__)
         db.execute(self.query % self.__dict__)
         for result in db.fetchall() :
           yield result
@@ -265,7 +266,7 @@ class cvg :
 
   class cumulative(single) :
     cumulative=True
-    query='SELECT goal.goal, IFNULL(cumulative.hits, 0) AS hits FROM goal LEFT OUTER NATURAL JOIN (SELECT bucket_id, SUM(hits.hits) AS hits, COUNT(hits.hits) as tests FROM hits JOIN (SELECT log_id FROM log WHERE root=%(log_id)s AND parent is not NULL) AS runs USING (log_id) GROUP BY bucket_id) AS cumulative WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;'
+    query='SELECT goal.goal, IFNULL(cumulative.hits, 0) AS hits FROM goal LEFT OUTER JOIN (SELECT bucket_id, SUM(hits.hits) AS hits, COUNT(hits.hits) as tests FROM hits JOIN (SELECT log_id FROM log WHERE root=%(log_id)s AND parent is not NULL) AS runs USING (log_id) GROUP BY bucket_id) AS cumulative USING (bucket_id) WHERE goal.log_id=%(goal_id)s ORDER BY goal.bucket_id ASC;'
 
   def result(self, log_id, goal_id=None, cumulative=False) :
     return (self.cumulative if cumulative else self.single)(log_id, goal_id)
@@ -274,7 +275,7 @@ class cvg :
 
 class bkt :
   def result(self, log_id, buckets) :
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       message.debug('retrieving %(log_id)s bucket coverage', log_id=log_id)
       db.execute('SELECT hits.log_id, log.test, log.description, SUM(hits.hits) AS hits FROM hits NATURAL JOIN log WHERE log.root = %(log_id)s AND bucket_id IN (%(buckets)s) GROUP BY hits.log_id ORDER BY hits DESC;' % locals())
       return db.fetchall()
@@ -283,7 +284,7 @@ class bkt :
 
 class cvr :
   def result(self, log_id) :
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       message.debug('retrieving %(log_id)s coverage information', log_id=log_id)
       db.execute('SELECT %(log_id)s as log_id, (SELECT log_id FROM goal WHERE log_id = %(log_id)s LIMIT 1) AS goal, (SELECT log_id FROM hits WHERE log_id = %(log_id)s LIMIT 1) AS coverage, (SELECT goal_id FROM master WHERE log_id = %(log_id)s LIMIT 1) AS master, (SELECT goal.log_id FROM goal JOIN log ON (log.root = goal.log_id) WHERE log.log_id = %(log_id)s LIMIT 1) AS root;' % locals())
       return db.fetchone()
@@ -312,9 +313,9 @@ class hm :
       offset : first bucket index
       size   : number of buckets
     '''
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       message.debug('calculating %(log_id)s coverage heat map [%(offset)s+:%(size)s]', log_id=log_id, offset=offset, size=size)
-      db.execute('SELECT bucket_id, SUM(hits) AS hits, count(hits) AS tests, rtrim(test, "-x0123456789abcdef") AS testname FROM hits JOIN log USING (log_id) WHERE log.root = ? AND hits.bucket_id >= ? AND hits.bucket_id < ? GROUP BY bucket_id, testname ORDER BY bucket_id ASC, hits DESC;', (log_id, offset, offset+size))
+      db.execute('SELECT bucket_id, SUM(hits) AS hits, count(hits) AS tests, '+db.split('test')+' AS testname FROM hits JOIN log USING (log_id) WHERE log.root = %s AND hits.bucket_id >= %s AND hits.bucket_id < %s GROUP BY bucket_id, testname ORDER BY bucket_id ASC, hits DESC;', (log_id, offset, offset+size))
       testnames = self.compress()
       data = list(index.groupby(db, lambda row : row.bucket_id, keyfact=lambda s : list(s._grouper(s.tgtkey)), grpfact=testnames))
       return dict(testnames=testnames.tests(), data=data)
@@ -371,21 +372,20 @@ class insert(upload) :
       if self.is_root :
         self.cursor.close()
     def last_id(self) :
-      self.cursor.execute('SELECT last_insert_rowid() AS rowid;')
-      return self.cursor.fetchone()[0]
+      return self.cursor.last_id()
 
     def axis(self, axis) :
-      self.cursor.execute('INSERT INTO axis (point_id, axis_name) VALUES (?,?)', (self.parent_id, axis.name))
+      self.cursor.execute('INSERT INTO axis (point_id, axis_name) VALUES (%s,%s)', (self.parent_id, axis.name))
       self.sql_row_id = self.last_id()
       for enum, value in axis.values.iteritems() :
-        self.cursor.execute('INSERT INTO enum (axis_id, enum, value) VALUES (?,?,?)', (self.sql_row_id, enum, value))
+        self.cursor.execute('INSERT INTO enum (axis_id, enum, value) VALUES (%s,%s,%s)', (self.sql_row_id, enum, value))
     def coverpoint(self, coverpoint) :
-      self.cursor.execute('INSERT INTO point (log_id, point_name, desc, root, parent, offset, size, md5_self, md5_axes, md5_goal) VALUES (?,?,?,?,?,?,?,?,?,?)', (self.root.log_id, coverpoint.name, coverpoint.description, self.root_id, self.parent_id, coverpoint.offset, len(coverpoint)) + coverpoint.md5)
+      self.cursor.execute('INSERT INTO point (log_id, point_name, description, root, parent, offset, size, md5_self, md5_axes, md5_goal) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', (self.root.log_id, coverpoint.name, coverpoint.description, self.root_id, self.parent_id, coverpoint.offset, len(coverpoint)) + coverpoint.md5)
       self.sql_row_id = self.last_id()
       for name, axis in coverpoint.axes() :
         axis.sql(insert.sql(self))
     def hierarchy(self, hierarchy) :
-      self.cursor.execute('INSERT INTO point (log_id, point_name, desc, root, parent, md5_self, md5_axes) VALUES (?,?,?,?,?,?,?)', (self.root.log_id, hierarchy.name, hierarchy.description, self.root_id, self.parent_id) + hierarchy.md5)
+      self.cursor.execute('INSERT INTO point (log_id, point_name, description, root, parent, md5_self, md5_axes) VALUES (%s,%s,%s,%s,%s,%s,%s)', (self.root.log_id, hierarchy.name, hierarchy.description, self.root_id, self.parent_id) + hierarchy.md5)
       self.sql_row_id = self.last_id()
       for child in hierarchy.children :
         child.sql(insert.sql(self))
@@ -419,7 +419,7 @@ class insert(upload) :
       return
     message.information('starting data upload to table "%(table)s" via insert', table=table)
     with mdb.mdb.cursor() as cursor :
-      cursor.executemany('INSERT INTO %s VALUES (?,?,?);' % table, self.data)
+      cursor.executemany('INSERT INTO '+table+' VALUES (%s,%s,%s);', self.data)
       rows = cursor.rowcount
     if rows is None :
       message.warning('upload to db via insert "%(table)s" returned None', table=table)
@@ -433,7 +433,7 @@ class insert(upload) :
   @classmethod
   def set_master(cls, log_id, master_id) :
     with mdb.mdb.cursor() as cursor :
-      cursor.execute('INSERT INTO master (log_id, goal_id) VALUES (?, ?);', (log_id, master_id))
+      cursor.execute('INSERT INTO master (log_id, goal_id) VALUES (%s, %s);', (log_id, master_id))
     coverage.messages.CVG_50(**locals())
 
 ################################################################################
@@ -446,27 +446,30 @@ class optimize :
     'log_ids is a list of regression roots'
     self.log_ids = log_ids
     s_log_ids = ','.join(map(str, log_ids))
-    self.tests = mdb.db.connection().row_cursor()
-    # create table of individual runs, but not root node as this may have already summarised coverage
-    self.tests.execute('CREATE TEMPORARY TABLE '+self.invs+' AS SELECT l1.*, goal_id AS master FROM log AS l0 JOIN log AS l1 ON (l0.log_id = l1.root) LEFT OUTER JOIN master ON (l1.log_id = master.log_id) WHERE l1.root IN ('+s_log_ids+');')
-    self.tests.execute('SELECT count(*) AS children FROM '+self.invs)
-    children = self.tests.fetchone().children
-    if children :
-      message.information('%(log_ids)s %(has)s %(children)d children', log_ids=s_log_ids, children=children, has='have' if len(log_ids) > 1 else 'has')
+    self.tests = mdb.connection().row_cursor()
+    if log_ids :
+      # create table of individual runs, but not root node as this may have already summarised coverage
+      self.tests.execute('CREATE TEMPORARY TABLE '+self.invs+' AS SELECT l1.*, goal_id AS master FROM log AS l0 JOIN log AS l1 ON (l0.log_id = l1.root) LEFT OUTER JOIN master ON (l1.log_id = master.log_id) WHERE l1.root IN ('+s_log_ids+');')
+      self.tests.execute('SELECT count(*) AS children FROM '+self.invs)
+      children = self.tests.fetchone().children
+      if children :
+        message.information('%(log_ids)s %(has)s %(children)d children', log_ids=s_log_ids, children=children, has='have' if len(log_ids) > 1 else 'has')
     # append individual runs as given by test_ids
     if xml :
       xml_ids = xml.xml.xpath('/optimize/test/log_id/text()')
     else :
       xml_ids=[]
-    s_test_ids = ','.join(map(str, test_ids+xml_ids))
-    self.tests.execute('INSERT INTO '+self.invs+' SELECT log.*, goal_id AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) WHERE log.log_id IN ('+s_test_ids+');')
+    if test_ids or xml_ids :
+      s_test_ids = ','.join(map(str, test_ids+xml_ids))
+      create = ('INSERT INTO '+self.invs) if log_ids else ('CREATE TEMPORARY TABLE '+self.invs+' AS')
+      self.tests.execute(create+' SELECT log.*, goal_id AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) WHERE log.log_id IN ('+s_test_ids+');')
     self.tests.execute('SELECT count(*) AS tests FROM '+self.invs)
     tests = self.tests.fetchone().tests
     if tests < 1 :
       message.fatal('no tests')
     message.information('starting with %(count)d tests in table %(table)s', count=tests, table=self.invs)
     # check congruency
-    self.cvg = mdb.db.connection().row_cursor()
+    self.cvg = mdb.connection().row_cursor()
     self.cvg.execute("SELECT md5_self AS md5, 'md5_self' AS type, invs.master, invs.root FROM point JOIN "+self.invs+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
     md5 = self.cvg.fetchall()
     if not md5 :
@@ -518,25 +521,41 @@ class optimize :
     return self.COVG + self.seq
 
   def increment(self, log_id) :
-    # in e.g. mysql we can use a join in an update
-    # self.cvg.execute('update '+self.covg+' as status set hits = min(status.goal, status.hits + goal.hits), total_hits = status.total_hits + goal.total_hits join hits using (bucket_id) where hits.log_id = ?;', log_id)
-    # but we need to resort to this for sqlite
-    self.cvg.execute('REPLACE INTO '+self.covg+' SELECT status.bucket_id, status.goal, CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal, status.hits + hits.hits) END AS hits, CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal + status.max_hits, status.rhits + MIN(hits.hits, status.goal)) END AS rhits, status.total_hits + hits.hits as total_hits, MIN(status.goal, MAX(max_hits, hits.hits)) as max_hits, status.tests + 1 FROM '+self.covg+' AS status JOIN hits USING (bucket_id) WHERE hits.log_id = ?;', (log_id,))
+    if self.cvg.HAS_UPDATE :
+      # in e.g. mysql we can use a join in an update
+      # WHERE hits.log_id = %s
+      self.cvg.execute('UPDATE '+self.covg+''' AS status JOIN hits ON (status.bucket_id = hits.bucket_id AND hits.log_id = %s)
+SET
+  status.hits  = CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal, status.hits + hits.hits) END,
+  status.rhits = CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal + status.max_hits, status.rhits + MIN(hits.hits, status.goal)) END,
+  status.total_hits = status.total_hits + hits.hits,
+  status.max_hits = MIN(status.goal, MAX(max_hits, hits.hits)),
+  status.tests = status.tests + 1;''', log_id)
+    else :
+      # but we need to resort to this for e.g. sqlite
+      self.cvg.execute('REPLACE INTO '+self.covg+'''
+SELECT
+  status.bucket_id,
+  status.goal,
+  CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal, status.hits + hits.hits) END AS hits,
+  CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal + status.max_hits, status.rhits + MIN(hits.hits, status.goal)) END AS rhits,
+  status.total_hits + hits.hits as total_hits,
+  MIN(status.goal, MAX(max_hits, hits.hits)) as max_hits, status.tests + 1 FROM '''+self.covg+' AS status JOIN hits USING (bucket_id) WHERE hits.log_id = %s;', (log_id,))
     message.debug('update %(cnt)d rows', cnt=self.cvg.rowcount)
     return self.cvg.rowcount
 
   def reset(self) :
     if self.previous and self.robust :
       # incorporate previous max_hits into coverage accumulator used by robust generator
-      self.cvg.execute('REPLACE INTO '+self.covg+' SELECT goal.bucket_id, goal.goal, 0 AS hits, 0 AS total_hits, 0 AS rhits, previous.max_hits AS max_hits, 0 AS tests FROM goal JOIN ' + self.previous.covg + ' AS previous USING (bucket_id) WHERE goal.log_id=?;', (self.get_master(), ))
+      self.cvg.execute('REPLACE INTO '+self.covg+' SELECT goal.bucket_id, goal.goal, 0 AS hits, 0 AS total_hits, 0 AS rhits, previous.max_hits AS max_hits, 0 AS tests FROM goal JOIN ' + self.previous.covg + ' AS previous USING (bucket_id) WHERE goal.log_id=%s;', (self.get_master(), ))
       self.cvg.execute('SELECT SUM(goal) as goal, SUM(goal+max_hits) as robust from '+self.covg+';')
       message.note('Incorporating previous max_hits into coverage accumulator. goal %(goal)d is now %(robust)d', **self.cvg.fetchone())
     else :
-      self.cvg.execute('REPLACE INTO '+self.covg+' SELECT bucket_id, goal, 0 AS hits, 0 AS total_hits, 0 AS rhits, 0 AS max_hits, 0 AS tests FROM goal WHERE log_id=?;', (self.get_master(), ))
+      self.cvg.execute('REPLACE INTO '+self.covg+' SELECT bucket_id, goal, 0 AS hits, 0 AS total_hits, 0 AS rhits, 0 AS max_hits, 0 AS tests FROM goal WHERE log_id=%s;', (self.get_master(), ))
 
   def status(self) :
     'calculate & return current coverage'
-    with mdb.db.connection().cursor() as db :
+    with mdb.connection().cursor() as db :
       db.execute('SELECT SUM(MIN(goal, hits)) AS hits, SUM(goal) AS goal, SUM(MIN(goal+max_hits, rhits)) AS rhits, SUM(goal+max_hits) AS rgoal FROM '+self.covg+' WHERE goal > 0;')
       hits, goal, rhits, rgoal = db.fetchone()
       covrge=coverage.coverage(hits=hits, goal=goal)
@@ -553,7 +572,7 @@ class optimize :
     return cvg.hierarchy(self.get_master(), self.dump(), False).get_root()
 
   def dump(self) :
-    with mdb.db.connection().row_cursor() as db :
+    with mdb.connection().row_cursor() as db :
       db.execute('SELECT * FROM ' + self.covg)
       buckets = db.fetchall()
     def values() :
@@ -608,7 +627,7 @@ class optimize :
 class cvgOrderedOptimize(optimize) :
   'order tests in coverage order'
   def testlist(self) :
-    self.tests.execute('SELECT invs.*, IFNULL(SUM(MIN(status.goal, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0) GROUP BY log_id ORDER BY hits DESC;')
+    self.tests.execute('SELECT invs.*, IFNULL(SUM(MIN(status.goal, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER JOIN hits USING (log_id) JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0) GROUP BY log_id ORDER BY hits DESC;')
     return self.tests.fetchall()
 
 ################################################################################
@@ -645,8 +664,8 @@ class incrOrderedOptimize(cvgOrderedOptimize) :
       yield mdb.accessor(log=log, last=current, updates=updates, status=status, hits=status.metric().hits-current.metric().hits)
       current = status
       # calculate incremental coverage of remaining tests
-      with mdb.db.connection().row_cursor() as db :
-        db.execute('DELETE FROM '+self.invs+' WHERE log_id = ?;', (log.log_id,))
+      with mdb.connection().row_cursor() as db :
+        db.execute('DELETE FROM '+self.invs+' WHERE log_id = %s;', (log.log_id,))
         if status.metric().coverage() > self.threshold :
           if not switched :
             switched = True
@@ -654,9 +673,9 @@ class incrOrderedOptimize(cvgOrderedOptimize) :
           # switch to incremental as coverage closes
           minexpr = '(status.goal+status.max_hits)-status.rhits' if self.robust else 'status.goal-status.hits'
           if self.robust :
-            db.execute('SELECT invs.*, IFNULL(SUM(MIN((status.goal+status.max_hits)-status.rhits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < (status.goal+status.max_hits)) GROUP BY log_id ORDER BY hits DESC;')
+            db.execute('SELECT invs.*, IFNULL(SUM(MIN((status.goal+status.max_hits)-status.rhits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER JOIN hits USING (log_id) JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < (status.goal+status.max_hits)) GROUP BY log_id ORDER BY hits DESC;')
           else :
-            db.execute('SELECT invs.*, IFNULL(SUM(MIN(status.goal-status.hits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER NATURAL JOIN hits JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < status.goal) GROUP BY log_id ORDER BY hits DESC;')
+            db.execute('SELECT invs.*, IFNULL(SUM(MIN(status.goal-status.hits, hits.hits)), 0) AS hits FROM '+self.invs+' AS invs LEFT OUTER JOIN hits USING (log_id) JOIN '+self.covg+' AS status ON (hits.bucket_id = status.bucket_id AND status.goal > 0 AND status.hits < status.goal) GROUP BY log_id ORDER BY hits DESC;')
           testlist = db.fetchall()
 
 ################################################################################

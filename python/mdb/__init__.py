@@ -5,6 +5,7 @@ import os
 import Queue
 import socket
 import threading
+import utils
 from accessor import *
 
 class activityBlockVersion :
@@ -34,12 +35,111 @@ class mdbDefault(dict) :
   def __getattr__(self, attr) :
     return self.get(attr, None)
 
-class _mdb(object) :
+################################################################################
+
+class _cursor(object) :
+  ident=0
+  debug=False
+  HAS_UPDATE=False
+  def __init__(self, connection, factory) :
+    self.connection = connection
+    self.dump = open(self.filename(), 'w') if self.debug else None
+    if self.dump :
+      import inspect, pprint
+      pprint.pprint(inspect.stack(), stream=self.dump)
+
+  def execute(self, *args) :
+    if self.dump :
+      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+    return self.db.execute(self.formatter(args[0]), *args[1:])
+  def executemany(self, *args) :
+    if self.dump :
+      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+    return self.db.executemany(self.formatter(args[0]), *args[1:])
+
+  def commit(self) :
+    self.connection.commit()
+
+  def last_id(self) :
+    self.execute(self.LAST_SQL)
+    row = self.fetchone()
+    try :
+      return row['rowid']
+    except :
+      return row[0]
+
+  def reconnect(self) :
+    self.connection = connection(reconnect=True)
+
+  def __getattr__(self, attr) :
+    return getattr(self.db, attr)
+
+  def __iter__(self) :
+    try :
+      return iter(self.db)
+    except :
+      return self
+
+  def __enter__(self) :
+    return self
+
+  def __exit__(self, type, value, traceback):
+    try :
+      self.db.__exit__(type, value, traceback)
+    except :
+      self.commit()
+      self.db.close()
+
+  def __del__(self) :
+    if self.dump :
+      self.dump.close()
+
+  @classmethod
+  def filename(cls) :
+    name, cls.ident = 'sql_%d' % cls.ident, cls.ident + 1
+    return name
+
+class _connection(object) :
+  instance = dict()
+
+  def __init__(self, *args, **kwargs) :
+    'pools connections on per thread basis'
+    if kwargs.get('reconnect', False) :
+      try :
+        self.instance[threading.current_thread()].close()
+      except :
+        pass
+      del self.instance[threading.current_thread()]
+    if threading.current_thread() not in self.instance :
+      self.connect(*args, **kwargs)
+
+  def cursor(self, *args) :
+    return cursor(self.instance[threading.current_thread()], *args)
+
+try :
+  raise ImportError
+  import _mysql as db
+except ImportError :
+  import _sqlite as db
+
+class cursor(db.cursor, _cursor) :
+  impl = db
+  def __init__(self, connection, factory=None) :
+    db.cursor.__init__(self, connection, factory)
+    _cursor.__init__(self, connection, factory)
+
+class connection(_connection, db.connection) :
+  impl = db
+
+################################################################################
+
+class mdb(object) :
   queue_limit = 10
   instances = []
   atexit = False
   class repeatingTimer(threading._Timer) :
     def run(self):
+      message.debug('Timer thread is ' + threading.current_thread().name)
       while not self.finished.is_set():
         self.finished.wait(self.interval)
         self.function(*self.args, **self.kwargs)
@@ -56,6 +156,8 @@ class _mdb(object) :
     self.parent = parent or mdbDefault().parent
     # create log entry for this run
     self.log_id = self.log(os.getuid(), socket.gethostname(), self.abv, self.root, self.parent, description, test)
+    # create semaphore
+    self.semaphore = threading.Semaphore()
     # install callbacks
     message.emit_cbs.add('mdb emit', 1, self.add, None)
     message.terminate_cbs.add('mdb terminate', 20, self.finalize, self.finalize)
@@ -98,13 +200,51 @@ class _mdb(object) :
     for instance in cls.instances :
       instance.finalize()
 
-try :
-  import _mysql as db
-except ImportError :
-  import _sqlite as db
+  @classmethod
+  def cursor(cls) :
+    return connection().cursor()
 
-class mdb(_mdb, db.mixin) :
-  impl = db
+  class proxy :
+    'proxy for cursor in flush method. do not open cursor unless something to insert'
+    def __init__(self, parent) :
+      self.parent = parent
+      self.used = False
+    def __enter__(self) :
+      return self
+    def __exit__(self, type, value, traceback) :
+      if type != Queue.Empty :
+        # not what we were looking for
+        return False
+      if self.used :
+        self.cursor.__exit__(type, value, traceback)
+      return True # suppress the Queue.Empty exception
+    @utils.lazyProperty
+    def cursor(self) :
+      self.used = True
+      return self.parent.cursor()
+    def insert(self, cb_id, when, level, severity, ident, subident, filename, line, msg) :
+      self.cursor.execute('INSERT INTO message (log_id, level, severity, date, ident, subident, filename, line, msg) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);', (self.parent.log_id, level, severity, when.tv_sec, ident, subident, filename, line, msg))
+
+  def flush(self) :
+    if not self.semaphore.acquire(False) :
+      # if we can't get the semaphore somebody is already doing this
+      # But there is a race when the other thread is just finishing
+      return
+    with self.proxy(self) as insert :
+      while (1) :
+        insert.insert(*self.queue.get(False))
+    self.semaphore.release()
+
+  def log(self, uid, hostname, abv, root, parent, description, test) :
+    'create entry in log table'
+    with self.cursor() as db :
+      db.execute('INSERT INTO log (uid, root, parent, activity, block, version, description, test, hostname) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);', (uid, root, parent, abv.activity, abv.block, abv.version, description, test, hostname))
+      return db.lastrowid
+
+  def status(self) :
+    'update status at end'
+    with self.cursor() as cursor :
+      cursor.execute('UPDATE log SET status = %s WHERE log_id = %s;', (int(message.message.status().flag), self.log_id))
 
 # short cut
 finalize_all = mdb.finalize_all
