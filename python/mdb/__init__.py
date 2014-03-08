@@ -117,7 +117,8 @@ class _connection(object) :
     return cursor(self.instance[threading.current_thread()], *args)
 
 try :
-  import _mysqlx as db
+  raise ImportError
+  import _mysql as db
 except ImportError :
   import _sqlite as db
 

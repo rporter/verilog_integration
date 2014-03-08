@@ -19,3 +19,5 @@ to start server (defaults to localhost:8080)
 % www/report
 
 See test/coverage.readme for information on running multiple test runs with coverage in non simulation environment.
+
+To switch between sqlite3 and MySQL & clones remove ImportError in python/mdb/__init__.py
