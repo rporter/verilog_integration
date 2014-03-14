@@ -221,7 +221,7 @@ $coverage = function(){};
 
     function posBucketPopup(node) {
       setTimeout(function() {
-        $('a.popup span', node).position({of: node, within: node.parents('div.table'), my:"center top+10", at:"center bottom", collision: "fit flip"});
+        $('a.popup span', node).position({of: node, within: node.parents('div.table'), my:"center top+10", at:"center bottom", collision: "fit flip"}).css('position', '');
       });
     }
 
