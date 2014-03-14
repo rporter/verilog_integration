@@ -634,9 +634,16 @@ class cvgOrderedOptimize(optimize) :
 
 class posOrderedOptimize(optimize) :
   'order tests in log order'
+  ORDER='ASC'
   def testlist(self) :
-    self.tests.execute('SELECT * FROM '+self.invs+' ORDER BY log_id ASC;')
+    self.tests.execute('SELECT * FROM '+self.invs+' ORDER BY log_id '+self.ORDER+';')
     return self.tests.fetchall()
+
+################################################################################
+
+class revOrderedOptimize(posOrderedOptimize) :
+  'order tests in reverse log order'
+  ORDER='DESC'
 
 ################################################################################
 
@@ -683,6 +690,7 @@ class incrOrderedOptimize(cvgOrderedOptimize) :
 optimize.options = {
   'cvg'  : cvgOrderedOptimize,
   'pos'  : posOrderedOptimize,
+  'rev'  : revOrderedOptimize,
   'rand' : randOrderedOptimize,
   'incr' : incrOrderedOptimize
 }
