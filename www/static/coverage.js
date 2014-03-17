@@ -260,9 +260,20 @@ $coverage = function(){};
                 elapsed = true;
                 if (pie === undefined) {
                   var id = $coverage.chart_id();
+                  var pie_data = _.map(
+                    _.groupBy(
+                      data,
+                      function(item){
+                        return item.test.substr(0,item.test.lastIndexOf('-'));
+                      }
+                    ),
+                    function(value, key) {
+                      return [key, value.reduce(function(p,c,idx){return p+c.hits}, 0)];
+                    }
+                  );
                   table.hide();
                   pie = $('<div>', {id:id, style:'margin:auto', height:400, width:300}).appendTo(div);
-                  console.log($.jqplot(id, [_.pairs(_.countBy(data, function(item){return item.test.substr(0,item.test.lastIndexOf('-'))}))],
+                  console.log($.jqplot(id, [pie_data],
                     { 
                       seriesDefaults: {
                         // Make this a pie chart.
