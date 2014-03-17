@@ -41,7 +41,7 @@ CREATE TABLE mdb.message (
   log_id   INTEGER UNSIGNED NOT NULL,
   level    INTEGER NOT NULL,
   severity TEXT,
-  date     DATETIME,
+  date     BIGINT UNSIGNED NOT NULL,
   ident    CHAR(4),
   subident INTEGER UNSIGNED,
   filename TEXT,
