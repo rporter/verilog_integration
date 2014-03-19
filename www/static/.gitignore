@@ -10,6 +10,7 @@ vline-rtl.gif
 vline.gif
 jqplot.categoryAxisRenderer.min.js
 jqplot.barRenderer.min.js
+jqplot.pieRenderer.min.js
 jquery.jqplot.min.css
 jquery.jqplot.min.js
 underscore.js
