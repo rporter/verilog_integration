@@ -55,13 +55,25 @@ class cursor(object) :
       self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
     def exe() :
       return self.db.execute(self.formatter(args[0]), *args[1:])
-    self.retry(exe, self._create) # don't retry the create
+    return self.retry(exe, self._create) # don't retry the create
+
+  def executemany(self, *args) :
+    if self.dump :
+      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+    def exe() :
+      return self.db.executemany(self.formatter(args[0]), *args[1:])
+    return self.retry(exe, self._create) # don't retry the create
 
   def formatter(self, fmt) :
     return str(fmt).replace('MIN(', 'LEAST(').replace('MAX(', 'GREATEST(')
 
   def split(self, field) :
     return 'SUBSTRING_INDEX('+field+', "-", 1)'
+
+  def info(self) :
+    return self.connection.info()
+  def warning_count(self) :
+    return self.connection.warning_count()
 
 class row_cursor(DICT_CURSOR) :
   def __init__(self, *args) :

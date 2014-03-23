@@ -16,6 +16,16 @@ class cursor(object) :
     return str(fmt).replace('%s', '?')
   def split(self, field) :
     return 'RTRIM('+field+', "-x0123456789abcdef")'
+  def execute(self, *args) :
+    if self.dump :
+      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+    self.db.execute(self.formatter(args[0]), *args[1:])
+    return self.db.rowcount
+  def executemany(self, *args) :
+    if self.dump :
+      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+    self.db.executemany(self.formatter(args[0]), *args[1:])
+    return self.db.rowcount
 
 def accessor_factory(cursor, row) :
   'Horrible, horrible hack here. Reverse list as when there are duplicates for fields we want use to 1st'

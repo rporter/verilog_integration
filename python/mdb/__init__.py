@@ -48,15 +48,6 @@ class _cursor(object) :
       import inspect, pprint
       pprint.pprint(inspect.stack(), stream=self.dump)
 
-  def execute(self, *args) :
-    if self.dump :
-      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
-    return self.db.execute(self.formatter(args[0]), *args[1:])
-  def executemany(self, *args) :
-    if self.dump :
-      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
-    return self.db.executemany(self.formatter(args[0]), *args[1:])
-
   def commit(self) :
     self.connection.commit()
 
@@ -70,6 +61,11 @@ class _cursor(object) :
 
   def reconnect(self) :
     self.connection = connection(reconnect=True)
+
+  def info(self) :
+    return None
+  def warning_count(self) :
+    return 0
 
   def __getattr__(self, attr) :
     return getattr(self.db, attr)

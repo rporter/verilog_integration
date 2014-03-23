@@ -419,12 +419,14 @@ class insert(upload) :
       return
     message.information('starting data upload to table "%(table)s" via insert', table=table)
     with mdb.mdb.cursor() as cursor :
-      cursor.executemany('INSERT INTO '+table+' VALUES (%s,%s,%s);', self.data)
-      rows = cursor.rowcount
+      rows = cursor.executemany('INSERT INTO '+table+' (log_id, bucket_id, '+table+') VALUES (%s, %s, %s);', self.data)
+      warnings = cursor.warning_count()
+    if warnings :
+      message.warning('upload to db via insert with %(warnings)', warnings=warnings)
     if rows is None :
       message.warning('upload to db via insert "%(table)s" returned None', table=table)
     else :
-      message.information('upload to db via insert added %(rows)d rows to "%(table)s"', rows=int(rows), table=table)
+      message.information('upload to db via insert added %(rows)d rows of %(data)d to "%(table)s"', rows=int(rows), data=len(self.data), table=table)
 
   def insert(self, data) :
     'add data to insert values'
@@ -470,14 +472,14 @@ class optimize :
     message.information('starting with %(count)d tests in table %(table)s', count=tests, table=self.invs)
     # check congruency
     self.cvg = mdb.connection().row_cursor()
-    self.cvg.execute("SELECT md5_self AS md5, 'md5_self' AS type, invs.master, invs.root FROM point JOIN "+self.invs+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
+    rows=self.cvg.execute("SELECT md5_self AS md5, 'md5_self' AS type, invs.master, invs.root FROM point JOIN "+self.invs+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
     md5 = self.cvg.fetchall()
     if not md5 :
       message.fatal('no master')
     elif len(md5) > 1 :
       message.fatal('md5 of multiple masters do not match')
     else :
-      message.debug('md5 query returns %(rows)d', rows=self.cvg.rowcount)
+      message.debug('md5 query returns %(rows)d', rows=rows)
     self.master = mdb.accessor(md5=md5[0])
     self.cvg.execute("SELECT DISTINCT(md5_axes) AS md5, 'md5_axes' AS type, invs.master, invs.root FROM point JOIN "+self.invs+" AS invs ON (invs.master = point.log_id AND point.parent IS NULL) GROUP BY md5;")
     md5 = self.cvg.fetchall()
@@ -524,7 +526,7 @@ class optimize :
     if self.cvg.HAS_UPDATE :
       # in e.g. mysql we can use a join in an update
       # WHERE hits.log_id = %s
-      self.cvg.execute('UPDATE '+self.covg+''' AS status JOIN hits ON (status.bucket_id = hits.bucket_id AND hits.log_id = %s)
+      rows=self.cvg.execute('UPDATE '+self.covg+''' AS status JOIN hits ON (status.bucket_id = hits.bucket_id AND hits.log_id = %s)
 SET
   status.hits  = CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal, status.hits + hits.hits) END,
   status.rhits = CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal + status.max_hits, status.rhits + MIN(hits.hits, status.goal)) END,
@@ -533,7 +535,7 @@ SET
   status.tests = status.tests + 1;''', log_id)
     else :
       # but we need to resort to this for e.g. sqlite
-      self.cvg.execute('REPLACE INTO '+self.covg+'''
+      rows=self.cvg.execute('REPLACE INTO '+self.covg+'''
 SELECT
   status.bucket_id,
   status.goal,
@@ -541,8 +543,8 @@ SELECT
   CASE status.goal WHEN -1 THEN 0 WHEN 0 THEN 0 ELSE MIN(status.goal + status.max_hits, status.rhits + MIN(hits.hits, status.goal)) END AS rhits,
   status.total_hits + hits.hits as total_hits,
   MIN(status.goal, MAX(max_hits, hits.hits)) as max_hits, status.tests + 1 FROM '''+self.covg+' AS status JOIN hits USING (bucket_id) WHERE hits.log_id = %s;', (log_id,))
-    message.debug('update %(cnt)d rows', cnt=self.cvg.rowcount)
-    return self.cvg.rowcount
+    message.debug('update %(rows)d rows', rows=rows)
+    return rows
 
   def reset(self) :
     if self.previous and self.robust :
