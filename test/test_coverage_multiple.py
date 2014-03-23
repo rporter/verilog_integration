@@ -25,8 +25,8 @@ choices = (False,)*10 + (True,)
 class coverpoint(coverage.coverpoint) :
   'stuff'
   NAMES='abcdefghijklmnopqrstuvwxyz'
-  def __init__(self, name) :
-    for axis in random.sample(self.NAMES, random.randrange(2, self.number_of_axes)) :
+  def __init__(self, name, max_axes) :
+    for axis in random.sample(self.NAMES, random.randrange(2, self.number_of_axes(max_axes))) :
       self.add_axis(axis, values=range(0, random.randrange(5, 10)))
     coverage.coverpoint.__init__(self, name=name, description='random coverpoint')
 
@@ -34,16 +34,16 @@ class coverpoint(coverage.coverpoint) :
     'set goal'
     # no dont cares or illegals
     bucket.default(goal=random.randrange(1, 100), dont_care=random.choice(choices), illegal=random.choice(choices))
-  
-  @utils.lazyProperty
-  def number_of_axes(self) :
+
+  def number_of_axes(self, max_axes) :
     limit = len(self.NAMES)
-    result = test.test.plusarg_opt_int('max_axes', 3, 'd')
-    if result < 1 :
+    if max_axes < 1 :
       result = 1
-    if result > limit : 
+    elif max_axes > limit : 
       result = limit
       message.warning('limit of %(limit)d axes', limit=limit)
+    else :
+      result = max_axes
     return result+1
 
 ################################################################################
@@ -84,7 +84,7 @@ class thistest(test.test) :
   def prologue(self):
     # initialize all the same
     random.seed(self.cvr_seed)
-    self.cpts = [coverpoint('%d random coverpoint' % i).cursor() for i in range(0, self.instances)]
+    self.cpts = [coverpoint('%d random coverpoint' % i, self.max_axes).cursor() for i in range(0, self.instances)]
     self.master_id = test.plusargs().master_id
   
   def epilogue(self) :
@@ -133,7 +133,7 @@ class thistest(test.test) :
     return random.choice(opts)
 
   def tests(self) :
-    args = dict(master_id=str(self.master_id or self.mdb.log_id), cvr_seed=str(self.cvr_seed), instances=str(self.instances))
+    args = dict(master_id=str(self.master_id or self.mdb.log_id), cvr_seed=str(self.cvr_seed), instances=str(self.instances), max_axes=str(self.max_axes))
     if test.plusargs().test_xml :
       return xmlList(test.plusargs().test_xml, **args)
     else :
@@ -161,6 +161,11 @@ class thistest(test.test) :
   @utils.lazyProperty
   def instances(self) :
     return self.plusarg_opt_int('instances', 20, 'd')
+  @utils.lazyProperty
+  def max_axes(self) :
+    return self.plusarg_opt_int('max_axes', 3, 'd')
+
+    return self.plusarg_opt_int('max_axes', 20, 'd')
   @utils.lazyProperty
   def testnames(self) :
     return re.split(r'[+:,]', test.plusargs().get('tests', self.filename()))
