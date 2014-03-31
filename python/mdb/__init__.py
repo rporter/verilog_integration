@@ -127,6 +127,9 @@ class cursor(db.cursor, _cursor) :
 class connection(_connection, db.connection) :
   impl = db
 
+class json :
+  dump = db.json.dump
+
 ################################################################################
 
 class mdb(object) :

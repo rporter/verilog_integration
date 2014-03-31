@@ -82,7 +82,7 @@ class index(serve_something, database.index) :
   encapsulate=False
 
   def doit(self, variant, limit=20, start=None, order='down'):
-    json.dump(self.result(self.where(variant, limit, start, order)), self.page)
+    mdb.json.dump(self.result(self.where(variant, limit, start, order)), self.page)
 
 ################################################################################
 
@@ -91,7 +91,7 @@ class msgs(serve_something, database.msgs) :
   encapsulate=False
 
   def doit(self, log_id):
-    json.dump(self.result(log_id), self.page)
+    mdb.json.dump(self.result(log_id), self.page)
 
 ################################################################################
 
@@ -100,7 +100,7 @@ class rgr(serve_something, database.rgr) :
   encapsulate=False
 
   def doit(self, log_id):
-    json.dump(self.result(log_id), self.page)
+    mdb.json.dump(self.result(log_id), self.page)
 
 ################################################################################
 
@@ -109,7 +109,10 @@ class cvg(serve_something, database.cvg) :
   encapsulate=False
 
   def doit(self, **kwargs):
-    json.dump(self.result(**kwargs).points().json(), self.page)
+    if bottle.request.query.raw :
+      mdb.json.dump(list(self.result(**kwargs).coverage(pad=False, cursor=False)), self.page)
+    else :
+      mdb.json.dump(self.result(**kwargs).points().json(), self.page)
 
 ################################################################################
 
@@ -118,7 +121,7 @@ class cvr(serve_something, database.cvr) :
   encapsulate=False
 
   def doit(self, log_id):
-    json.dump(self.result(log_id), self.page)
+    mdb.json.dump(self.result(log_id), self.page)
 
 ################################################################################
 
@@ -127,7 +130,7 @@ class bkt(serve_something, database.bkt) :
   encapsulate=False
 
   def doit(self, **kwargs):
-    json.dump(self.result(**kwargs), self.page)
+    mdb.json.dump(self.result(**kwargs), self.page)
 
 ################################################################################
 
@@ -136,7 +139,7 @@ class hm(serve_something, database.hm) :
   encapsulate=False
 
   def doit(self, **kwargs):
-    json.dump(self.result(**kwargs), self.page)
+    mdb.json.dump(self.result(**kwargs), self.page)
 
 ################################################################################
 

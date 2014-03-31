@@ -1,6 +1,7 @@
 # Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 import accessor
+import json as json_
 import message
 import os.path
 import sqlite3
@@ -53,3 +54,4 @@ class connection(object) :
   def set_default_db(cls, **args) :
     cls.default_db = os.path.join(args.get('root',''), args['db'])
 
+json_dump = json_.dump

@@ -1,6 +1,8 @@
 # Copyright (c) 2014 Rich Porter - see LICENSE for further details
 
 import accessor
+import decimal
+import json as json_
 import message
 import MySQLdb, MySQLdb.cursors
 import os.path
@@ -8,13 +10,6 @@ import Queue
 import socket
 import sys
 import threading
-
-################################################################################
-
-# monkey patch converters
-import MySQLdb.converters
-MySQLdb.converters.conversions[MySQLdb.converters.FIELD_TYPE.DECIMAL]=float
-MySQLdb.converters.conversions[MySQLdb.converters.FIELD_TYPE.NEWDECIMAL]=float
 
 ################################################################################
 
@@ -142,3 +137,14 @@ class connection(object) :
   @classmethod
   def set_default_db(cls, **args) :
     message.warning('set default db on mysql')
+
+class json(json_.JSONEncoder) :
+  'Serialize Decimal objects as integers'
+  def default(self, obj):
+    if isinstance(obj, decimal.Decimal):
+      return int(obj)
+    # Let the base class default method raise the TypeError
+    return json_.JSONEncoder.default(self, obj)
+  @classmethod
+  def dump(cls, obj, f) :
+    json_.dump(obj, f, cls=cls)
