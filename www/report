@@ -1,11 +1,40 @@
-#!/bin/bash
+#!/bin/bash -xv
 # Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
+
+function usage() {
+  echo "usage: $0 [-u] [-p host:port]" >&2
+}
 
 function urlget {
   test -e $1 || wget --no-check-certificate $2 -O $1 || exit
 }
 
 root=`dirname $0`
+
+# defaults
+exec=python
+args="report.py --root=$root"
+port=localhost:8080
+pass=
+
+while getopts ":up" opt; do
+  case $opt in
+    u) # use uwsgi
+      exec=uwsgi
+      args="-T --xml uwsgi.xml"
+      ;;
+    p) # assign port
+      port=$1
+      shift
+      ;;
+    h) # help
+      usage
+      exit 1
+      ;;
+    *) # pass thru
+    pass=$pass" "$1
+  esac
+done
 
 urlget $root/bottle.py                   https://raw.github.com/defnull/bottle/master/bottle.py
 urlget $root/static/jquery.dynatree.js   http://dynatree.googlecode.com/svn/trunk/src/jquery.dynatree.js
@@ -30,6 +59,7 @@ urlget $root/static/jqplot.pieRenderer.min.js \
                                          http://www.jqplot.com/src/plugins/jqplot.pieRenderer.min.js
 urlget $root/static/underscore.js        http://underscorejs.org/underscore.js
 
-LD_LIBRARY_PATH=$root/../python:$LD_LIBRARY_PATH \
-PYTHONPATH=.:$root/../python:$PYTHONPATH \
-exec python $0.py --root=$root "$@"
+cd $root
+LD_LIBRARY_PATH=../python:$LD_LIBRARY_PATH \
+PYTHONPATH=.:../python:$PYTHONPATH \
+exec $exec $args --http $port

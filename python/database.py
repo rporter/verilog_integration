@@ -464,7 +464,7 @@ class optimize :
     if test_ids or xml_ids :
       s_test_ids = ','.join(map(str, test_ids+xml_ids))
       create = ('INSERT INTO '+self.invs) if log_ids else ('CREATE TEMPORARY TABLE '+self.invs+' AS')
-      self.tests.execute(create+' SELECT log.*, goal_id AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) WHERE log.log_id IN ('+s_test_ids+');')
+      self.tests.execute(create+' SELECT log.*, IFNULL(goal_id, goal.log_id) AS master FROM log LEFT OUTER JOIN master ON (log.log_id = master.log_id) LEFT OUTER JOIN goal ON (log.log_id = goal.log_id) WHERE log.log_id IN ('+s_test_ids+') GROUP BY log_id;')
     self.tests.execute('SELECT count(*) AS tests FROM '+self.invs)
     tests = self.tests.fetchone().tests
     if tests < 1 :

@@ -99,18 +99,22 @@ class _connection(object) :
   instance = dict()
 
   def __init__(self, *args, **kwargs) :
-    'pools connections on per thread basis'
+    'pools connections on per process/thread basis'
     if kwargs.get('reconnect', False) :
       try :
-        self.instance[threading.current_thread()].close()
+        self.instance[self.id()].close()
       except :
         pass
-      del self.instance[threading.current_thread()]
-    if threading.current_thread() not in self.instance :
+      del self.instance[self.id()]
+    if self.id() not in self.instance :
       self.connect(*args, **kwargs)
 
   def cursor(self, *args) :
-    return cursor(self.instance[threading.current_thread()], *args)
+    return cursor(self.instance[self.id()], *args)
+
+  def id(self) :
+    'connection id; pid & thread'
+    return str(os.getpid())+'.'+str(threading.current_thread().name)
 
 try :
   raise ImportError
@@ -142,6 +146,7 @@ class mdb(object) :
       while not self.finished.is_set():
         self.finished.wait(self.interval)
         self.function(*self.args, **self.kwargs)
+      message.debug('is finished ' + threading.current_thread().name)
     def running(self) :
       return not self.finished.is_set()
 
@@ -196,6 +201,7 @@ class mdb(object) :
 
   @classmethod
   def finalize_all(cls) :
+    message.debug('Finalize all')
     for instance in cls.instances :
       instance.finalize()
 

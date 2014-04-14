@@ -13,27 +13,14 @@ import time
 ################################################################################
 
 parser = message.reportOptionParser()
-parser.add_option('-p', '--port', default='8080', help='port to serve on')
+parser.add_option('-p', '--http', default='localhost:8080', help='port to serve on')
 options, values = parser.parse_args()
 
 ################################################################################
 
 mdb.db.connection.set_default_db(db='../db/mdb.db', root=options.root)
 m=mdb.mdb('mdb report')
-
-# intercept log messages and redirect to our logger
-def bottle_log(msg) :
-  message.note(msg.strip())
-def wsgi_log(self, format, *args) :
-  severity = message.warning if args[-2] == '404' else message.debug
-  severity(format.strip() % args)
-
-bottle._stderr = bottle_log
-from wsgiref.simple_server import WSGIRequestHandler
-WSGIRequestHandler.log_message = wsgi_log
-
-# location of static data
-static = os.path.join(options.root, 'static')
+message.message.verbosity(message.INT_DEBUG)
 
 ################################################################################
 
@@ -143,15 +130,6 @@ class hm(serve_something, database.hm) :
 
 ################################################################################
 
-@bottle.get('/static/<filename:path>')
-def server_static(filename):
-    return bottle.static_file(filename, root=static)
-
-@bottle.route('/')
-@bottle.route('/index.html')
-def index_html() :
-  return bottle.static_file('/index.html', root=static)
-
 urls = (
   ('/index/:variant', index,),
   ('/index/:variant/<limit:int>', index,),
@@ -176,8 +154,35 @@ for path, cls in urls:
     return fn
   bottle.route(path, name='route_'+cls.__name__)(serve(cls))
 
+application = bottle.default_app()
+
 ################################################################################
 
-bottle.run(port=options.port)
-# keyboardInterrupt gets us here ...
-mdb.finalize_all()
+if __name__ == '__main__' :
+  # intercept log messages and redirect to our logger
+  def bottle_log(msg) :
+    message.note(msg.strip())
+  def wsgi_log(self, format, *args) :
+    severity = message.warning if args[-2] == '404' else message.debug
+    severity(format.strip() % args)
+  
+  bottle._stderr = bottle_log
+  from wsgiref.simple_server import WSGIRequestHandler
+  WSGIRequestHandler.log_message = wsgi_log
+  
+  # location of static data
+  static = os.path.join(options.root, 'static')
+  @bottle.get('/static/<filename:path>')
+  def server_static(filename):
+    return bottle.static_file(filename, root=static)
+  
+  @bottle.route('/')
+  @bottle.route('/index.html')
+  def index_html() :
+    return bottle.static_file('/index.html', root=static)
+
+  host, port = options.http.split(':')
+  bottle.run(host=host, port=port)
+
+  # keyboardInterrupt gets us here ...
+  mdb.finalize_all()

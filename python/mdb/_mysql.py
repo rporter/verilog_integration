@@ -127,9 +127,9 @@ class connection(object) :
     except :
       message.warning('Unable to connect to mysql db %(db)s at %(host)s:%(port)d because %(exc)s', db=self.db, host=self.default_host, port=self.default_port, exc=sys.exc_info()[0])
       return
-    message.note("Connected to mysql db %(db)s at %(host)s:%(port)d for %(thread)s", db=self.default_db, host=self.default_host, port=self.default_port, thread=threading.current_thread().name)
-    # this should be keyed on [thread(), db] - but we don't used multiple databases currently
-    self.instance[threading.current_thread()] = instance
+    message.note("Connected to mysql db %(db)s at %(host)s:%(port)d for %(thread)s", db=self.default_db, host=self.default_host, port=self.default_port, thread=self.id())
+    # this should be keyed on db too - but we don't used multiple databases currently
+    self.instance[self.id()] = instance
 
   def row_cursor(self) :
     return self.cursor(row_cursor)
