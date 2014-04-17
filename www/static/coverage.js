@@ -65,9 +65,8 @@ $coverage = function(){};
     function _default(it) {
       return it || '<i>not given</i>';
     }
-
     function data() {
-      return coverpoint.children.map(function(it){return [_default(it.hierarchy), _default(it.description), it.coverage.hits, it.coverage.goal, it.coverage.coverage.toFixed(2)]});
+      return coverpoint.children.map(function(it){return [_default(it.hierarchy), _default(it.description), $('#template-axis-table').jqote({axes:it.axes}), it.coverage.hits, it.coverage.goal, it.coverage.coverage.toFixed(2)]});
     }
 
     this.build = function() {
@@ -79,6 +78,7 @@ $coverage = function(){};
         "aoColumns": [
   	  { "sTitle": "name" },
   	  { "sTitle": "description" },
+  	  { "sTitle": "axes" },
 	  { "sTitle": "hits" },
 	  { "sTitle": "goal" },
 	  { "sTitle": "coverage %" }
@@ -697,7 +697,7 @@ $coverage = function(){};
     }
 
     function build_table() {
-      where.append('<div class="table"><table class="report"><thead><tr><th class="bkt">bucket</th>' +
+      where.append('<div class="table"><table class="report coverage"><thead><tr><th class="bkt">bucket</th>' +
         axes.reduce(function(p, c, idx){
           return p+((c.visible===false)?'':('<th class="axis sorter-false" idx="'+idx+'">' + c.name + '</th>'))},
           ''

@@ -78,6 +78,28 @@
        </table>
       </div>
     </script>
+    <script type="text/html" id="template-axis-table">
+      <a class="popup onhover"><%= this.axes.length %>
+      <span>
+      <table class="report axis">
+        <thead>
+          <tr>
+            <th>Name</th><th>Length</th><th>Values</th>
+          </tr>
+        </thead>
+        <tbody>
+            <% for (var n=0; n<this.axes.length; n++) {
+               var axis=this.axes[n];
+            %>
+          <tr><td><%= axis.name %></td><td><%= axis.values.length %></td><td><%= axis.values %></td></tr>
+            <%
+               }
+            %>
+        </tbody>
+      </table>
+      </span>
+      </a>
+    </script>
     <script type="text/html" id="menu">
       <ul class="popup">
         <li id="ident"><a href="#"><span class="uncheck ui-icon ui-icon-check"></span>View Ident</a></li>

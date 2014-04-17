@@ -142,7 +142,7 @@
    div.cvg-tree-pane        { float : left ; width : 40% }
    div.cvg-point-pane       { float : right; width : 60%; background : #eee }
    div.cvg-point-pane div.table  { overflow-y : scroll; overflow-x : hidden }
-   div.cvg-point-pane table { table-layout: fixed }
+   div.cvg-point-pane table.coverage { table-layout: fixed }
    div.cvg-point-pane th.bkt{ width : 6em; }
    div.cvg-point-pane th.selected { background : #66d }
    div.cvg-point-pane th.rotated  {
@@ -152,8 +152,6 @@
            -o-transform: rotate(-90.0deg);  /* Opera 10.5 */
       -webkit-transform: rotate(-90.0deg);  /* Saf3.1+, Chrome */
    }
-   table.bucket td          { width : 4em; }
-   table.alias th, table.alias td { width : 4em; }
    div.cvg-point-pane table.heat-map { border : none; width : auto; margin-left : auto; margin-right : auto; margin-top : 20px }
 
    cvg-tooltip { background-image : none }
