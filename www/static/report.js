@@ -652,7 +652,7 @@ $report = function(){
       url : 'msgs/'+data.log_id,
       dataType : 'json',
       success : function(data) {
-        self.json = data.sort(function(x, y){return x.date - y.date}).map(function(msg){msg.seconds = msg.date - data[0].date; return msg});
+        self.json = data.sort(function(x, y){var d = x.date - y.date; if (d===0) return x.msg_id - y.msg_id; return d; }).map(function(msg){msg.seconds = msg.date - data[0].date; return msg});
         self.log.jqoteapp('#template', self.json);
         self.widget();
         $report.fit(self.log);
