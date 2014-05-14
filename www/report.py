@@ -7,6 +7,7 @@ import json
 import mdb
 import message
 import os.path
+import re
 import sys
 import time
 
@@ -181,8 +182,8 @@ if __name__ == '__main__' :
   def index_html() :
     return bottle.static_file('/index.html', root=static)
 
-  host, port = options.http.split(':')
-  bottle.run(host=host, port=port)
+  server = re.match(r'^((?P<host>[^:]+):)?(?P<port>[0-9]+)$', options.http)
+  bottle.run(**server.groupdict())
 
   # keyboardInterrupt gets us here ...
   mdb.finalize_all()
