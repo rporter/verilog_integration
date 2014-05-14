@@ -45,7 +45,7 @@ class connection(object) :
       message.warning('Unable to connect. File %(db)s because %(exc)s', db=self.db, exc=sys.exc_info()[0])
     instance.execute('PRAGMA journal_mode=WAL;')
     instance.execute('PRAGMA read_uncommitted = 1;')
-    self.instance[threading.current_thread()] = instance
+    self.instance[self.id()] = instance
 
   def row_cursor(self) :
     return self.cursor(accessor_factory)
@@ -54,4 +54,7 @@ class connection(object) :
   def set_default_db(cls, **args) :
     cls.default_db = os.path.join(args.get('root',''), args['db'])
 
-json_dump = json_.dump
+class json :
+  @classmethod
+  def dump(cls, obj, f) :
+    json_.dump(obj, f)
