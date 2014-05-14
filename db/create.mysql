@@ -49,7 +49,7 @@ CREATE TABLE mdb.message (
   msg      TEXT,
   FOREIGN KEY (log_id) REFERENCES log (log_id) ON DELETE CASCADE,
   INDEX    (ident, subident)
-) ENGINE=TokuDB;
+) ENGINE=TokuDB COMPRESSION=TOKUDB_LZMA;
 
 CREATE TABLE mdb.point (
   point_id    INTEGER UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT, -- unique point id
@@ -111,5 +111,5 @@ CREATE TABLE mdb.hits (
   FOREIGN KEY (bucket_id) REFERENCES goal (bucket_id),
   INDEX     (log_id, bucket_id),
   INDEX     (log_id)
-) ENGINE=TokuDB;
+) ENGINE=TokuDB COMPRESSION=TOKUDB_LZMA;
 
