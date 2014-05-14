@@ -24,7 +24,7 @@ while getopts ":up" opt; do
       args="-T --xml uwsgi.xml"
       ;;
     p) # assign port
-      port=$1
+      port=$2
       shift
       ;;
     h) # help
