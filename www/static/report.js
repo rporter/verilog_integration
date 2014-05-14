@@ -195,10 +195,10 @@ $report = function(){
             var cvg = $('td.cvg', nRow).addClass('cvg-'+aData[8]);
             $report.testJSON.get_cvg(cvg, nRow, aData[0])(event);
           });
-          $(nRow).bind('click.example', {log_id : data[iDisplayIndex].log.log_id, name : $(aData[2]).text(), children : data[iDisplayIndex].log.children, anchor : anchor},
+          $(nRow).bind('click.example', {log_id : data[iDisplayIndex].log.log_id, name : $(aData[2]).text(), status : data[iDisplayIndex].status, log : data[iDisplayIndex].log, anchor : anchor},
             function(event) {
               var log;
-              if (event.data.children) {
+              if (event.data.log.children) {
                 // this will be a tab-within-tab
                 log = new $report.openRegr(event.data, nRow);
               } else {
@@ -275,17 +275,8 @@ $report = function(){
       function popup(attr) {
         return $('<abbr>', {title:attr.msg, text:attr.count}).outerHTML();
       }
-      function children(log) {
-        if (log.children === null) return '';
-        result = String(log.children) + '<result>';
-        if (log.passing) result += ' <pass>' + log.passing + '</pass>';
-        var failing = log.children - log.passing;
-        if (failing) result += ' <fail>' + failing + '</fail>';
-        result += '</result>';
-        return result;
-      }
       return data.map(function(log){
-        return [log.log.log_id, log.log.user, $('<abbr>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), children(log.log), log.status.status];
+        return [log.log.log_id, log.log.user, $('<abbr>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), $report.testJSON.child_status(log.log), log.status.status];
       });
     };
 
@@ -367,6 +358,16 @@ $report = function(){
       data[log].get = get;
     }
     console.log(this);
+  };
+
+  $report.testJSON.child_status = function (log) {
+    if (log.children === null) return '';
+    result = String(log.children) + '<result>';
+    if (log.passing) result += ' <pass>' + log.passing + '</pass>';
+    var failing = log.children - log.passing;
+    if (failing) result += ' <fail>' + failing + '</fail>';
+    result += '</result>';
+    return result;
   };
 
   $report.testJSON.get_cvg = function(cvg, nRow, log_id, onsuccess) {
@@ -629,7 +630,15 @@ $report = function(){
 
     this.add = function(tabs) {
       var href='#'+self.id;
-      tabs.tabs('add', href, data.log_id+' log').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name)
+      tabs.tabs('add', href, data.log_id+' log').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name).tooltip({
+        position: {
+          my: "center bottom",
+          at: "center top",
+          using: function( position, feedback ) {
+            $(this).css(position).addClass('example '+ data.status.status);
+          }
+        }
+      });
     }
 
     function wrapif(cvg) {
@@ -750,7 +759,17 @@ $report = function(){
 
     this.add = function(tabs) {
       var href='#'+self.id;
-      tabs.tabs('add', href, data.log_id+' hier').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name);
+      tabs.tabs('add', href, data.log_id+' hier').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name).tooltip({
+        position: {
+          my: "center bottom",
+          at: "center top",
+          using: function( position, feedback ) {
+console.log(data.log)
+            $(this).css(position).addClass('example '+ data.status.status);
+            $($report.testJSON.child_status(data.log)).appendTo($('div', this));
+          }
+        }
+      });
     };
 
     this.table = function(log_id) {
@@ -780,7 +799,7 @@ $report = function(){
           var create = node.data.children.length?$report.openRegr:$report.openLog;
           // this will be a tab-within-tab
           var json = self.find(node.data.key);
-          (new create({log_id : node.data.key, name : json.log.test || json.log.description || 'none given', hier : [json,], anchor : anchor})).add(anchor);
+          (new create({log_id : node.data.key, name : json.log.test || json.log.description || 'none given', status : json.status, log : json.log, hier : [json,], anchor : anchor})).add(anchor);
         },
       });
       this.explorer.append(tree);
@@ -850,7 +869,7 @@ $report = function(){
             $('<td>', {text : test.status.status, class : test.status.status}).appendTo(row);
             row.bind('click.example',
               function() {
-                (new $report.openLog({log_id : test.log.log_id, name : test.log.description}, anchor, row)).add(anchor);
+                (new $report.openLog({log_id : test.log.log_id, name : test.log.description, status : test.status}, anchor, row)).add(anchor);
               }
             );
           });
@@ -874,7 +893,17 @@ $report = function(){
     this.add = function(tabs) {
       self.parent = tabs;
       var href='#'+self.id;
-      tabs.tabs('add', href, data.log_id+' regr').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name)
+      tabs.tabs('add', href, data.log_id+' regr').find('a[href="'+href+'"]').parents('li:first').prop('title', data.name).prop('title', data.name).tooltip({
+        position: {
+          my: "center bottom",
+          at: "center top",
+          using: function( position, feedback ) {
+console.log(data.log)
+            $(this).css(position).addClass('example '+ data.status.status);
+            $($report.testJSON.child_status(data.log)).appendTo($('div', this));
+          }
+        }
+      });
     };
     this.close = function() {
       var tab = $('li a[href="#'+self.id+'"]', self.parent).parent().parent();
