@@ -29,6 +29,10 @@
    result fail  { background-color : #f88 }
    result other { background-color : #88f }
 
+   .example.PASS  { background     : #8f8 }
+   .example.FAIL  { background     : #f88 }
+   .example.OTHER { background     : #88f }
+
    div.tab     { }
    a.icon      { padding : 0 ! important }
    code        { display: block; white-space : pre }
