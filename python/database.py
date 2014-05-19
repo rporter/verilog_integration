@@ -186,8 +186,33 @@ class index :
 
   def execute(self, subquery) :
     with mdb.connection().row_cursor() as db :
-      message.debug('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log.log_id, level ORDER BY %s;' % (str(subquery), self.order))
-      db.execute('SELECT log.*, message.*, COUNT(*) AS count FROM (%s) AS log NATURAL LEFT JOIN message GROUP BY log.log_id, level ORDER BY %s;' % (str(subquery), self.order))
+      db.execute('''
+SELECT
+  log.*,
+  message.*,
+  COUNT(*) AS count
+FROM
+(
+  SELECT
+    MIN(message.date) AS start,
+    MAX(message.date) AS stop,
+    list.*
+  FROM 
+  (%s) AS list
+  LEFT JOIN
+    message
+  USING
+    (log_id)
+  GROUP BY
+    log_id
+) AS log
+NATURAL LEFT JOIN
+  message
+GROUP BY
+  log.log_id,
+  level
+ORDER BY %s;
+''' % (str(subquery), self.order))
       return db.fetchall()
 
   testseed = re.compile(r'-(?P<seed>(0x)?[0-9a-fA-F]+)$')
@@ -256,7 +281,6 @@ class cvg :
       return cvg.hierarchy(self.goal_id, self.coverage(), self.cumulative).get_root()
     def coverage(self, pad=True, cursor=True) :
       with mdb.connection().row_cursor() if cursor else mdb.connection().cursor() as db :
-        message.debug(self.query % self.__dict__)
         db.execute(self.query % self.__dict__)
         for result in db.fetchall() :
           yield result
