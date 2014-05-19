@@ -48,6 +48,16 @@ class _cursor(object) :
       import inspect, pprint
       pprint.pprint(inspect.stack(), stream=self.dump)
 
+  def execute(self, *args) :
+    if self.dump :
+      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+    self._execute(*args)
+
+  def executemany(self, *args) :
+    if self.dump :
+      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+    self._executemany(*args)
+
   def commit(self) :
     self.connection.commit()
 

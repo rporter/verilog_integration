@@ -7,6 +7,7 @@ import message
 import MySQLdb, MySQLdb.cursors
 import os.path
 import Queue
+import re
 import socket
 import sys
 import threading
@@ -45,22 +46,18 @@ class cursor(object) :
   def create(self) :
     self.retry(self._create) 
 
-  def execute(self, *args) :
-    if self.dump :
-      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+  def _execute(self, *args) :
     def exe() :
       return self.db.execute(self.formatter(args[0]), *args[1:])
     return self.retry(exe, self._create) # don't retry the create
 
-  def executemany(self, *args) :
-    if self.dump :
-      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+  def _executemany(self, *args) :
     def exe() :
       return self.db.executemany(self.formatter(args[0]), *args[1:])
     return self.retry(exe, self._create) # don't retry the create
 
   def formatter(self, fmt) :
-    return str(fmt).replace('MIN(', 'LEAST(').replace('MAX(', 'GREATEST(')
+    return re.sub(r'MIN(?=\((?=[^)]*,).+\))', 'LEAST', re.sub(r'MAX(?=\((?=[^)]*,).+\))', 'GREATEST', str(fmt)))
 
   def split(self, field) :
     return 'SUBSTRING_INDEX('+field+', "-", 1)'

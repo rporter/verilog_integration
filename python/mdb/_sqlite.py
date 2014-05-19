@@ -17,14 +17,10 @@ class cursor(object) :
     return str(fmt).replace('%s', '?')
   def split(self, field) :
     return 'RTRIM('+field+', "-x0123456789abcdef")'
-  def execute(self, *args) :
-    if self.dump :
-      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+  def _execute(self, *args) :
     self.db.execute(self.formatter(args[0]), *args[1:])
     return self.db.rowcount
-  def executemany(self, *args) :
-    if self.dump :
-      self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
+  def _executemany(self, *args) :
     self.db.executemany(self.formatter(args[0]), *args[1:])
     return self.db.rowcount
 
