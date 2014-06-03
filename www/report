@@ -9,7 +9,7 @@ function urlget {
   test -e $1 || wget --no-check-certificate $2 -O $1 || exit
 }
 
-root=`dirname $0`
+root=`pwd`/`dirname $0`
 
 # defaults
 exec=python
