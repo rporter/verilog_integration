@@ -39,22 +39,6 @@
         $('span.ui-icon-refresh', $report.tabs()).css('float', 'right');
       });
     </script>
-    <script type="text/html" id="template">
-        <%
-    var date = new Date(this.date*1000);
-    var id = this.ident?(this.ident+'-'+this.subident):'';
-        %>
-      <![CDATA[
-        <a class="popup onhover">
-          <code class="<%= this.severity %>" level="<%= this.level %>" ident="<%= this.ident %>" subident="<%= this.subident %>">(<%= $report.openLog.justify(this.severity) %><time class="abs"> <%= date.toLocaleTimeString() %></time><time class="rel"> <%= $report.openLog.justify(parseInt(this.seconds).toString(), 6) %></time><ident><%= $report.openLog.justify(id, 10) %></ident>) <%= $report.openLog.msg(this.msg) %></code>
-          <span title="x">
-            <% if (this.ident) out += '<p class="id">'+id+'</p>'; %>
-            <p class="date"><%= date.toGMTString() %></p>
-            <% if (this.filename) out += '<p class="file">'+this.filename+':'+this.line+'</p>'; %>
-          </span>
-        </a>
-      ]]>
-    </script>
     <script type="text/html" id="matrix-template">
       <div class="table">
         <table class="report" style="width : auto; margin-left : auto; margin-right : auto">

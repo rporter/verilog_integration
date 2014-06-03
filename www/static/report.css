@@ -45,6 +45,7 @@
    code.FATAL       { color : #f00 }
    code.INTERNAL    { color : #f00 }
    code.SUCCESS     { color : #0c0 }
+   code p           { margin : 0 }
 
    a.popup {position:relative;
 	z-index:24;

@@ -262,6 +262,7 @@ $report = function(){
 	{ "sTitle": "description" },
 	{ "sTitle": "start" },
 	{ "sTitle": "stop" },
+	{ "sTitle": "duration" },
 	{ "sTitle": "fatals" },
 	{ "sTitle": "internals" },
 	{ "sTitle": "errors" },
@@ -287,7 +288,7 @@ $report = function(){
         return $('<a>', {text : show, title:date.toUTCString()}).outerHTML();
       }
       return data.map(function(log){
-        return [log.log.log_id, log.log.user, $('<abbr>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), date(log.log.start), date(log.log.stop), log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), $report.testJSON.child_status(log.log), log.status.status];
+        return [log.log.log_id, log.log.user, $('<abbr>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), date(log.log.start), date(log.log.stop), log.log.stop-log.log.start, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), $report.testJSON.child_status(log.log), log.status.status];
       });
     };
 
@@ -445,9 +446,6 @@ $report = function(){
     }
 
     this.widget = function() {
-      function has_ident(json) {
-        return json[0].ident !== null || (json.length > 1 && has_ident(json.splice(1)));
-      }
       var nodes  = $('code', self.log);
       var widget = $('<div class="widget"/>').appendTo(self.log);
       var align  = function() {
@@ -493,7 +491,7 @@ $report = function(){
         $('ident', self.log).toggle();
         menu.hide();
       });
-      if (has_ident(self.json)) {
+      if (self.json.idents) {
         ident.trigger('click');
       } else {
         $('a', ident).prop('title', 'there are no given idents');
@@ -524,115 +522,44 @@ $report = function(){
         .append(upper)
         .bind('mouseenter.example', function(event){upper.show()})
         .bind('mouseleave.example', function(event){upper.hide()});
-      // message indexed by severity
-      function getBySeverity() {
-        function sorted(nodes) {
-          function children(nodes) {
-            // place ellipsis in middle of list
-            return ((nodes.length > 11)?Array.prototype.concat(nodes.slice(0,6), nodes.slice(-5)):nodes).map(
-              function(it, idx){
-                return {
-                  "title"    : (idx==5 && nodes.length > 11)?'...':$report.levels.severity(parseInt($(it).attr('level'))),
-                  "key"      : it.idx
-                };
-            });
-          };
-          return Object.keys(nodes).sort().map(
-            function(it) {
-              return {
-        	"title"    : '(' + it.slice(1) + ') ' + $report.levels.severity(parseInt(it.slice(1))) + ' <s' + parseInt(it.slice(1))/10 + '><i>' + nodes[it].length + '</i></s>',
-                "key"      : nodes[it][0].idx,
-                "children" : children(nodes[it])
-             }}
-          );
-        };
-  	return sorted(nodes.toArray().reduce(function(levels, node, idx) {
-          var level = 's'+$(node).attr('level');
-          node.idx = idx;
-          if (!levels.hasOwnProperty(level)) levels[level]=[];
-          levels[level].push(node);
-          return levels;
-        }, {}));
-      }
 
-      function getByIdent() {
-        function label(it) {
-          var node;
-          if (it instanceof Array) {
-            node = $($(it[0]));
-          } else {
-            node = $($(it));
-          }
-          // http://viralpatel.net/blogs/jquery-get-text-element-without-child-element/
-          return node.clone().children().remove().end().text();
+      function toDyn(thing, titles) {
+        if (thing instanceof Array) {
+          // array
+          return ((thing.length > 11)?Array.prototype.concat(thing.slice(0,6), thing.slice(-5)):thing).map(function(it, idx){
+            return {
+              key      : it.idx.toString(),
+              title    : (idx==5 && thing.length > 11)?'...':it[titles[0]],
+              tooltip  : it.msg
+            };
+          });
+        } else {
+          // object
+          return _.map(thing, function(val, key) {
+            var children = toDyn(val, titles.slice(1));
+            return {
+              key      : children[0].key,
+              title    : key + ' <i>(' + _.size(val) + ')</i>',
+              tooltip  : children[0].tooltip,
+              children : children
+            };
+          });
         }
-        function groupBy(nodes, attr) {
-          return nodes.reduce (
-            function(list, node) {
-              var idx = $(node).attr(attr);
-              if (idx !== "null") {
-                if (!list.hasOwnProperty(idx)) {
-                  list[idx]=[];
-                }
-                list[idx].push(node);
-              }
-              return list;
-            }, {});
-        }
-        function sorted(nodes) {
-          function grandchildren(nodes) {
-            return nodes.map(
-              function(it){
-                return {
-                  "title"    : $(it).attr('subident'),
-                  "tooltip"  : label(it),
-                  "key"      : it.idx,
-                  "messages" : it
-                };
-              }
-            );
-          }
-          function children(nodes) {
-            return Object.keys(nodes).sort(function(x,y){return parseInt(x) > parseInt(y)}).map( 
-              function(it){
-                return {
-                  "title"    : '<b>' + it + '</b> <i>' + nodes[it].length + '</i>',
-                  "tooltip"  : label(nodes[it]),
-                  "key"      : nodes[it][0].idx,
-                  "messages" : nodes[it],
-                  "children" : grandchildren(nodes[it])
-                };
-              }
-            );
-          }
-          return Object.keys(nodes).sort().map(
-            function(it) {
-              return {
-                "title"    : it + ' <i>' + nodes[it].length + '</i>',
-                "tooltip"  : label(nodes[it]),
-                "key"      : nodes[it][0].idx,
-                "messages" : nodes[it],
-                "children" : children(groupBy(nodes[it], 'subident'))
-              }
-            }
-          );
-        };
-        return sorted(groupBy(nodes.toArray().map(function(node, idx){node.idx=idx; return node}), 'ident'));
       }
 
       var msgIndex = $('<div/>').appendTo(widget);
       msgIndex.dynatree({
         children : [
-            {title : "Messages", isFolder : true, children : getBySeverity()},
-            {title : "Idents",   isFolder : true, children : getByIdent()},
+            {title : "Messages", isFolder : true, children : toDyn(self.json.severities, [null, 'severity']).sort(function(a,b){return self.json.msgs[a.key].level > self.json.msgs[b.key].level;})},
+            {title : "Idents",   isFolder : true, children : toDyn(self.json.idents, [null, 'ident', 'subident'])},
         ],
         onActivate: function(node) {
-            self.log.animate({scrollTop : $(nodes[node.data.key]).offset().top - self.log.offset().top + self.log.scrollTop() - self.log.height()/2});
+          self.log.animate({scrollTop : $(nodes[node.data.key]).offset().top - self.log.offset().top + self.log.scrollTop() - self.log.height()/2});
         },
         onRender : function(dtnode, nodeSpan) {
           $('a', dtnode.li).hover(
-            function(){$(nodes[$.ui.dynatree.getNode(this).data.key]).addClass(   'example-highlight')},
-            function(){$(nodes[$.ui.dynatree.getNode(this).data.key]).removeClass('example-highlight')}
+            function(){self.json.msgs[$.ui.dynatree.getNode(this).data.key].element.addClass(   'example-highlight')},
+            function(){self.json.msgs[$.ui.dynatree.getNode(this).data.key].element.removeClass('example-highlight')}
           );
           align();
         }
@@ -672,10 +599,47 @@ $report = function(){
       url : 'msgs/'+data.log_id,
       dataType : 'json',
       success : function(data) {
-        self.json = data.sort(function(x, y){var d = x.date - y.date; if (d===0) return x.msg_id - y.msg_id; return d; }).map(function(msg){msg.seconds = msg.date - data[0].date; return msg});
-        self.log.jqoteapp('#template', self.json);
-        self.widget();
+        self.json = {msgs : data.sort(function(x, y){var d = x.date - y.date; if (d===0) return x.msg_id - y.msg_id; return d; }).map(function(msg){msg.seconds = msg.date - data[0].date; return msg})};
+        self.json.idents = _.groupBy(self.json.msgs.filter(function(msg){return msg.ident}), function(msg){return msg.ident});
+        _.each(self.json.idents, function(v,k,l){self.json.idents[k]=_.groupBy(v,function(m){return m.subident})});
+        self.json.severities = _.groupBy(self.json.msgs, function(msg){return msg.severity});
+        json = self.json;
+        var length = self.json.msgs.length, index = 0;
+
         $report.fit(self.log);
+
+        function iteration(){
+          for (; index<length;) {
+            var msg = self.json.msgs[index], id = $report.openLog.genIdent(msg);
+            msg.element = $('<code>', {class:msg.severity, level:msg.level, text:'(' + $report.openLog.justify(msg.severity)}).appendTo(self.log);
+            msg.idx = index;
+            msg.Date = new Date(msg.date*1000);
+            $('<time>', {class:'abs', text:' '+msg.Date.toLocaleTimeString()}).appendTo(msg.element);
+            $('<time>', {class:'rel', text:' '+$report.openLog.justify(msg.seconds.toString(), 6)}).appendTo(msg.element);
+            if (msg.ident) {
+              msg.element.attr({ident:msg.ident, subident:msg.subident});
+            }
+            $('<ident>', {text:$report.openLog.justify(id, 10)}).appendTo(msg.element);
+            msg.element.append(') ' + $report.openLog.msg(msg.msg));
+            msg.element.attr('title', '').tooltip({
+              content: function() {
+                var out = '<code class="'+msg.severity+'">';
+                if (msg.ident) out += '<p class="id">'+id+'</p>';
+                out +=  '<p class="date">' + msg.Date.toGMTString() + '</p>'
+                if (msg.filename) out += '<p class="file">'+msg.filename+':'+msg.line+'</p>';
+                out+='</code>';
+                return out;
+              }
+            });
+            if (index++ < length && index % 100 == 0) {
+              setTimeout(iteration, 0); break;
+            }
+            if (index == length) {
+              self.widget();
+            }
+          }
+        }
+        iteration();
       },
       error : function(xhr, status, index) {
         console.log(xhr, status, index);
@@ -687,10 +651,13 @@ $report = function(){
   $report.openLog.justify = function (c, l) {
     l = l || 12;
     return Array(l).join(' ').substr(c.length) + c;
-  }
+  };
   $report.openLog.msg = function (m) {
     return m.replace(/>/g, '&gt;').replace(/</g, '&lt;');
-  }
+  };
+  $report.openLog.genIdent = function (msg) {
+    return msg.ident?(msg.ident+'-'+msg.subident):'';
+  };
 
   $report.openHier = function(data, anchor){
     var self = this;
@@ -775,7 +742,6 @@ $report = function(){
           my: "center bottom",
           at: "center top",
           using: function( position, feedback ) {
-console.log(data.log)
             $(this).css(position).addClass('example '+ data.status.status);
             $($report.testJSON.child_status(data.log)).appendTo($('div', this));
           }
