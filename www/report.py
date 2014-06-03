@@ -157,22 +157,26 @@ for path, cls in urls:
 
 application = bottle.default_app()
 
+# intercept log messages and redirect to our logger
+def bottle_log(msg) :
+  message.note(msg.strip())
+bottle._stderr = bottle_log
+
 ################################################################################
 
 if __name__ == '__main__' :
   # intercept log messages and redirect to our logger
-  def bottle_log(msg) :
-    message.note(msg.strip())
   def wsgi_log(self, format, *args) :
     severity = message.warning if args[-2] == '404' else message.debug
     severity(format.strip() % args)
   
-  bottle._stderr = bottle_log
   from wsgiref.simple_server import WSGIRequestHandler
   WSGIRequestHandler.log_message = wsgi_log
   
   # location of static data
   static = os.path.join(options.root, 'static')
+  message.debug('Using %(path)s for static data', path=static)
+
   @bottle.get('/static/<filename:path>')
   def server_static(filename):
     return bottle.static_file(filename, root=static)
@@ -183,6 +187,7 @@ if __name__ == '__main__' :
     return bottle.static_file('/index.html', root=static)
 
   server = re.match(r'^((?P<host>[^:]+):)?(?P<port>[0-9]+)$', options.http)
+  message.information('Starting bottle server')
   bottle.run(**server.groupdict())
 
   # keyboardInterrupt gets us here ...
