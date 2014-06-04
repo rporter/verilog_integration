@@ -58,6 +58,7 @@ urlget $root/static/jqplot.barRenderer.min.js \
 urlget $root/static/jqplot.pieRenderer.min.js \
                                          http://www.jqplot.com/src/plugins/jqplot.pieRenderer.min.js
 urlget $root/static/underscore.js        http://underscorejs.org/underscore.js
+urlget $root/static/moment.js            http://momentjs.com/downloads/moment.js
 
 cd $root
 LD_LIBRARY_PATH=../python:$LD_LIBRARY_PATH \

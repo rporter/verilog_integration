@@ -275,20 +275,19 @@ $report = function(){
     };
 
     this.rows = function() {
-      var today = new Date();
       function popup(attr) {
         return $('<abbr>', {title:attr.msg, text:attr.count}).outerHTML();
       }
-      function date(attr) {
-        var date = new Date(attr*1000);
-        var show = date.toLocaleString();
-        if (today.toDateString() == date.toDateString()) {
-          show = date.toLocaleTimeString();
-        }
-        return $('<a>', {text : show, title:date.toUTCString()}).outerHTML();
+      function date(time) {
+        return $('<a>', {text: time.calendar(), title: time.format('ddd MMMM Do YYYY, HH:mm:ss')}).outerHTML();
+      }
+      function elapsed(time) {
+        var duration = moment.duration(time);
+        return $('<a>', {text: Math.floor(duration.asHours())+':'+moment(time).format("mm:ss"), title: duration.humanize()}).outerHTML();
       }
       return data.map(function(log){
-        return [log.log.log_id, log.log.user, $('<abbr>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), date(log.log.start), date(log.log.stop), log.log.stop-log.log.start, log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), $report.testJSON.child_status(log.log), log.status.status];
+        var start = moment(log.log.start*1000), stop = moment(log.log.stop*1000);
+        return [log.log.log_id, log.log.user, $('<abbr>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), date(start), date(stop), elapsed(stop.diff(start)), log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), $report.testJSON.child_status(log.log), log.status.status];
       });
     };
 

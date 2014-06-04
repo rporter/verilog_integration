@@ -1,0 +1,9 @@
+<uwsgi>
+  <module>report</module>
+  <static-index>index.html</static-index>
+  <check-static>static</check-static>
+  <static-map>/static=static</static-map>
+  <workers>4</workers>
+  <threads>1</threads>
+  <enable-threads/>
+</uwsgi>
