@@ -156,6 +156,7 @@ $report = function(){
     var self = this;
 
     this.url = url && url.replace(/\/\d.*$/,'');
+    this.type = this.url.split('/').pop()
     this.order = order || 'down';
     this.options = $report.data(this.url, {view:20, view_coverage:false});
     this.container = $('<div><table class="report"></table></div>');
@@ -281,7 +282,7 @@ $report = function(){
 	{ "sTitle": "warnings" },
 	{ "sTitle": "message" },
 	{ "sTitle": "coverage", "sClass" : "cvg", "bVisible" : self.options.view_coverage },
-	{ "sTitle": "children" },
+	{ "sTitle": "children", "bVisible" : self.type !== $report.testJSON.types.single },
 	{ "sTitle": "status" },
       ];
     };
@@ -382,6 +383,8 @@ $report = function(){
     }
     console.log(this);
   };
+
+  $report.testJSON.types = {single:'sngl', regression:'regr', all:'all'};
 
   $report.testJSON.child_status = function (log) {
     if (log.children === null) return '';
