@@ -191,9 +191,21 @@ $report = function(){
         "aaSorting": [[0, "desc"]],
         "iDisplayLength": available || self.options.view,
         "fnCreatedRow": function(nRow, aData, iDisplayIndex) {
+          // hoist into row tooltip
+          $('td a[title]', nRow).each(function(){
+            var it = $(this);
+            it.parent().attr('title', it.attr('title')).tooltip().text(it.text());
+          });
+          $('td:first', nRow).attr('title', '').tooltip({
+            content: function() {
+              var log = data[iDisplayIndex].log,
+                  table = ['log_id', 'activity', 'block', 'version'].reduce(function(l,it){if (log[it]===null) return l; return l+'<tr><td>'+it+'</td><td>'+log[it]+'</td></tr>'}, '');
+              return $('<table>').append(table);
+            }
+          });
           $(nRow).bind('show.example', function(event){
-            var cvg = $('td.cvg', nRow).addClass('cvg-'+aData[8]);
-            $report.testJSON.get_cvg(cvg, nRow, aData[0])(event);
+            var cvg = $('td.cvg', nRow).addClass('cvg-'+aData[11]);
+            $report.testJSON.get_cvg(cvg, nRow, data[iDisplayIndex].log.log_id)(event);
           });
           $(nRow).bind('click.example', {log_id : data[iDisplayIndex].log.log_id, name : $(aData[2]).text(), status : data[iDisplayIndex].status, log : data[iDisplayIndex].log, anchor : anchor},
             function(event) {
@@ -244,10 +256,10 @@ $report = function(){
           self.options.view_coverage = $(this).is(':checked');
           $('input', self.container).attr('checked', self.options.view_coverage);
           if (self.options.view_coverage) {
-            table.fnSetColumnVis(8, true);
+            table.fnSetColumnVis(11, true);
             rows.trigger('show.example');
           } else {
-            table.fnSetColumnVis(8, false);
+            table.fnSetColumnVis(11, false);
           }
         });
       }
@@ -276,7 +288,7 @@ $report = function(){
 
     this.rows = function() {
       function popup(attr) {
-        return $('<abbr>', {title:attr.msg, text:attr.count}).outerHTML();
+        return $('<a>', {title:attr.msg, text:attr.count}).outerHTML();
       }
       function date(time) {
         return $('<a>', {text: time.calendar(), title: time.format('ddd MMMM Do YYYY, HH:mm:ss')}).outerHTML();
@@ -287,7 +299,7 @@ $report = function(){
       }
       return data.map(function(log){
         var start = moment(log.log.start*1000), stop = moment(log.log.stop*1000);
-        return [log.log.log_id, log.log.user, $('<abbr>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), date(start), date(stop), elapsed(stop.diff(start)), log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), $report.testJSON.child_status(log.log), log.status.status];
+        return [log.log.log_id, log.log.user, $('<a>', {title:log.log.description, text:log.log.test || log.log.description}).outerHTML(), date(start), date(stop), elapsed(stop.diff(start)), log.get('FATAL', popup), log.get('INTERNAL', popup), log.get('ERROR', popup), log.get('WARNING', popup), log.status.reason, coverage_cls(log.log), $report.testJSON.child_status(log.log), log.status.status];
       });
     };
 
@@ -522,35 +534,11 @@ $report = function(){
         .bind('mouseenter.example', function(event){upper.show()})
         .bind('mouseleave.example', function(event){upper.hide()});
 
-      function toDyn(thing, titles) {
-        if (thing instanceof Array) {
-          // array
-          return ((thing.length > 11)?Array.prototype.concat(thing.slice(0,6), thing.slice(-5)):thing).map(function(it, idx){
-            return {
-              key      : it.idx.toString(),
-              title    : (idx==5 && thing.length > 11)?'...':it[titles[0]],
-              tooltip  : it.msg
-            };
-          });
-        } else {
-          // object
-          return _.map(thing, function(val, key) {
-            var children = toDyn(val, titles.slice(1));
-            return {
-              key      : children[0].key,
-              title    : key + ' <i>(' + _.size(val) + ')</i>',
-              tooltip  : children[0].tooltip,
-              children : children
-            };
-          });
-        }
-      }
-
       var msgIndex = $('<div/>').appendTo(widget);
-      msgIndex.dynatree({
+      self.tree = msgIndex.dynatree({
         children : [
-            {title : "Messages", isFolder : true, children : toDyn(self.json.severities, [null, 'severity']).sort(function(a,b){return self.json.msgs[a.key].level > self.json.msgs[b.key].level;})},
-            {title : "Idents",   isFolder : true, children : toDyn(self.json.idents, [null, 'ident', 'subident'])},
+          {title : "Messages", isFolder : true, children : $report.openLog.toDyn(self.json.severities, [null, 'severity']).sort(function(a,b){return self.json.msgs[a.key].level > self.json.msgs[b.key].level;})},
+          {title : "Idents",   isFolder : true, children : $report.openLog.toDyn(self.json.idents, [null, 'ident', 'subident'])},
         ],
         onActivate: function(node) {
           self.log.animate({scrollTop : $(nodes[node.data.key]).offset().top - self.log.offset().top + self.log.scrollTop() - self.log.height()/2});
@@ -563,6 +551,7 @@ $report = function(){
           align();
         }
       });
+      self.tree.dynatree("getRoot").childList.slice(-1)[0].select(true);
     }
 
     this.add = function(tabs) {
@@ -607,29 +596,33 @@ $report = function(){
 
         $report.fit(self.log);
 
+        function insertMsg(msg, id) {
+          msg.element = $('<code>', {class:msg.severity, level:msg.level, text:'(' + $report.openLog.justify(msg.severity)}).appendTo(self.log);
+          msg.idx = index;
+          msg.moment = new moment(msg.date*1000);
+          $('<time>', {class:'abs', text:' '+msg.moment.format('HH:mm:ss')}).appendTo(msg.element);
+          $('<time>', {class:'rel', text:' '+$report.openLog.justify(msg.seconds.toString(), 6)}).appendTo(msg.element);
+          if (msg.ident) {
+            msg.element.attr({ident:msg.ident, subident:msg.subident});
+          }
+          $('<ident>', {text:$report.openLog.justify(id, 10)}).appendTo(msg.element);
+          msg.element.append(') ' + $report.openLog.msg(msg.msg));
+          msg.element.attr('title', '').tooltip({
+            content: function() {
+              var out = '<code class="'+msg.severity+'">';
+              if (msg.ident) out += '<p class="id">'+id+'</p>';
+              out +=  '<p class="date">' + msg.moment.format('dddd MMMM Do YYYY, HH:mm:ss') + '</p>'
+              if (msg.filename) out += '<p class="file">'+msg.filename+':'+msg.line+'</p>';
+              out+='</code>';
+              return out;
+            }
+          });
+        }
+
         function iteration(){
           for (; index<length;) {
-            var msg = self.json.msgs[index], id = $report.openLog.genIdent(msg);
-            msg.element = $('<code>', {class:msg.severity, level:msg.level, text:'(' + $report.openLog.justify(msg.severity)}).appendTo(self.log);
-            msg.idx = index;
-            msg.Date = new Date(msg.date*1000);
-            $('<time>', {class:'abs', text:' '+msg.Date.toLocaleTimeString()}).appendTo(msg.element);
-            $('<time>', {class:'rel', text:' '+$report.openLog.justify(msg.seconds.toString(), 6)}).appendTo(msg.element);
-            if (msg.ident) {
-              msg.element.attr({ident:msg.ident, subident:msg.subident});
-            }
-            $('<ident>', {text:$report.openLog.justify(id, 10)}).appendTo(msg.element);
-            msg.element.append(') ' + $report.openLog.msg(msg.msg));
-            msg.element.attr('title', '').tooltip({
-              content: function() {
-                var out = '<code class="'+msg.severity+'">';
-                if (msg.ident) out += '<p class="id">'+id+'</p>';
-                out +=  '<p class="date">' + msg.Date.toGMTString() + '</p>'
-                if (msg.filename) out += '<p class="file">'+msg.filename+':'+msg.line+'</p>';
-                out+='</code>';
-                return out;
-              }
-            });
+            var msg = self.json.msgs[index];
+            insertMsg(msg, $report.openLog.genIdent(msg));
             if (index++ < length && index % 100 == 0) {
               setTimeout(iteration, 0); break;
             }
@@ -656,6 +649,29 @@ $report = function(){
   };
   $report.openLog.genIdent = function (msg) {
     return msg.ident?(msg.ident+'-'+msg.subident):'';
+  };
+  $report.openLog.toDyn = function toDyn(thing, titles) {
+    if (thing instanceof Array) {
+      // array
+      return ((thing.length > 11)?Array.prototype.concat(thing.slice(0,6), thing.slice(-5)):thing).map(function(it, idx){
+        return {
+          key      : it.idx.toString(),
+          title    : (idx==5 && thing.length > 11)?'...':it[titles[0]],
+          tooltip  : it.msg
+        };
+      });
+    } else {
+      // object
+      return _.map(thing, function(val, key) {
+        var children = toDyn(val, titles.slice(1));
+        return {
+          key      : children[0].key,
+          title    : key + ' <i>(' + _.size(val) + ')</i>',
+          tooltip  : children[0].tooltip,
+          children : children
+        };
+      });
+    }
   };
 
   $report.openHier = function(data, anchor){
