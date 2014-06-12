@@ -1,5 +1,11 @@
 // Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
+if (typeof String.prototype.startsWith != 'function') {
+  String.prototype.startsWith = function (str){
+    return this.slice(0, str.length) == str;
+  };
+}
+
 // http://www.yelotofu.com/2008/08/jquery-outerhtml/
 jQuery.fn.outerHTML = function(s) {
     return s
@@ -460,7 +466,6 @@ $report = function(){
     }
 
     this.widget = function() {
-      var nodes  = $('code', self.log);
       var widget = $('<div class="widget"/>').appendTo(self.log);
       var align  = function() {
         widget.animate({top:$(self.log).scrollTop()},{duration:100,queue:false});
@@ -525,7 +530,7 @@ $report = function(){
         self.log.hide();
         lower.text($report.levels.severity(ui.values[0]));
         upper.text($report.levels.severity(ui.values[1]));
-        nodes.each(function(index){if(($(this).attr('level') >= ui.values[0]) && ($(this).attr('level') <= ui.values[1])){$(this).show()}else{$(this).hide()}})
+        self.json.msgs.forEach(function(it){if((it.level >= ui.values[0]) && (it.level <= ui.values[1])){it.element.show()}else{it.element.hide()}})
         self.log.show();
       });
       slider.find(".ui-slider-handle:first")
@@ -538,19 +543,49 @@ $report = function(){
         .bind('mouseleave.example', function(event){upper.hide()});
 
       var msgIndex = $('<div/>').appendTo(widget);
+      var collections = new Array();
+
+      function toDyn(thing, titles) {
+        if (thing instanceof Array) {
+          // array
+          return ((thing.length > 11)?Array.prototype.concat(thing.slice(0,6), thing.slice(-5)):thing).map(function(it, idx){
+            return {
+              key      : it.idx.toString(),
+              title    : (idx==5 && thing.length > 11)?'...':it[titles[0]],
+              tooltip  : it.msg
+            };
+          });
+        } else {
+          // object
+          return _.map(thing, function(val, key) {
+            var children = toDyn(val, titles.slice(1));
+            return {
+              key      : 'col-' + (collections.push(val)-1),
+              title    : key + ' <i>(' + _.size(val) + ')</i>',
+              tooltip  : children[0].tooltip,
+              children : children
+            };
+          });
+        }
+      };
+      function decode(key) {
+        if (key.startsWith('col')) return _.flatten(collections[key.slice(4)]);
+        return [self.json.msgs[key]];
+      }
+
       self.tree = msgIndex.dynatree({
         children : [
-          {title : "Messages", isFolder : true, children : $report.openLog.toDyn(self.json.severities, [null, 'severity']).sort(function(a,b){return self.json.msgs[a.key].level > self.json.msgs[b.key].level;})},
-          {title : "Idents",   isFolder : true, children : $report.openLog.toDyn(self.json.idents, [null, 'ident', 'subident'])},
+          {title : "Messages", isFolder : true, children : toDyn(self.json.severities, [null, 'severity']).sort(function(a,b){return self.json.msgs[a.children[0].key].level > self.json.msgs[b.children[0].key].level;})},
+          {title : "Idents",   isFolder : true, children : toDyn(self.json.idents, [null, 'ident', 'subident'])},
         ],
         onActivate: function(node) {
-          self.log.animate({scrollTop : $(nodes[node.data.key]).offset().top - self.log.offset().top + self.log.scrollTop() - self.log.height()/2});
+          self.log.animate({scrollTop : decode(node.data.key)[0].element.offset().top - self.log.offset().top + self.log.scrollTop() - self.log.height()/2});
         },
         onRender : function(dtnode, nodeSpan) {
           $('a', dtnode.li).hover(
-            function(){self.json.msgs[$.ui.dynatree.getNode(this).data.key].element.addClass(   'example-highlight')},
-            function(){self.json.msgs[$.ui.dynatree.getNode(this).data.key].element.removeClass('example-highlight')}
-          );
+            function(){decode($.ui.dynatree.getNode(this).data.key).forEach(function(it){it.element.addClass('example-highlight')})},
+            function(){decode($.ui.dynatree.getNode(this).data.key).forEach(function(it){it.element.removeClass('example-highlight')})}
+         );
           align();
         }
       });
@@ -594,7 +629,6 @@ $report = function(){
         self.json.idents = _.groupBy(self.json.msgs.filter(function(msg){return msg.ident}), function(msg){return msg.ident});
         _.each(self.json.idents, function(v,k,l){self.json.idents[k]=_.groupBy(v,function(m){return m.subident})});
         self.json.severities = _.groupBy(self.json.msgs, function(msg){return msg.severity});
-        json = self.json;
         var length = self.json.msgs.length, index = 0;
 
         $report.fit(self.log);
@@ -652,29 +686,6 @@ $report = function(){
   };
   $report.openLog.genIdent = function (msg) {
     return msg.ident?(msg.ident+'-'+msg.subident):'';
-  };
-  $report.openLog.toDyn = function toDyn(thing, titles) {
-    if (thing instanceof Array) {
-      // array
-      return ((thing.length > 11)?Array.prototype.concat(thing.slice(0,6), thing.slice(-5)):thing).map(function(it, idx){
-        return {
-          key      : it.idx.toString(),
-          title    : (idx==5 && thing.length > 11)?'...':it[titles[0]],
-          tooltip  : it.msg
-        };
-      });
-    } else {
-      // object
-      return _.map(thing, function(val, key) {
-        var children = toDyn(val, titles.slice(1));
-        return {
-          key      : children[0].key,
-          title    : key + ' <i>(' + _.size(val) + ')</i>',
-          tooltip  : children[0].tooltip,
-          children : children
-        };
-      });
-    }
   };
 
   $report.openHier = function(data, anchor){
