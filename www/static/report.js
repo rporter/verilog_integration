@@ -527,11 +527,11 @@ $report = function(){
         max: $report.levels._SIZE-1,
         values: [ 0, $report.levels._SIZE-1 ]
       }).bind('slide.example', function(event, ui) {
-        self.log.hide();
+        self.div.hide();
         lower.text($report.levels.severity(ui.values[0]));
         upper.text($report.levels.severity(ui.values[1]));
         self.json.msgs.forEach(function(it){if((it.level >= ui.values[0]) && (it.level <= ui.values[1])){it.element.show()}else{it.element.hide()}})
-        self.log.show();
+        self.div.show();
       });
       slider.find(".ui-slider-handle:first")
         .append(lower)
