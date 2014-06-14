@@ -585,7 +585,12 @@ $report = function(){
           $('a', dtnode.li).hover(
             function(){decode($.ui.dynatree.getNode(this).data.key).forEach(function(it){it.element.addClass('example-highlight')})},
             function(){decode($.ui.dynatree.getNode(this).data.key).forEach(function(it){it.element.removeClass('example-highlight')})}
-         );
+          ).tooltip({
+            open: function( event, ui ) {
+              var tooltip=$(this);
+              setTimeout(function close() {tooltip.tooltip('close')}, 2000);
+            }
+          });
           align();
         }
       });
@@ -652,6 +657,10 @@ $report = function(){
               if (msg.filename) out += '<p class="file">'+msg.filename+':'+msg.line+'</p>';
               out+='</code>';
               return out;
+            },
+            open: function( event, ui ) {
+              var tooltip=$(this);
+              setTimeout(function close() {tooltip.tooltip('close')}, 2000);
             }
           });
         }
