@@ -6,6 +6,10 @@ if (typeof String.prototype.startsWith != 'function') {
   };
 }
 
+// http://stackoverflow.com/questions/8786417/how-to-use-underscore-js-to-produce-a-flatten-result
+// EXCEPT : here we stop when we see a leaf Array ------------------------>vvvvvvvvvvvvvvvvvvvvvvvvvv
+_.mixin({crush: function(l, s, r) {return _.isObject(l)? (r = function(l) {if (_.isArray(l)) return l;return _.isObject(l)? _.flatten(_.map(l, s? _.identity:r)):l;})(l):[];}});
+
 // http://www.yelotofu.com/2008/08/jquery-outerhtml/
 jQuery.fn.outerHTML = function(s) {
     return s
@@ -545,15 +549,15 @@ $report = function(){
       var msgIndex = $('<div/>').appendTo(widget);
       var collections = new Array();
 
-      function toDyn(thing, titles) {
+      function toDyn(thing, titles, extra) {
         if (thing instanceof Array) {
           // array
           return ((thing.length > 11)?Array.prototype.concat(thing.slice(0,6), thing.slice(-5)):thing).map(function(it, idx){
-            return {
+            return _.extend({
               key      : it.idx.toString(),
               title    : (idx==5 && thing.length > 11)?'...':it[titles[0]],
               tooltip  : it.msg
-            };
+            }, extra);
           });
         } else {
           // object
@@ -569,15 +573,21 @@ $report = function(){
         }
       };
       function decode(key) {
+        if (self.json[key]) return _.crush(self.json[key]);
         if (key.startsWith('col')) return _.flatten(collections[key.slice(4)]);
         return [self.json.msgs[key]];
       }
 
       self.tree = msgIndex.dynatree({
         children : [
-          {title : "Messages", isFolder : true, children : toDyn(self.json.severities, [null, 'severity']).sort(function(a,b){return self.json.msgs[a.children[0].key].level > self.json.msgs[b.children[0].key].level;})},
-          {title : "Idents",   isFolder : true, children : toDyn(self.json.idents, [null, 'ident', 'subident'])},
+          {title : "Messages", isFolder : true, key : 'severities', children : toDyn(self.json.severities, [null, 'severity'], {hideCheckbox : true}).sort(function(a,b){return self.json.msgs[a.children[0].key].level > self.json.msgs[b.children[0].key].level;})},
+          {title : "Idents",   isFolder : true, key : 'idents', children : toDyn(self.json.idents, [null, 'ident', 'subident'])},
         ],
+        checkbox : true,
+        selectMode : 3,
+        onSelect: function(select, node) {
+          decode(node.data.key).forEach(function(it){it.element.toggle(select)});
+        },
         onActivate: function(node) {
           self.log.animate({scrollTop : decode(node.data.key)[0].element.offset().top - self.log.offset().top + self.log.scrollTop() - self.log.height()/2});
         },
@@ -586,15 +596,15 @@ $report = function(){
             function(){decode($.ui.dynatree.getNode(this).data.key).forEach(function(it){it.element.addClass('example-highlight')})},
             function(){decode($.ui.dynatree.getNode(this).data.key).forEach(function(it){it.element.removeClass('example-highlight')})}
           ).tooltip({
-            open: function( event, ui ) {
+            open: function(event, ui) {
               var tooltip=$(this);
-              setTimeout(function close() {tooltip.tooltip('close')}, 2000);
+              setTimeout(function close(){tooltip.tooltip('close')}, 2000);
             }
           });
           align();
         }
       });
-      self.tree.dynatree("getRoot").childList.slice(-1)[0].select(true);
+      self.tree.dynatree("getRoot").childList.forEach(function(it){console.log(it);it.select(true)});
     }
 
     this.add = function(tabs) {
