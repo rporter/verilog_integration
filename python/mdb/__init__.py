@@ -51,12 +51,12 @@ class _cursor(object) :
   def execute(self, *args) :
     if self.dump :
       self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
-    self._execute(*args)
+    return self._execute(*args)
 
   def executemany(self, *args) :
     if self.dump :
       self.dump.write('%08x : ' % id(self.db) + ' << '.join(map(str, args)) + '\n')
-    self._executemany(*args)
+    return self._executemany(*args)
 
   def commit(self) :
     self.connection.commit()
@@ -147,6 +147,7 @@ class connection(_connection, db.connection) :
 
 class json :
   dump = db.json.dump
+  dumps = db.json.dumps
 
 ################################################################################
 
@@ -154,26 +155,21 @@ class mdb(object) :
   instance = None
   instances = []
   atexit = False
-  class _queue :
+  class queue :
     queue_limit = 10
-    class repeatingTimer(threading._Timer) :
-      def run(self):
-        message.debug('Timer thread is ' + threading.current_thread().name)
-        while not self.finished.is_set():
-          self.finished.wait(self.interval)
-          self.function(*self.args, **self.kwargs)
-        message.debug('is finished ' + threading.current_thread().name)
-      def running(self) :
-        return not self.finished.is_set()
+    @classmethod
+    def do_flush(cls, level) :
+      return level >= cls.queue_limit
     class proxy :
       'proxy for cursor in flush method. do not open cursor unless something to insert'
-      def __init__(self, parent) :
+      def __init__(self, parent, test) :
         self.parent = parent
+        self.test = test
         self.used = False
       def __enter__(self) :
         return self
       def __exit__(self, type, value, traceback) :
-        if type != Queue.Empty :
+        if self.test(type) :
           # not what we were looking for
           return False
         if self.used :
@@ -185,53 +181,70 @@ class mdb(object) :
         return self.parent.cursor()
       def insert(self, cb_id, when, level, severity, ident, subident, filename, line, msg) :
         self.cursor.execute('INSERT INTO message (log_id, level, severity, date, ident, subident, filename, line, msg) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);', (self.parent.log_id, level, severity, when.tv_sec, ident, subident, filename, line, msg))
-    
-    def __init__(self, abv, root, parent, description, test, ) :
-      self.queue = Queue.Queue()
-      # create semaphore
-      self.semaphore = threading.Semaphore()
-      # flush queue every half second
-      self.timer = self.repeatingTimer(0.5, self.flush)
-      self.timer.start()
-      # create log entry for this run
-      self.log_id = self.log(os.getuid(), socket.gethostname(), abv, root, parent, description, test)
-      # install callback
-      message.terminate_cbs.add('mdb terminate', 20, self.finalize, self.finalize)
-    def put(self, *args, **kwargs) :
-      self.queue.put(args)
-      # flush to db if this message has high severity or there are a number of outstanding messages
-      if kwargs.get('commit', False) or self.queue.qsize() >= self.queue_limit :
+    class unthreaded(object) :
+      def __init__(self, abv, root, parent, description, test) :
+        self.queue = Queue.Queue()
+        # create log entry for this run
+        self.log_id = self.log(os.getuid(), socket.gethostname(), abv, root, parent, description, test)
+        # install callback
+        message.terminate_cbs.add('mdb terminate', 20, self.finalize, self.finalize)
+      def put(self, *args, **kwargs) :
+        self.queue.put(args)
+        # flush to db if this message has high severity or there are a number of outstanding messages
+        if kwargs.get('commit', False) or mdb.queue.do_flush(self.queue.qsize()) :
+          self.flush()
+      def flush(self) :
+        with mdb.queue.proxy(self, lambda value : value != Queue.Empty) as insert :
+          while (1) :
+            insert.insert(*self.queue.get(False))
+      def finalize(self, *args) :
+        'set test status & clean up'
         self.flush()
-    def flush(self) :
-      if not self.semaphore.acquire(False) :
-        # if we can't get the semaphore somebody is already doing this
-        # But there is a race when the other thread is just finishing
-        return
-      with self.proxy(self) as insert :
-        while (1) :
-          insert.insert(*self.queue.get(False))
-      self.semaphore.release()
-    def finalize(self, *args) :
-      'set test status & clean up'
-      if self.timer.running() :
-        message.debug('... bye')
-        self.timer.cancel()
-      self.flush()
-      self.status()
-    def log(self, uid, hostname, abv, root, parent, description, test) :
-      'create entry in log table'
-      with self.cursor() as db :
-        db.execute('INSERT INTO log (uid, root, parent, activity, block, version, description, test, hostname) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);', (uid, root, parent, abv.activity, abv.block, abv.version, description, test, hostname))
-        return db.lastrowid
-    def status(self) :
-      'update status at end'
-      with self.cursor() as cursor :
-        cursor.execute('UPDATE log SET status = %s WHERE log_id = %s;', (int(message.message.status().flag), self.log_id))
-    @classmethod
-    def cursor(cls) :
-      return connection().cursor()
+        self.status()
+      def log(self, uid, hostname, abv, root, parent, description, test) :
+        'create entry in log table'
+        with self.cursor() as db :
+          db.execute('INSERT INTO log (uid, root, parent, activity, block, version, description, test, hostname) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);', (uid, root, parent, abv.activity, abv.block, abv.version, description, test, hostname))
+          return db.lastrowid
+      def status(self) :
+        'update status at end'
+        with self.cursor() as cursor :
+          cursor.execute('UPDATE log SET status = %s WHERE log_id = %s;', (int(message.message.status().flag), self.log_id))
+      @classmethod
+      def cursor(cls) :
+        return connection().cursor()
+    class threaded(unthreaded) :
+      class repeatingTimer(threading._Timer) :
+        def run(self):
+          message.debug('Timer thread is ' + threading.current_thread().name)
+          while not self.finished.is_set():
+            self.finished.wait(self.interval)
+            self.function(*self.args, **self.kwargs)
+          message.debug('is finished ' + threading.current_thread().name)
+        def running(self) :
+          return not self.finished.is_set()
+      def __init__(self, *args, **kwargs) :
+        # create semaphore
+        self.semaphore = threading.Semaphore()
+        # flush queue every half second
+        self.timer = self.repeatingTimer(0.5, self.flush)
+        self.timer.start()
+        mdb.queue.unthreaded.__init__(self, *args, **kwargs)
+      def flush(self) :
+        if not self.semaphore.acquire(False) :
+          # if we can't get the semaphore somebody is already doing this
+          # But there is a race when the other thread is just finishing
+          return
+        super(mdb.queue.threaded, self).flush()
+        self.semaphore.release()
+      def finalize(self, *args) :
+        'set test status & clean up'
+        if self.timer.running() :
+          message.debug('... bye')
+          self.timer.cancel()
+        super(mdb.queue.threaded, self).finalize(*args)
 
-  def __init__(self, description='none given', test=None, root=None, parent=None, level=message.ERROR, **kwargs) :
+  def __init__(self, description='none given', test=None, root=None, parent=None, level=message.ERROR, queue='threaded', **kwargs) :
     self.commit_level = level
     self.abv = activityBlockVersion(**kwargs)
     # init default filter
@@ -242,7 +255,12 @@ class mdb(object) :
     mdb.instances.append(self)
     # psuedo singleton
     if mdb.instance is None :
-      mdb.instance = self._queue(self.abv, self.root, self.parent, description, test)
+      try :
+        _queue = getattr(self.queue, queue)
+      except AttributeError :
+        message.fatal('No mdb queue type %(queue)s', queue=queue)
+      message.information('Using queue %(queue)s', queue=queue)
+      mdb.instance = _queue(self.abv, self.root, self.parent, description, test)
     # install callback
     message.emit_cbs.add('mdb emit', 1, self.add, None)
     message.debug('hello ...')

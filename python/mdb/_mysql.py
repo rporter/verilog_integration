@@ -145,3 +145,6 @@ class json(json_.JSONEncoder) :
   @classmethod
   def dump(cls, obj, f) :
     json_.dump(obj, f, cls=cls)
+  @classmethod
+  def dumps(cls, obj) :
+    return json_.dumps(obj, cls=cls)
