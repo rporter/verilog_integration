@@ -166,7 +166,7 @@ $report = function(){
     var self = this;
 
     this.url = url && url.replace(/\/\d.*$/,'');
-    this.type = this.url.split('/').pop()
+    this.type = this.url && this.url.split('/').pop()
     this.order = order || 'down';
     this.options = $report.data(this.url, {view:20, view_coverage:false});
     this.container = $('<div><table class="report"></table></div>');
