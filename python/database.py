@@ -118,11 +118,11 @@ class index :
         return None
     def __str__(self) :
       order = 'ASC' if self.order == 'up' else 'DESC';
-      return ('SELECT ' + self.select + ' FROM ' + self.frm +
+      return ('(SELECT ' + self.select + ' FROM ' + self.frm +
               ((' WHERE ' + self.where)              if self.where  else '') +
               ((' GROUP BY ' + ','.join(self.group)) if self.group  else '') +
               ((' HAVING ' + self.having)            if self.having else '') +
-              ' ORDER BY log_id ' + order + ' ' + str(self.limit)) % self
+              ' ORDER BY log_id ' + order + ' ' + str(self.limit) + ')') % self
     def update(self, **kwargs) :
       dict.update(self, **kwargs)
       return self
@@ -198,7 +198,7 @@ FROM
     MAX(message.date) AS stop,
     list.*
   FROM 
-  (%s) AS list
+  %s AS list
   LEFT JOIN
     message
   USING
@@ -250,6 +250,64 @@ class rgr(index) :
     relationship = 'root' if root else 'parent'
     # call result method of parent class
     return index.result(self, self.subquery('l0.*, count(l1.log_id) as children', frm='log as l0 left join log as l1 on (l0.log_id = l1.%(relationship)s)', where='l0.log_id = %(log_id)s or l0.%(relationship)s = %(log_id)s', group=['l0.log_id'], limit=self.limit(), log_id=log_id, relationship=relationship))
+
+################################################################################
+
+class irgr(rgr) : 
+  class status :
+    index=0
+    def __init__(self, log_id) :
+      self.log_id = log_id
+      self.db = mdb.connection().row_cursor()
+      self.db.execute('CREATE TEMPORARY TABLE '+self.temp+' (PRIMARY KEY (log_id)) SELECT log.*, NULL as new FROM log WHERE log.root = %s or log.log_id = %s;', (log_id, log_id))
+      message.debug('Start new incremental with table %(table)s, log_id %(log_id)s', table=self.temp, log_id=log_id)
+    def __del__(self) :
+      message.debug('Finish incremental with table %(table)s, log_id %(log_id)s', table=self.temp, log_id=self.log_id)
+      self.db.execute('DROP TEMPORARY TABLE IF EXISTS ' + self.temp + ',' + self.itemp + ';')
+      self.db.close()
+    def increment(self) :
+      message.debug('increment with table %(table)s, log_id %(log_id)s', table=self.temp, log_id=self.log_id)
+      self.db.execute('DROP TEMPORARY TABLE IF EXISTS ' + self.itemp + ';')
+      self.db.execute('CREATE TEMPORARY TABLE ' + self.itemp + ' SELECT log.*, current.log_id IS NULL AS new FROM log LEFT JOIN ' + self.temp + ' AS current USING (log_id) WHERE (log.root = %s OR log.log_id = %s) AND (current.log_id is NULL OR log.status != IFNULL(current.status, -1));', (self.log_id, self.log_id))
+      self.db.execute('REPLACE INTO ' + self.temp + ' SELECT * FROM ' + self.itemp + ';')
+      self.db.commit()
+      return self.itemp
+    @utils.lazyProperty
+    def temp(self) :
+      return 'TEMP'+str(self.idx())
+    @utils.lazyProperty
+    def itemp(self) :
+      return self.temp + 'i'
+    @classmethod
+    def idx(cls) :
+      result, cls.index = cls.index, cls.index+1
+      return result
+
+  def result(self, log_id, period=1):
+    def grouper(stats):
+      'group into two lists, "addition" for new entries and "update" for changed entries'
+      result = collections.defaultdict(list)
+      for item in stats :
+        result['addition' if item.log.new else 'update'].append(item)
+      return result
+
+    # calculate initial state ...
+    status = self.status(log_id)
+    result = index.result(self, status.temp)
+    # ... and send
+    yield dict(initial=result)
+    # loop until the root log has non NULL status. this may already be the case if the regression has
+    # finished.
+    while next((stat.log.status == None for stat in result if stat.log.log_id == int(log_id)), True) :
+      # calculate incremental result ...
+      result = index.result(self, status.increment())
+      # ... and send partitioned result
+      yield grouper(result)
+      # wait a bit
+      time.sleep(period)
+    # calculate & send final state
+    result = index.result(self, status.temp)
+    yield dict(final=result)
 
 ################################################################################
 

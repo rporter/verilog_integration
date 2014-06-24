@@ -15,12 +15,13 @@ import time
 
 parser = message.reportOptionParser()
 parser.add_option('-p', '--http', default='localhost:8080', help='port to serve on')
+parser.add_option('',   '--gevent', default=False, help='use gevent server')
 options, values = parser.parse_args()
 
 ################################################################################
 
 mdb.db.connection.set_default_db(db='../db/mdb.db', root=options.root)
-m=mdb.mdb('mdb report')
+m=mdb.mdb('mdb report', queue='unthreaded' if options.gevent else 'threaded')
 message.message.verbosity(message.INT_DEBUG)
 
 ################################################################################
@@ -92,6 +93,18 @@ class rgr(serve_something, database.rgr) :
 
 ################################################################################
 
+class irgr(serve_something, database.irgr) :
+  CONTENTTYPE='application/json'
+
+  def GET(self, log_id):
+    self.headers()
+    yield '['
+    for increment in self.result(log_id) :
+      yield (mdb.json.dumps(increment) if increment else '{"static":true}') + ','
+    yield '{"eof":true}]'
+
+################################################################################
+
 class cvg(serve_something, database.cvg) :
   CONTENTTYPE='application/json'
   encapsulate=False
@@ -139,6 +152,7 @@ urls = (
   ('/index/:variant/<limit:int>/<start:int>/<order:re:(up|down)>', index,),
   ('/msgs/<log_id:int>', msgs,),
   ('/rgr/<log_id:int>', rgr,),
+  ('/irgr/<log_id:int>', irgr,),
   ('/cvg/<log_id:int>', cvg,),
   ('/cvg/<log_id:int>/<goal_id:int>', cvg,),
   ('/cvg/<log_id:int>/<cumulative:re:(cumulative)>', cvg,),
@@ -165,6 +179,10 @@ bottle._stderr = bottle_log
 ################################################################################
 
 if __name__ == '__main__' :
+  # bottle options
+  server = re.match(r'^((?P<host>[^:]+):)?(?P<port>[0-9]+)$', options.http)
+  bottle_opts = server.groupdict()
+
   # intercept log messages and redirect to our logger
   def wsgi_log(self, format, *args) :
     severity = message.warning if args[-2] == '404' else message.debug
@@ -186,9 +204,19 @@ if __name__ == '__main__' :
   def index_html() :
     return bottle.static_file('/index.html', root=static)
 
-  server = re.match(r'^((?P<host>[^:]+):)?(?P<port>[0-9]+)$', options.http)
+  if options.gevent :
+    import gevent
+    from gevent import monkey; monkey.patch_all()
+  
+    class wsgi_log:
+      @classmethod
+      def write(cls, msg) :
+        message.note(msg)
+
+    bottle_opts.update(server='gevent', log=wsgi_log)
+
   message.information('Starting bottle server')
-  bottle.run(**server.groupdict())
+  bottle.run(**bottle_opts)
 
   # keyboardInterrupt gets us here ...
   mdb.finalize_all()
