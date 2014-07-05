@@ -222,8 +222,12 @@ $report = function(){
             function(event) {
               var log;
               if (event.data.log.children) {
-                // this will be a tab-within-tab
-                log = new $report.openRegr(event.data, nRow);
+                if ($(event.target).next().length) {
+                  // this will be a tab-within-tab
+                  log = new $report.openRegr(event.data, nRow);
+                } else {
+                  log = new $report.openAutoRegr(data[iDisplayIndex].log.log_id, anchor);
+                }
               } else {
                 // place report log in new tab
                 log = new $report.openLog(event.data, undefined, nRow);
@@ -604,7 +608,7 @@ $report = function(){
           align();
         }
       });
-      self.tree.dynatree("getRoot").childList.forEach(function(it){console.log(it);it.select(true)});
+      self.tree.dynatree("getRoot").childList.forEach(function(it){it.select(true)});
     }
 
     this.add = function(tabs) {
@@ -923,7 +927,6 @@ $report = function(){
           my: "center bottom",
           at: "center top",
           using: function( position, feedback ) {
-console.log(data.log)
             $(this).css(position).addClass('example '+ data.status.status);
             $($report.testJSON.child_status(data.log)).appendTo($('div', this));
           }
@@ -977,6 +980,128 @@ console.log(data.log)
     } else {
       addcvg();
     }
+    console.log(this);
+  }
+
+  $report.openAutoRegr = function(log_id, anchor) {
+    var self = this;
+    this.id  = $report.tab_id();
+    this.div = $('<div/>', {class: "tab", id:self.id});
+    this.log = $('<div/>', {		   id:"log"}).appendTo(this.div);
+    this.url = '/irgr/' + log_id;
+
+    this.table = $('<table class="report"><thead><tr><th>log id</th><th>fatals</th><th>errors</th><th>warnings</th><th>message</th><th>status</th></th></tr></thead><tbody/></table>').appendTo(this.log);
+    this.tbody = $('tbody', this.table);
+
+    function find(log_id) {
+      return _.find(self.data, function(it){return it.log.log_id==log_id});
+    }
+    function replace(data) {
+      for (log in self.data) {
+        if (self.data[log].log.log_id == data.log.log_id) {
+          self.data[log] = data;
+          return;
+        }
+      }
+    }
+    this.tbody.tooltip({
+      items : 'td',
+      content : function() {
+        var idx = $(this).prevAll().length;
+        if (idx < 1 || idx > 3) return;
+        return find($(this).parent().attr('log_id')).get(['', 'FATAL', 'ERROR', 'WARNING'][idx], 'msg');
+      }
+    });
+
+    function get(severity, attr) {
+      var result = this.msgs.filter(function(a){return a.severity === severity})[0];
+      if (attr === undefined) return result;
+      if (result === undefined) return '';
+      if (attr instanceof Function) {
+        return attr(result);
+      } else if (result.hasOwnProperty(attr)) {
+        return result[attr];
+      }
+      return '';
+    }
+    function addRow(log) {
+      var tr = $('<tr>', {log_id : log.log.log_id});
+      $('<td>', {text: log.log.log_id}).appendTo(tr);
+      $('<td>', {text: log.get('FATAL', 'count')}).appendTo(tr);
+      $('<td>', {text: log.get('ERROR', 'count')}).appendTo(tr);
+      $('<td>', {text: log.get('WARNING', 'count')}).appendTo(tr);
+      $('<td>', {text: log.status.reason}).appendTo(tr);
+      $('<td>', {class: log.log.status === null?'RUNNING':log.status.status, text: log.status.status}).appendTo(tr);
+      return tr;
+    }
+
+    // data calls
+    this.initial = function(data) {
+      self.data = data;
+      data.forEach(function(it){addRow(it).prependTo(self.tbody)});
+    }
+    this.addition = function(data) {
+      var add = $();
+      data.forEach(function(it){
+        add=add.add(addRow(it).prependTo(self.tbody));
+        self.data.push(it);
+      });
+      $('td', add).wrapInner('<div style="display: block;"/>');
+      $('div', add).hide().slideDown();
+    }
+    this.update = function(data) {
+      var add = $(), rm = $();
+      data.forEach(function(it){
+        var repl = $('tr[log_id='+it.log.log_id+']', self.tbody);
+        add=add.add(addRow(it).insertBefore(repl));
+        rm=rm.add(repl);
+        replace(it);
+      });
+      $('td', add).wrapInner('<div style="display: block;"/>');
+      $('div', add).hide().slideDown();
+      $('td', rm).wrapInner('<div style="display: block;"/>');
+      $('div', rm).slideUp(
+        function() {tr=$(this);
+          $(this).parents('tr').remove();
+        }
+      );
+    }
+    this.final = function(data) {
+      this.update(_.filter(data, function(it){
+        return !_.isEqual(find(it.log.log_id), it);
+      }));
+    }
+    this.static = function(data) {
+    }
+    this.eof = function(data) {
+    }
+
+    this.oboe = oboe(self.url).node({
+      '!.[*].*': function(node, path) {
+        for (log in node) {
+          node[log].get = get;
+        }
+        self[path[1]](node);
+        $report.fit(self.log);
+      }
+    }).done(function(i){
+      $('td.RUNNING', self.tbody).removeClass('RUNNING').addClass('FAIL');
+    }).fail(function(e){
+      console.error(e.thrown.stack);
+    });
+
+    this.add = function(tabs) {
+      self.parent = tabs;
+      var href='#'+self.id;
+      tabs.tabs('add', href, log_id+' regr').tabs({
+        remove: function(event, ui) {
+          if (ui.tab.hash == href) {
+            self.oboe.abort();
+          }
+        }
+      });
+    }
+    this.div.appendTo(anchor);
     console.log(this);
   }
 

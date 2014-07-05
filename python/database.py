@@ -259,7 +259,7 @@ class irgr(rgr) :
     def __init__(self, log_id) :
       self.log_id = log_id
       self.db = mdb.connection().row_cursor()
-      self.db.execute('CREATE TEMPORARY TABLE '+self.temp+' (PRIMARY KEY (log_id)) SELECT log.*, NULL as new FROM log WHERE log.root = %s or log.log_id = %s;', (log_id, log_id))
+      self.db.execute('CREATE TEMPORARY TABLE '+self.temp+' (PRIMARY KEY (log_id)) SELECT log.*, 0 as new FROM log WHERE log.root = %s or log.log_id = %s;', (log_id, log_id))
       message.debug('Start new incremental with table %(table)s, log_id %(log_id)s', table=self.temp, log_id=log_id)
     def __del__(self) :
       message.debug('Finish incremental with table %(table)s, log_id %(log_id)s', table=self.temp, log_id=self.log_id)

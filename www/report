@@ -1,4 +1,4 @@
-#!/bin/bash -xv
+#!/bin/bash
 # Copyright (c) 2012, 2013 Rich Porter - see LICENSE for further details
 
 function usage() {
@@ -58,6 +58,7 @@ urlget $root/static/jqplot.barRenderer.min.js \
 urlget $root/static/jqplot.pieRenderer.min.js \
                                          http://www.jqplot.com/src/plugins/jqplot.pieRenderer.min.js
 urlget $root/static/underscore.js        http://underscorejs.org/underscore.js
+urlget $root/static/oboe.js              https://raw.github.com/jimhigson/oboe.js/v1.15.0/dist/oboe-browser.js
 urlget $root/static/moment.js            http://momentjs.com/downloads/moment-with-langs.js
 
 cd $root
