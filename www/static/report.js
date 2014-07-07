@@ -990,7 +990,7 @@ $report = function(){
     this.log = $('<div/>', {		   id:"log"}).appendTo(this.div);
     this.url = '/irgr/' + log_id;
 
-    this.table = $('<table class="report"><thead><tr><th>log id</th><th>fatals</th><th>errors</th><th>warnings</th><th>message</th><th>status</th></th></tr></thead><tbody/></table>').appendTo(this.log);
+    this.table = $('<table class="report"><thead><tr><th>log id</th><th>description</th><th>start</th><th>stop</th><th>duration</th><th>internals</th><th>fatals</th><th>errors</th><th>warnings</th><th>message</th><th>status</th></th></tr></thead><tbody/></table>').appendTo(this.log);
     this.tbody = $('tbody', this.table);
 
     function find(log_id) {
@@ -1004,12 +1004,25 @@ $report = function(){
         }
       }
     }
+    function time(log) {
+      var diff = log.log.stop.diff(log.log.start), duration = moment.duration(diff);
+      return {duration : function(){return Math.floor(duration.asHours()) + ':' + moment(diff).format("mm:ss")}, humanize : function(){return duration.humanize()}};
+    }
     this.tbody.tooltip({
       items : 'td',
       content : function() {
-        var idx = $(this).prevAll().length;
-        if (idx < 1 || idx > 3) return;
-        return find($(this).parent().attr('log_id')).get(['', 'FATAL', 'ERROR', 'WARNING'][idx], 'msg');
+        var idx = $(this).prevAll().length, log = find($(this).parent().attr('log_id'));
+        switch (idx) {
+          case  0 : return $('<table>').append(['log_id', 'activity', 'block', 'version'].reduce(function(l, it){if (log.log[it]===null) return l; return l+'<tr><td>'+it+'</td><td>'+log.log[it]+'</td></tr>'}, ''));
+          case  1 : return log.log.description;
+          case  2 : return log.log.start.format('ddd MMMM Do YYYY, HH:mm:ss');
+          case  3 : return log.log.stop.format('ddd MMMM Do YYYY, HH:mm:ss'); 
+          case  4 : return time(log).humanize();
+          case  9 : return;
+          case 10 : return;
+          default :
+            return log.get(['INTERNAL', 'FATAL', 'ERROR', 'WARNING'][idx-3], 'msg');
+        }
       }
     });
 
@@ -1027,6 +1040,11 @@ $report = function(){
     function addRow(log) {
       var tr = $('<tr>', {log_id : log.log.log_id});
       $('<td>', {text: log.log.log_id}).appendTo(tr);
+      $('<td>', {text: log.log.testname+'-'+log.log.seed}).appendTo(tr);
+      $('<td>', {text: log.log.start.calendar()}).appendTo(tr);
+      $('<td>', {text: log.log.stop.calendar()}).appendTo(tr);
+      $('<td>', {text: time(log).duration()}).appendTo(tr);
+      $('<td>', {text: log.get('INTERNAL', 'count')}).appendTo(tr);
       $('<td>', {text: log.get('FATAL', 'count')}).appendTo(tr);
       $('<td>', {text: log.get('ERROR', 'count')}).appendTo(tr);
       $('<td>', {text: log.get('WARNING', 'count')}).appendTo(tr);
@@ -1080,6 +1098,8 @@ $report = function(){
       '!.[*].*': function(node, path) {
         for (log in node) {
           node[log].get = get;
+          node[log].log.start = moment(node[log].log.start*1000);
+          node[log].log.stop  = moment(node[log].log.stop *1000);
         }
         self[path[1]](node);
         $report.fit(self.log);
