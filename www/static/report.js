@@ -1039,8 +1039,7 @@ $report = function(){
           case  4 : return time(log).humanize();
           case  9 : return;
           case 10 : return;
-          default :
-            return log.get(['INTERNAL', 'FATAL', 'ERROR', 'WARNING'][idx-3], 'msg');
+          default : return log.get(['INTERNAL', 'FATAL', 'ERROR', 'WARNING'][idx-5], 'msg');
         }
       }
     });
