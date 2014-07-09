@@ -864,11 +864,12 @@ $report = function(){
     this.id  = $report.tab_id();
     this.div = $('<div>', {id: this.id});
 
-    this.has_fail = _.some(json, function(it){return it.status.status==='FAIL'});
-
-    this.add = function(tabs) {
+    this.add = function(tabs, event) {
       var href='#'+self.id;
       tabs.tabs('add', href, data.log_id+' triage');
+      if (event) {
+        tabs.tabs({activate : event});
+      }
     };
 
     this.div.appendTo(anchor);
@@ -876,15 +877,26 @@ $report = function(){
     $report.fit($('div', this.div));
     var tbody = $('tbody', this.div);
 
+    tbody.tooltip({
+      items : 'td',
+      content : function() {
+        var tests = $(this).attr('rowspan');
+        if (tests > 1) return tests + ' tests';
+      }
+    });
+
     function ifnull(value, repl) {
       return (value === null)?repl:value;
     }
 
-    function build(tests, depth) {
-      if (depth === undefined) depth = 0;
+    this.build = function build(tests, depth) {
+      depth = depth || 0;
       var name = $report.openTriage.attributes[depth];
-      _.each(_.groupBy(tests, function(test){return ifnull(test.log[name], '-')}), function(tests, attr) {
-        var row = $('tr:last', tbody);
+      var items = _.groupBy(tests, function(test){return ifnull(test.log[name], '-')});
+      _.each(_.sortBy(_.pairs(items), function(it){if (depth) return -it[1].length; return -it[1][0].log.level}), function(it) {
+        var tests = it[1],
+            attr = it[0], 
+            row = $('tr:last', tbody);
         // if the last cell of the last row does not have previous attribute make new row
         if (!$('td:last', row).hasClass($report.openTriage.attributes[depth-1])) {
           row = $('<tr>').appendTo(tbody);
@@ -908,7 +920,14 @@ $report = function(){
       });
     }
 
-    build(json);
+    this.update = function(json) {
+      self.div.fadeTo(0.3);
+      $('tr', tbody).remove();
+      self.build(json);
+      self.div.fadeTo(1);
+    }
+
+    this.build(json);
     $('thead', this.div).bind('click.example', function(){$('tr:has(td.PASS)', this.div).toggle()});
   }
   $report.openTriage.attributes = ['level', 'filename', 'line' , 'ident', 'subident', 'msg', 'description', 'testname'];
@@ -986,12 +1005,12 @@ $report = function(){
   $report.openAutoRegr = function(log_id, anchor) {
     var self = this;
     this.id  = $report.tab_id();
-    this.div = $('<div/>', {class: "tab", id:self.id});
-    this.log = $('<div/>', {		   id:"log"}).appendTo(this.div);
+    this.div = $('<div/>', {id:self.id}).append('<ul><li><a href="#results">Results</a></li></ul>');
+    this.log = $('<div/>', {class: "tab", id:"results"}).appendTo(this.div);
     this.url = '/irgr/' + log_id;
 
-    this.table = $('<table class="report"><thead><tr><th>log id</th><th>description</th><th>start</th><th>stop</th><th>duration</th><th>internals</th><th>fatals</th><th>errors</th><th>warnings</th><th>message</th><th>status</th></th></tr></thead><tbody/></table>').appendTo(this.log);
-    this.tbody = $('tbody', this.table);
+    var table = $('<table class="report"><thead><tr><th>log id</th><th>description</th><th>start</th><th>stop</th><th>duration</th><th>internals</th><th>fatals</th><th>errors</th><th>warnings</th><th>message</th><th>status</th></th></tr></thead><tbody/></table>').appendTo(this.log);
+    var tbody = $('tbody', table);
 
     function find(log_id) {
       return _.find(self.data, function(it){return it.log.log_id==log_id});
@@ -1008,7 +1027,7 @@ $report = function(){
       var diff = log.log.stop.diff(log.log.start), duration = moment.duration(diff);
       return {duration : function(){return Math.floor(duration.asHours()) + ':' + moment(diff).format("mm:ss")}, humanize : function(){return duration.humanize()}};
     }
-    this.tbody.tooltip({
+    tbody.tooltip({
       items : 'td',
       content : function() {
         var idx = $(this).prevAll().length, log = find($(this).parent().attr('log_id'));
@@ -1056,12 +1075,18 @@ $report = function(){
     // data calls
     this.initial = function(data) {
       self.data = data;
-      data.forEach(function(it){addRow(it).prependTo(self.tbody)});
+      data.forEach(function(it){addRow(it).prependTo(tbody)});
+      self.triage = new $report.openTriage({log_id : log_id}, self.tabs, self.data);
+      self.triage.add(self.tabs, function(event, ui) {
+        if (ui.newTab.attr('aria-controls') == self.triage.id) {
+          self.triage.update(self.data);
+        }
+      });
     }
     this.addition = function(data) {
       var add = $();
       data.forEach(function(it){
-        add=add.add(addRow(it).prependTo(self.tbody));
+        add=add.add(addRow(it).prependTo(tbody));
         self.data.push(it);
       });
       $('td', add).wrapInner('<div style="display: block;"/>');
@@ -1070,7 +1095,7 @@ $report = function(){
     this.update = function(data) {
       var add = $(), rm = $();
       data.forEach(function(it){
-        var repl = $('tr[log_id='+it.log.log_id+']', self.tbody);
+        var repl = $('tr[log_id='+it.log.log_id+']', tbody);
         add=add.add(addRow(it).insertBefore(repl));
         rm=rm.add(repl);
         replace(it);
@@ -1105,7 +1130,7 @@ $report = function(){
         $report.fit(self.log);
       }
     }).done(function(i){
-      $('td.RUNNING', self.tbody).removeClass('RUNNING').addClass('FAIL');
+      $('td.RUNNING', tbody).removeClass('RUNNING').addClass('FAIL');
     }).fail(function(e){
       console.error(e.thrown.stack);
     });
@@ -1122,6 +1147,7 @@ $report = function(){
       });
     }
     this.div.appendTo(anchor);
+    this.tabs = this.div.tabs();
     console.log(this);
   }
 
