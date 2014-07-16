@@ -31,6 +31,10 @@ $report = function(){
     return 'none';
   }
 
+  var log_table = function (log) {
+    return $('<table>').append(['log_id', 'activity', 'block', 'version'].reduce(function(l, it){if (log.log[it]===null) return l; return l+'<tr><td>'+it+'</td><td>'+log.log[it]+'</td></tr>'}, ''));
+  }
+
   $report.levels = {
     IGNORE      : 0,
     INT_DEBUG   : 1,
@@ -119,7 +123,6 @@ $report = function(){
     }
     return $report.fit._callbacks;
   }
-
   $report.formatTabs = function(tabs, onempty) {
     function hijax(panel) { 
       $('a', panel).click(function() { 
@@ -209,9 +212,7 @@ $report = function(){
           });
           $('td:first', nRow).attr('title', '').tooltip({
             content: function() {
-              var log = data[iDisplayIndex].log,
-                  table = ['log_id', 'activity', 'block', 'version'].reduce(function(l,it){if (log[it]===null) return l; return l+'<tr><td>'+it+'</td><td>'+log[it]+'</td></tr>'}, '');
-              return $('<table>').append(table);
+              return log_table(data[iDisplayIndex]);
             }
           });
           $(nRow).bind('show.example', function(event){
@@ -879,14 +880,26 @@ $report = function(){
 
     tbody.tooltip({
       items : 'td',
+      track : true,
       content : function() {
-        var tests = $(this).attr('rowspan');
-        if (tests > 1) return tests + ' tests';
+        var tests = $(this).attr('rowspan'), text = $(this).text();
+        if (tests > 1) return '<b>' + text + '</b><br/>' + tests + ' tests';
+        if ($(this).attr('log_id')) return log_table(_.find(json, function(it){return it.log.log_id == text}));
       }
     });
 
     function ifnull(value, repl) {
       return (value === null)?repl:value;
+    }
+
+    function anneal() {
+      var rows = $('tr td:nth-last-child(2)', tbody), row = 0, cont;
+      for (; row<rows.length; row=cont) {
+        for (cont=row+1; cont < rows.length && $(rows[row]).text() == $(rows[cont]).text(); cont+=1) {
+          $(rows[cont]).hide(); // so we can still sort?
+        }
+        $(rows[row]).attr('rowspan', cont-row);
+      }
     }
 
     this.build = function build(tests, depth) {
@@ -905,7 +918,7 @@ $report = function(){
         if (depth == $report.openTriage.attributes.length-1) {
           tests.forEach(function(test, idx) {
             if (idx > 0) row = $('<tr>').appendTo(tbody);
-            $('<td>', {text : test.log.log_id}).appendTo(row);
+            $('<td>', {text : test.log.log_id, log_id : test.log.log_id}).appendTo(row);
             $('<td>', {text : test.status.reason}).appendTo(row);
             $('<td>', {text : test.status.status, class : test.status.status}).appendTo(row);
             row.bind('click.example',
@@ -924,10 +937,12 @@ $report = function(){
       self.div.fadeTo(0.3);
       $('tr', tbody).remove();
       self.build(json);
+      anneal();
       self.div.fadeTo(1);
     }
 
     this.build(json);
+    anneal();
     $('thead', this.div).bind('click.example', function(){$('tr:has(td.PASS)', this.div).toggle()});
   }
   $report.openTriage.attributes = ['level', 'filename', 'line' , 'ident', 'subident', 'msg', 'description', 'testname'];
@@ -1032,12 +1047,12 @@ $report = function(){
       content : function() {
         var idx = $(this).prevAll().length, log = find($(this).parent().attr('log_id'));
         switch (idx) {
-          case  0 : return $('<table>').append(['log_id', 'activity', 'block', 'version'].reduce(function(l, it){if (log.log[it]===null) return l; return l+'<tr><td>'+it+'</td><td>'+log.log[it]+'</td></tr>'}, ''));
+          case  0 : return log_table(log);
           case  1 : return log.log.description;
           case  2 : return log.log.start.format('ddd MMMM Do YYYY, HH:mm:ss');
           case  3 : return log.log.stop.format('ddd MMMM Do YYYY, HH:mm:ss'); 
           case  4 : return time(log).humanize();
-          case  9 : return;
+          case  9 : return ;
           case 10 : return;
           default : return log.get(['INTERNAL', 'FATAL', 'ERROR', 'WARNING'][idx-5], 'msg');
         }
