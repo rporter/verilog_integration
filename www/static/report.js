@@ -1023,6 +1023,7 @@ $report = function(){
     this.div = $('<div/>', {id:self.id}).append('<ul><li><a href="#results">Results</a></li></ul>');
     this.log = $('<div/>', {class: "tab", id:"results"}).appendTo(this.div);
     this.url = '/irgr/' + log_id;
+    this.time = [];
 
     var table = $('<table class="report"><thead><tr><th>log id</th><th>description</th><th>start</th><th>stop</th><th>duration</th><th>internals</th><th>fatals</th><th>errors</th><th>warnings</th><th>message</th><th>status</th></th></tr></thead><tbody/></table>').appendTo(this.log);
     var tbody = $('tbody', table);
@@ -1039,7 +1040,7 @@ $report = function(){
       }
     }
     function time(log) {
-      var diff = log.log.stop.diff(log.log.start), duration = moment.duration(diff);
+      var diff = self.time[log.log.log_id].stop.diff(self.time[log.log.log_id].start), duration = moment.duration(diff);
       return {duration : function(){return Math.floor(duration.asHours()) + ':' + moment(diff).format("mm:ss")}, humanize : function(){return duration.humanize()}};
     }
     tbody.tooltip({
@@ -1049,8 +1050,8 @@ $report = function(){
         switch (idx) {
           case  0 : return log_table(log);
           case  1 : return log.log.description;
-          case  2 : return log.log.start.format('ddd MMMM Do YYYY, HH:mm:ss');
-          case  3 : return log.log.stop.format('ddd MMMM Do YYYY, HH:mm:ss'); 
+          case  2 : return self.time[log.log.log_id].start.format('ddd MMMM Do YYYY, HH:mm:ss');
+          case  3 : return self.time[log.log.log_id].stop.format('ddd MMMM Do YYYY, HH:mm:ss'); 
           case  4 : return time(log).humanize();
           case  9 : return ;
           case 10 : return;
@@ -1074,8 +1075,8 @@ $report = function(){
       var tr = $('<tr>', {log_id : log.log.log_id});
       $('<td>', {text: log.log.log_id}).appendTo(tr);
       $('<td>', {text: log.log.testname+'-'+log.log.seed}).appendTo(tr);
-      $('<td>', {text: log.log.start.calendar()}).appendTo(tr);
-      $('<td>', {text: log.log.stop.calendar()}).appendTo(tr);
+      $('<td>', {text: self.time[log.log.log_id].start.calendar()}).appendTo(tr);
+      $('<td>', {text: self.time[log.log.log_id].stop.calendar()}).appendTo(tr);
       $('<td>', {text: time(log).duration()}).appendTo(tr);
       $('<td>', {text: log.get('INTERNAL', 'count')}).appendTo(tr);
       $('<td>', {text: log.get('FATAL', 'count')}).appendTo(tr);
@@ -1124,8 +1125,9 @@ $report = function(){
       );
     }
     this.final = function(data) {
+      var hash = _.indexBy(self.data, function(it){return it.log.log_id});
       this.update(_.filter(data, function(it){
-        return !_.isEqual(find(it.log.log_id), it);
+        return !_.isEqual(hash[it.log.log_id], it);
       }));
     }
     this.static = function(data) {
@@ -1137,8 +1139,10 @@ $report = function(){
       '!.[*].*': function(node, path) {
         for (log in node) {
           node[log].get = get;
-          node[log].log.start = moment(node[log].log.start*1000);
-          node[log].log.stop  = moment(node[log].log.stop *1000);
+          self.time[node[log].log.log_id] = {
+            start : moment(node[log].log.start*1000),
+            stop  : moment(node[log].log.stop *1000)
+          };
         }
         self[path[1]](node);
         $report.fit(self.log);
