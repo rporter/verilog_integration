@@ -1084,6 +1084,10 @@ $report = function(){
       $('<td>', {text: log.get('WARNING', 'count')}).appendTo(tr);
       $('<td>', {text: log.status.reason}).appendTo(tr);
       $('<td>', {class: log.log.status === null?'RUNNING':log.status.status, text: log.status.status}).appendTo(tr);
+      tr.bind('click.example',
+        function() {
+          (new (log.log.parent?$report.openLog:$report.openRegr)({log_id : log.log.log_id, name : log.log.description, status : log.status, log : log, anchor : self.div}, self.div, log, log)).add(self.div);
+         });
       return tr;
     }
 
