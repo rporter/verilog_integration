@@ -54,3 +54,6 @@ class json :
   @classmethod
   def dump(cls, obj, f) :
     json_.dump(obj, f)
+  @classmethod
+  def dumps(cls, obj, f) :
+    json_.dumps(obj, f)
