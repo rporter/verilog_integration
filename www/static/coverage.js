@@ -66,7 +66,7 @@ $coverage = function(){};
       return it || '<i>not given</i>';
     }
     function data() {
-      return coverpoint.children.map(function(it){return [_default(it.hierarchy), _default(it.description), $('#template-axis-table').jqote({axes:it.axes}), it.coverage.hits, it.coverage.goal, it.coverage.coverage.toFixed(2)]});
+      return coverpoint.children.map(function(it){return [_default(it.hierarchy), _default(it.description), $('#template-axis-table').jqote({axes:it.axes}), it.buckets.length, it.coverage.hits, it.coverage.goal, it.coverage.coverage.toFixed(2)]});
     }
 
     this.build = function() {
@@ -79,6 +79,7 @@ $coverage = function(){};
   	  { "sTitle": "name" },
   	  { "sTitle": "description" },
   	  { "sTitle": "axes" },
+	  { "sTitle": "buckets" },
 	  { "sTitle": "hits" },
 	  { "sTitle": "goal" },
 	  { "sTitle": "coverage %" }
