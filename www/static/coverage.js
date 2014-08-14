@@ -227,7 +227,7 @@ $coverage = function(){};
     }
 
     function showBucket(node) {
-      if (node.attr('title') === undefined) return;
+      if ($('a.popup', node).length) return; // done already
       var bucket_id = parseInt(node.attr('bkt'));
       var bucket    = buckets[bucket_id];
       var goal      = bucket[0];
@@ -237,10 +237,15 @@ $coverage = function(){};
       } else {
         url += (bucket_id + offset);
       }
-      node.removeAttr('title');
       node.html(function(){
-        return '<a class="popup">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="hit details for ' + log_id + '/' + bucket_id + '"><h5 style="margin:0">goal : '+bucket[0]+'</h5><p>loading ...</p></span></a>';
-      });
+        return '<a class="popup active">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="hit details for ' + log_id + '/' + bucket_id + '"><h5 style="margin:0">goal : '+bucket[0]+'</h5><p>loading ...</p></span></a>';
+      }).hover(
+        function(event){
+          $('a.popup', this).addClass('active');
+          posBucketPopup($(this));
+        },
+        function(){$('a.popup', this).removeClass('active')}
+      );
       $.getJSON(url, function(data) {
         $('span p', node).replaceWith(function() {
           if (data.length) {
@@ -311,6 +316,7 @@ $coverage = function(){};
     }
 
     function showAliases(node) {
+      if ($('a.popup', node).length) return; // done already
 
       function permsFromBucket(axes, bucket, values) {
         if (axes.length == 0) return values; // terminal case
@@ -326,10 +332,15 @@ $coverage = function(){};
       var bucket    = buckets[bucket_id];
       var goal      = bucket[0];
       var title     = 'alias details for ' + log_id + '/' + bucket_id;
-      node.removeAttr('title');
       node.html(function(){
-        return '<a class="popup onhover">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="'+title+'"><h5 style="margin-bottom:0.2em;margin-top:0;text-align: center">goal : '+bucket[0]+'</h5></span></a>';
-      });
+        return '<a class="popup active">' + $(this).html() + '<span id="hits-' + bucket_id + '" title="'+title+'"><h5 style="margin-bottom:0.2em;margin-top:0;text-align: center">goal : '+bucket[0]+'</h5></span></a>';
+      }).hover(
+        function(event){
+          $('a.popup', this).addClass('active');
+          posBucketPopup($(this));
+        },
+        function(){$('a.popup', this).removeClass('active')}
+      );
       if (!all_visible()) {
         var
           table = $('<table class="report alias"><thead><tr>' + invisible_axes().reduce(function(p, c){return p+'<th>'+c.name+'</th>'}, '') + '<th>goal</th><th>hits</th></tr></thead><tbody/></table>').appendTo($('span', node)),
@@ -359,7 +370,6 @@ $coverage = function(){};
           container.dialog({width:"auto"});
         });
       }
-      node.unbind('mouseenter.coverage'); // don't do again
     }
 
     function updateVisible() {
@@ -705,44 +715,36 @@ $coverage = function(){};
         ) + '<th>goal</th><th>hits</th></thead><tbody id="cvg-point-body"></tbody></table></div>');
 
       addMenu();
-      var body = $("#cvg-point-body", where);
-      for (var bucket=0; bucket<buckets.length; bucket++) {
-        var bkt = buckets[bucket];
-        var title = offset + bucket;
-        if (buckets.hasOwnProperty('aliases')) {
-          var aliases = buckets.aliases[bucket];
-          if (aliases.length > 10) {
-            title = aliases.slice(0,5).join(',') + ',...,' + aliases.slice(-5).join(',');
-          } else {
-            title = aliases.join(',');
+      var table = $('table', where), tbody = $("#cvg-point-body", where), bucket=0, length=buckets.length;
+      table.tablesorter();
+      tbody.on('mouseenter.coverage', 'td.hits', function() {
+        if (coverpoint.cumulative === true) {
+          showBucket($(this));
+        } else if (!all_visible()) {
+          showAliases($(this));
+        }
+      });
+      function iteration(){
+        for (; bucket<length;) {
+          var bkt = buckets[bucket];
+          var title = offset + bucket;
+          var hide = (options.hide_hits && bkt[1] >= bkt[0]) || (options.hide_dont_care && bkt[0] == 0) || (options.hide_illegal && bkt[0] < 0);
+          if (buckets.hasOwnProperty('aliases')) {
+            var aliases = buckets.aliases[bucket];
+            if (aliases.length > 10) {
+              title = aliases.slice(0,5).join(',') + ',...,' + aliases.slice(-5).join(',');
+            } else {
+              title = aliases.join(',');
+            }
+          }
+          $('<tr class="' + coverageTable.classFromBucket(bkt) + '"><td title="' + title + '">' + bucket + '</td>' + permsFromBucket(axes, bucket) + '<td>' + bkt[0] + '</td><td class="hits" bkt="' + bucket + '">' + bkt[1] + '</td></tr>').appendTo(tbody).toggle(!hide);
+          if (bucket++ < length && bucket % 100 == 0) {
+            setTimeout(iteration, 0); break;
           }
         }
-        body.append('<tr class="' + coverageTable.classFromBucket(bkt) + '"><td title="' + title + '">' + bucket + '</td>' + permsFromBucket(axes, bucket) + '<td>' + bkt[0] + '</td><td class="hits" bkt="' + bucket + '">' + bkt[1] + '</td></tr>');
+        table.trigger('update');
       }
-      table = $('table', where).tablesorter();
-      if (coverpoint.cumulative === true) {
-        $('td.hits', body).attr('title', 'loading...').hover(
-          function(event){
-            showBucket($(this));
-            $('a.popup', this).addClass('active');
-            posBucketPopup($(this));
-          },
-          function(){$('a.popup', this).removeClass('active')}
-        );
-      } else if (!all_visible()) {
-        $('td.hits', body).bind('mouseenter.coverage', function() {
-          showAliases($(this));
- 	});
-      }
-      if (options.hide_hits) {
-        $('tr.hit', where).hide();
-      }
-      if (options.hide_dont_care) {
-        $('tr.dont_care', where).hide();
-      }
-      if (options.hide_illegal) {
-        $('tr.illegal', where).hide();
-      }
+      iteration(); // start
     }
 
     function build_graph() {
@@ -822,20 +824,13 @@ $coverage = function(){};
       var cells = $('th,td', where).not('.title');
       var width = Array.max(cells.map(function(idx,it){return $(it).width()}));
       cells.css('height', width).css('width', width);
-      if (coverpoint.cumulative === true) {
-        $('td.hits', where).attr('title', 'loading...').hover(
-          function(event){
-            showBucket($(this));
-            $('a.popup', this).addClass('active');
-            posBucketPopup($(this));
-          },
-          function(){$('a.popup', this).removeClass('active')}
-        );
-      } else {
-        $('td.hits', where).bind('mouseenter.coverage', function() {
+      where.on('mouseenter.coverage', 'td.hits', function() {
+        if (coverpoint.cumulative === true) {
+          showBucket($(this));
+        } else {
           showAliases($(this));
-        });
-      }
+        }
+      });
       if (coverpoint.cumulative === true) {
         if (options.heat_map) {
           var tests = coverpoint.heat_map.testnames.sort(function(l,r){return l.hits < r.hits});
@@ -942,7 +937,7 @@ $coverage = function(){};
     case  0 :
       return 'dont_care';
     case -1 :
-	if (bucket[1] > 0) return 'illegal hit';
+      if (bucket[1] > 0) return 'illegal hit';
       return 'illegal';
     default :
       if (bucket[1] >= bucket[0]) return 'hit';
